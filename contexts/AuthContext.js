@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { login, getUserInfo, logout } from "@/services/auth0/AuthService";
-import { getUserData, saveUserData, updateUserData, subscribeToUserData } from "@/services/supabase/database";
+import { getUserDataByAuthId, saveUserData, updateUserData, subscribeToUserData, testSupabaseConnection } from "@/services/supabase/database";
 
 export const AuthContext = createContext();
 
@@ -43,33 +43,33 @@ export function AuthProvider({ children }) {
     
     try {
       // Get Auth0 user ID
-      const userId = authUser.sub;
+      const authUserId = authUser.sub;
       
-      // Check if user exists in Supabase
-      let userData = await getUserData(userId);
+      // Check if user exists in Supabase by Auth0 ID
+      let userData = await getUserDataByAuthId(authUserId);
       
       if (!userData) {
         // Create new user record if it doesn't exist
-        userData = {
-          id: userId, // Important for Supabase - explicit ID
+        const newUserData = {
+          auth_id: authUserId,
           email: authUser.email,
           name: authUser.name || authUser.email,
           picture: authUser.picture,
           created_at: new Date().toISOString(),
           last_login: new Date().toISOString(),
-          // Add any other default user properties
         };
-        const result = await saveUserData(userId, userData);
+        
+        const result = await saveUserData(newUserData);
         // Update with actual returned data from Supabase
         if (result) userData = Array.isArray(result) ? result[0] : result;
       } else {
         // Update last login time
         const updates = {
           last_login: new Date().toISOString(),
-          // Update user picture if changed
           picture: authUser.picture || userData.picture
         };
-        const result = await updateUserData(userId, updates);
+        
+        const result = await updateUserData(userData.id, updates);
         // Update userData with the response
         if (result) userData = Array.isArray(result) ? result[0] : result;
       }
@@ -83,38 +83,43 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // Check for stored token on startup
-    const loadToken = async () => {
-      try {
-        const token = await tokenStorage.getItem('auth_token');
-        if (token) {
-          const userInfo = await getUserInfo(token);
-          setUser(userInfo);
-          
-          // Initialize user data in Supabase
-          await initializeUserData(userInfo);
+    if (!user || !user.sub) return;
+    
+    // First get the Supabase ID
+    getUserDataByAuthId(user.sub).then(userData => {
+      if (!userData) return;
+      
+      // Then subscribe using the Supabase ID
+      const unsubscribe = subscribeToUserData(userData.id, (updatedData) => {
+        if (updatedData) {
+          setSupabaseData(updatedData);
         }
-      } catch (error) {
-        console.error('Error loading token:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadToken();
-  }, []);
+      });
+      
+      // Clean up subscription on unmount or user change
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    });
+  }, [user]);
 
   const signIn = async () => {
     setLoading(true);
+    await testSupabaseConnection();
     try {
       const token = await login();
+      console.log('Auth0 token received:', token ? 'Token present' : 'No token');
+      
       if (token) {
         await tokenStorage.setItem('auth_token', token);
         const userInfo = await getUserInfo(token);
+        console.log('Auth0 user info:', JSON.stringify(userInfo));
+        
         setUser(userInfo);
         
         // Initialize user data in Supabase
-        await initializeUserData(userInfo);
+        const supabaseResult = await initializeUserData(userInfo);
+        console.log('Supabase initialization result:', supabaseResult);
       }
     } catch (error) {
       console.error('Sign in error:', error);

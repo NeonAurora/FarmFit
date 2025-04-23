@@ -1,12 +1,13 @@
 // services/supabase/database.js
 import { supabase } from './config';
 
-// Create or update user data
-export const saveUserData = async (userId, userData) => {
+// Create or update user data (modified for Auth ID)
+export const saveUserData = async (userData) => {
   try {
+    // If auth_id exists but no id, it's a new user
     const { data, error } = await supabase
       .from('users')
-      .upsert({ id: userId, ...userData })
+      .insert(userData)
       .select();
     
     if (error) throw error;
@@ -17,30 +18,13 @@ export const saveUserData = async (userId, userData) => {
   }
 };
 
-// Get user data once
-export const getUserData = async (userId) => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error getting user data:', error);
-    return null;
-  }
-};
-
-// Update specific user data fields
-export const updateUserData = async (userId, updates) => {
+// Update specific user data fields by Supabase ID
+export const updateUserData = async (supabaseId, updates) => {
   try {
     const { data, error } = await supabase
       .from('users')
       .update(updates)
-      .eq('id', userId)
+      .eq('id', supabaseId)
       .select();
     
     if (error) throw error;
@@ -72,4 +56,45 @@ export const subscribeToUserData = (userId, callback) => {
   return () => {
     supabase.removeChannel(subscription);
   };
+};
+
+export const getUserDataByAuthId = async (authUserId) => {
+  try {
+    // Make sure column name is correct - it should be the actual DB column name
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_id', authUserId)  // Make sure 'auth_id' is the actual column name
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error in getUserDataByAuthId:', error);
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.error('Error getting user data by auth ID:', error);
+    return null;
+  }
+};
+
+export const testSupabaseConnection = async () => {
+  try {
+    console.log('Testing Supabase connection...');
+    const { data, error } = await supabase
+      .from('users')
+      .select('id')  // Just select a column instead of count()
+      .limit(1);
+    
+    if (error) {
+      console.error('Supabase connection test failed:', error);
+      return false;
+    }
+    
+    console.log('Supabase connection test successful:', data);
+    return true;
+  } catch (error) {
+    console.error('Supabase connection test error:', error);
+    return false;
+  }
 };

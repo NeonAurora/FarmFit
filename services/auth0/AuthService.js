@@ -98,11 +98,11 @@ export const logout = async () => {
   try {
     console.log("Logging out from Auth0...");
     
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.location.replace(
         `https://${auth0Config.domain}/v2/logout?client_id=${auth0Config.clientId}&returnTo=${window.location.origin}`
       );
-    } else {
+    } else if (Platform.OS !== 'web') {
       // For native platforms, specify a logout redirect
       const returnToUrl = `${getAppScheme()}:///`;
       const logoutUrl = `https://${auth0Config.domain}/v2/logout?client_id=${auth0Config.clientId}&returnTo=${encodeURIComponent(returnToUrl)}`;
