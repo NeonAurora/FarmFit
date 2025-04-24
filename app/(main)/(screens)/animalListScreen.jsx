@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { router } from 'expo-router';
 
 export default function AnimalListScreen() {
   const { user } = useAuth();
@@ -55,11 +56,15 @@ export default function AnimalListScreen() {
   };
   
   const handleAddAnimal = () => {
-    navigation.navigate('AddAnimal');
+    alert("FAB Clicked");
+    router.push("/addAnimalScreen");
   };
   
   const handleAnimalPress = (animalId) => {
-    navigation.navigate('AnimalProfile', { animalId });
+    router.push({
+      pathname: '/animalProfileScreen',
+      params: { animalId }
+    });
   };
   
   const getFilteredAnimals = () => {

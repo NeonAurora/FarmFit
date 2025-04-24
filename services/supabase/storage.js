@@ -35,7 +35,7 @@ export const uploadImage = async (uri) => {
       // Upload to Supabase
       const { data, error } = await supabase.storage
         .from('farmfit')
-        .upload(`farmfit/${fileName}`, arrayBuffer, {
+        .upload(`profile/${fileName}`, arrayBuffer, {
           contentType: `image/${fileExtension}`,
           upsert: true
         });

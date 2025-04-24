@@ -20,7 +20,7 @@ export default function HomePage() {
     {
       icon: 'alpha-b',
       label: 'Button2',
-      onPress: () => router.push('/quizzes'),
+      onPress: () => router.push('/animalListScreen'),
     },
     {
       icon: 'alpha-c',
