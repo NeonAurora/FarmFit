@@ -1,19 +1,25 @@
-// components/AddAnimalScreen.jsx
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View, ActivityIndicator, TouchableOpacity } from 'react-native';
+// app/(main)/(screens)/editAnimalScreen.jsx
+import React, { useState, useEffect } from 'react';
+import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { TextInput, Button, Text, Divider, RadioButton, List } from 'react-native-paper';
 import * as ExpoImagePicker from 'expo-image-picker';
-import { uploadImage } from '@/services/supabase/storage';
+import { uploadImage, deleteImage } from '@/services/supabase/storage';
 import { supabase } from '@/services/supabase/config';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAnimal } from '@/hooks/useAnimal';
+import { useLocalSearchParams, router } from 'expo-router';
 
-export default function AddAnimalScreen() {
+export default function EditAnimalScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { user } = useAuth();
+  const { animalId } = useLocalSearchParams();
+  
+  // Use animal hook to get current data
+  const { animal, loading: animalLoading, error: animalError } = useAnimal(animalId);
   
   // Form state
   const [animalName, setAnimalName] = useState('');
@@ -47,6 +53,49 @@ export default function AddAnimalScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Populate form with animal data once loaded
+  useEffect(() => {
+    if (animal) {
+      setAnimalName(animal.name || '');
+      setSpecies(animal.species || '');
+      setAge(animal.age || '');
+      setSex(animal.sex || '');
+      setDateAcquired(animal.date_acquired || '');
+      setHealthStatus(animal.health_status || '');
+      setAnimalImage(animal.image_url || null);
+      setAnimalType(animal.animal_type || 'livestock');
+      
+      // Expand appropriate section based on animal type
+      if (animal.animal_type === 'livestock') {
+        setLivestockExpanded(true);
+      } else if (animal.animal_type === 'pet') {
+        setPetExpanded(true);
+      }
+      
+      // Livestock fields
+      setProductionPurpose(animal.production_purpose || '');
+      setIdentificationNumber(animal.identification_number || '');
+      setPurchasePrice(animal.purchase_price ? String(animal.purchase_price) : '');
+      setWeight(animal.weight ? String(animal.weight) : '');
+      setFeedRequirements(animal.feed_requirements || '');
+      
+      // Pet fields
+      setPetType(animal.pet_type || '');
+      setBehavioralNotes(animal.behavioral_notes || '');
+      setTrainingProgress(animal.training_progress || '');
+      setDietaryPreferences(animal.dietary_preferences || '');
+      setGroomingNeeds(animal.grooming_needs || '');
+    }
+  }, [animal]);
+  
+  // Handle errors from animal hook
+  useEffect(() => {
+    if (animalError) {
+      Alert.alert("Error", "Could not load animal data. Please try again.");
+      router.back();
+    }
+  }, [animalError]);
+  
   const handlePickImage = async () => {
     // Request permissions
     const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
@@ -57,7 +106,7 @@ export default function AddAnimalScreen() {
   
     // Launch picker
     const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: "Images",
+      mediaTypes: ExpoImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
     });
   
@@ -67,26 +116,32 @@ export default function AddAnimalScreen() {
     }
   };
   
-  const handleSaveAnimal = async () => {
+  const handleUpdateAnimal = async () => {
     if (!animalName || !species) {
       alert("Please provide at least a name and species for your animal.");
       return;
     }
     
     setIsSaving(true);
-    let imageUrl = null;
+    let imageUrl = animal.image_url; // Default to current image URL
     
     try {
-      // Upload image if present
-      if (animalImage) {
+      // If image changed, upload new one and delete old one
+      if (animalImage && animalImage !== animal.image_url) {
         setIsUploading(true);
+        // Upload new image
         imageUrl = await uploadImage(animalImage);
+        
+        // Delete old image if it exists
+        if (animal.image_url) {
+          await deleteImage(animal.image_url);
+        }
+        
         setIsUploading(false);
       }
       
       // Prepare animal data
       const animalData = {
-        user_id: user?.sub, // Auth0 user ID
         name: animalName,
         species: species,
         age: age,
@@ -95,7 +150,7 @@ export default function AddAnimalScreen() {
         health_status: healthStatus,
         image_url: imageUrl,
         animal_type: animalType,
-        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         // Conditional fields based on animal type
         ...(animalType === 'livestock' ? {
           production_purpose: productionPurpose,
@@ -113,53 +168,47 @@ export default function AddAnimalScreen() {
         } : {})
       };
       
-      // Save to Supabase
+      // Update in Supabase
       const { data, error } = await supabase
         .from('animals')
-        .insert(animalData)
+        .update(animalData)
+        .eq('id', animalId)
+        .eq('user_id', user.sub)
         .select();
       
-        if (error) {
-            console.error('Detailed Supabase error:', JSON.stringify(error));
-            throw error;
-        }
+      if (error) {
+        console.error('Detailed Supabase error:', JSON.stringify(error));
+        throw error;
+      }
       
-      alert("Animal successfully added!");
-      // Clear form or navigate away
-      resetForm();
+      Alert.alert("Success", "Animal successfully updated!");
+      // Navigate back to animal profile
+      router.push({
+        pathname: '/animalProfileScreen',
+        params: { animalId }
+      });
       
     } catch (error) {
-      console.error('Error saving animal:', error.message || error);
-      alert("Failed to save animal. Please try again.");
+      console.error('Error updating animal:', error.message || error);
+      Alert.alert("Error", "Failed to update animal. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
   
-  const resetForm = () => {
-    setAnimalName('');
-    setSpecies('');
-    setAge('');
-    setSex('');
-    setDateAcquired('');
-    setHealthStatus('');
-    setAnimalImage(null);
-    setProductionPurpose('');
-    setIdentificationNumber('');
-    setPurchasePrice('');
-    setWeight('');
-    setFeedRequirements('');
-    setPetType('');
-    setBehavioralNotes('');
-    setTrainingProgress('');
-    setDietaryPreferences('');
-    setGroomingNeeds('');
-  };
+  if (animalLoading) {
+    return (
+      <ThemedView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0a7ea4" />
+        <Text style={styles.loadingText}>Loading animal data...</Text>
+      </ThemedView>
+    );
+  }
   
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Add New Animal</Text>
+        <Text style={styles.title}>Edit Animal</Text>
         
         {/* Animal Type Selection */}
         <View style={styles.typeSelection}>
@@ -352,15 +401,26 @@ export default function AddAnimalScreen() {
           </View>
         </List.Accordion>
         
-        <Button 
-          mode="contained" 
-          onPress={handleSaveAnimal}
-          style={styles.saveButton}
-          disabled={isSaving || isUploading}
-          loading={isSaving}
-        >
-          Save Animal
-        </Button>
+        <View style={styles.buttonContainer}>
+          <Button 
+            mode="outlined" 
+            onPress={() => router.back()}
+            style={styles.cancelButton}
+            labelStyle={styles.cancelButtonText}
+          >
+            Cancel
+          </Button>
+          
+          <Button 
+            mode="contained" 
+            onPress={handleUpdateAnimal}
+            style={styles.saveButton}
+            disabled={isSaving || isUploading}
+            loading={isSaving}
+          >
+            Update Animal
+          </Button>
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -373,6 +433,14 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
   },
   title: {
     fontSize: 24,
@@ -418,8 +486,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 8,
   },
-  saveButton: {
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 24,
+  },
+  saveButton: {
+    flex: 1,
     paddingVertical: 8,
+    marginLeft: 8,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderColor: '#999',
+  },
+  cancelButtonText: {
+    color: '#999',
   },
 });

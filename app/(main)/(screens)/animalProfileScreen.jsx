@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { Text, Button, Divider, Card, Avatar, List } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,53 +33,57 @@ export default function AnimalProfileScreen() {
   useEffect(() => {
     if (error) {
       Alert.alert('Error', error);
-      navigation.goBack();
+      router.back();
     }
   }, [error, navigation]);
   
   const handleEditAnimal = () => {
-    navigation.navigate('EditAnimal', { animalId });
+    router.push({
+      pathname: '/editAnimalProfileScreen',
+      params: { animalId: animalId }
+    });
   };
   
-  const handleDeleteAnimal = async () => {
-    Alert.alert(
-      'Confirm Deletion',
-      `Are you sure you want to delete ${animal?.name}?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Delete image from storage if exists
-              if (animal.image_url) {
-                await deleteImage(animal.image_url);
-              }
-              
-              // Delete record from database
-              const { error } = await supabase
-                .from('animals')
-                .delete()
-                .eq('id', animalId)
-                .eq('user_id', user.sub);
-              
-              if (error) throw error;
-              
-              Alert.alert('Success', 'Animal deleted successfully');
-              navigation.goBack();
-            } catch (error) {
-              console.error('Error deleting animal:', error);
-              Alert.alert('Error', 'Failed to delete animal');
+  // In the delete function
+const handleDeleteAnimal = async () => {
+  Alert.alert(
+    'Confirm Deletion',
+    `Are you sure you want to delete ${animal?.name}?`,
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            // Delete image from storage if exists
+            if (animal.image_url) {
+              await deleteImage(animal.image_url);
             }
-          },
+            
+            // Delete record from database
+            const { error } = await supabase
+              .from('animals')
+              .delete()
+              .eq('id', animalId)
+              .eq('user_id', user.sub);
+            
+            if (error) throw error;
+            
+            Alert.alert('Success', 'Animal deleted successfully');
+            router.push('/animalListScreen'); // Change this line to navigate to the list screen
+          } catch (error) {
+            console.error('Error deleting animal:', error);
+            Alert.alert('Error', 'Failed to delete animal');
+          }
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
   
   // Loading state
   if (loading) {
@@ -95,7 +100,7 @@ export default function AnimalProfileScreen() {
     return (
       <ThemedView style={styles.errorContainer}>
         <ThemedText type="title">Animal Not Found</ThemedText>
-        <Button mode="contained" onPress={() => navigation.goBack()} style={styles.button}>
+        <Button mode="contained" onPress={() => router.back()} style={styles.button}>
           Go Back
         </Button>
       </ThemedView>
