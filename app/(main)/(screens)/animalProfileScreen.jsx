@@ -3,12 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { Text, Button, Divider, Card, Avatar, List } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { supabase } from '@/services/supabase/config';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { deleteImage } from '@/services/supabase/storage';
+import { supabase } from '@/services/supabase/config';
+import { useAnimal } from '@/hooks/useAnimal';
 
 export default function AnimalProfileScreen() {
   const route = useRoute();
@@ -20,39 +21,20 @@ export default function AnimalProfileScreen() {
   // Get animal ID from route params
   const { animalId } = route.params;
   
-  // State
-  const [animal, setAnimal] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // State for accordion expansion
   const [expandedLivestock, setExpandedLivestock] = useState(false);
   const [expandedPet, setExpandedPet] = useState(false);
   
-  // Fetch animal data
-  useEffect(() => {
-    fetchAnimalData();
-  }, [animalId]);
+  // Use the custom hook for real-time animal data
+  const { animal, loading, error } = useAnimal(animalId);
   
-  const fetchAnimalData = async () => {
-    if (!user?.sub) return;
-    
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('animals')
-        .select('*')
-        .eq('id', animalId)
-        .eq('user_id', user.sub)
-        .single();
-      
-      if (error) throw error;
-      
-      setAnimal(data);
-    } catch (error) {
-      console.error('Error fetching animal data:', error);
-      Alert.alert('Error', 'Failed to load animal data');
-    } finally {
-      setLoading(false);
+  // Handle error - navigate back if animal was deleted or not found
+  useEffect(() => {
+    if (error) {
+      Alert.alert('Error', error);
+      navigation.goBack();
     }
-  };
+  }, [error, navigation]);
   
   const handleEditAnimal = () => {
     navigation.navigate('EditAnimal', { animalId });
@@ -71,7 +53,6 @@ export default function AnimalProfileScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            setLoading(true);
             try {
               // Delete image from storage if exists
               if (animal.image_url) {
@@ -92,7 +73,6 @@ export default function AnimalProfileScreen() {
             } catch (error) {
               console.error('Error deleting animal:', error);
               Alert.alert('Error', 'Failed to delete animal');
-              setLoading(false);
             }
           },
         },

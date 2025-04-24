@@ -1,62 +1,25 @@
 // screens/AnimalListScreen.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FlatList, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Card, Text, Avatar, ActivityIndicator, FAB, Searchbar, Chip } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import { supabase } from '@/services/supabase/config';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
+import { useAnimals } from '@/hooks/useAnimalsData';
 
 export default function AnimalListScreen() {
-  const { user } = useAuth();
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  
-  const [animals, setAnimals] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all'); // 'all', 'livestock', 'pet'
   
-  useEffect(() => {
-    if (user?.sub) {
-      fetchAnimals();
-    }
-  }, [user, filter]);
-  
-  const fetchAnimals = async () => {
-    if (!user?.sub) return;
-    
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('animals')
-        .select('*')
-        .eq('user_id', user.sub)
-        .order('created_at', { ascending: false });
-      
-      // Apply filter if not 'all'
-      if (filter !== 'all') {
-        query = query.eq('animal_type', filter);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      setAnimals(data || []);
-    } catch (error) {
-      console.error('Error fetching animals:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use the hook instead of managing state and fetching manually
+  const { animals, loading, error } = useAnimals(filter);
   
   const handleAddAnimal = () => {
-    alert("FAB Clicked");
     router.push("/addAnimalScreen");
   };
   
@@ -152,7 +115,12 @@ export default function AnimalListScreen() {
         </Chip>
       </View>
       
-      {loading ? (
+      {error ? (
+        <View style={styles.errorContainer}>
+          <ThemedText type="title">Error</ThemedText>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
+        </View>
+      ) : loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0a7ea4" />
           <ThemedText style={styles.loadingText}>Loading your animals...</ThemedText>
@@ -219,6 +187,17 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 10,
     textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    marginTop: 10,
+    textAlign: 'center',
+    color: '#E74C3C',
   },
   animalCard: {
     marginBottom: 12,

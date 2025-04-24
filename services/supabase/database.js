@@ -98,3 +98,91 @@ export const testSupabaseConnection = async () => {
     return false;
   }
 };
+
+// Subscribe to animal data changes for a specific user
+export const subscribeToAnimals = (userId, callback) => {
+  const subscription = supabase
+    .channel(`public:animals:user_id=eq.${userId}`)
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'animals',
+        filter: `user_id=eq.${userId}` 
+      }, 
+      (payload) => {
+        callback(payload);
+      }
+    )
+    .subscribe();
+  
+  // Return unsubscribe function
+  return () => {
+    supabase.removeChannel(subscription);
+  };
+};
+
+export const subscribeToAnimal = (animalId, userId, callback) => {
+  const subscription = supabase
+    .channel(`public:animals:id=eq.${animalId}`) // Simplify channel name
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'animals',
+        filter: `id=eq.${animalId}` // Simplify filter
+      }, 
+      (payload) => {
+        console.log('Animal subscription update:', payload); // Add logging
+        callback(payload);
+      }
+    )
+    .subscribe();
+  
+  // Return unsubscribe function
+  return () => {
+    supabase.removeChannel(subscription);
+  };
+};
+
+// Get all animals for a user
+export const getAnimalsByUserId = async (userId, filterType = 'all') => {
+  try {
+    let query = supabase
+      .from('animals')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    // Apply filter if not 'all'
+    if (filterType !== 'all') {
+      query = query.eq('animal_type', filterType);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting animals by user ID:', error);
+    return [];
+  }
+};
+
+// Get a specific animal by ID
+export const getAnimalById = async (animalId, userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('animals')
+      .select('*')
+      .eq('id', animalId)
+      .eq('user_id', userId)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error getting animal by ID:', error);
+    return null;
+  }
+};
