@@ -34,8 +34,8 @@ export const uploadImage = async (uri) => {
       
       // Upload to Supabase
       const { data, error } = await supabase.storage
-        .from('quiz-images')
-        .upload(`questions/${fileName}`, arrayBuffer, {
+        .from('farmfit')
+        .upload(`farmfit/${fileName}`, arrayBuffer, {
           contentType: `image/${fileExtension}`,
           upsert: true
         });
@@ -47,8 +47,8 @@ export const uploadImage = async (uri) => {
       
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
-        .from('quiz-images')
-        .getPublicUrl(`questions/${fileName}`);
+        .from('farmfit')
+        .getPublicUrl(`profile/${fileName}`);
       
       console.log("Upload successful, URL:", publicUrlData);
       return publicUrlData.publicUrl;
@@ -65,7 +65,7 @@ export const uploadImage = async (uri) => {
 export const deleteImage = async (url) => {
   try {
     // Extract the path from the URL
-    const path = url.split('quiz-images/')[1];
+    const path = url.split('farmfit/')[1];
     
     if (!path) {
       console.error('Invalid URL format');
@@ -73,7 +73,7 @@ export const deleteImage = async (url) => {
     }
     
     const { error } = await supabase.storage
-      .from('quiz-images')
+      .from('farmfit')
       .remove([path]);
     
     if (error) {

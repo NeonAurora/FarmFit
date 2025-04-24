@@ -15,7 +15,7 @@ export default function HomePage() {
     {
       icon: 'alpha-a',           // any MaterialCommunityIcon name
       label: 'Button1',
-      onPress: () => router.push('/createQuiz'),
+      onPress: () => router.push('/addAnimalScreen'),
     },
     {
       icon: 'alpha-b',

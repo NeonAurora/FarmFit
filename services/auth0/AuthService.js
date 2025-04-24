@@ -17,7 +17,7 @@ const getAppScheme = () => {
 const generateRedirectUri = () => {
   // For native platforms, use the specific callback format accepted by Auth0
   if (Platform.OS !== 'web') {
-    const callbackUrl = `${getAppScheme()}://callback`;
+    const callbackUrl = `${getAppScheme()}:///`;
     console.log("Native redirect URI:", callbackUrl);
     return callbackUrl;
   }

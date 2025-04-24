@@ -214,10 +214,10 @@ export default function RootLayout() {
             }} 
           />
           <Drawer.Screen 
-            name="createQuiz" 
+            name="addAnimalScreen" 
             options={{ 
-              title: "Create Quiz",
-              drawerLabel: "Create Quiz"
+              title: "Add Animal",
+              drawerLabel: "Add Animal"
             }} 
           />
           <Drawer.Screen 
