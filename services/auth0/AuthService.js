@@ -8,7 +8,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 // Get app scheme from app config
 const getAppScheme = () => {
-  const scheme = Constants.manifest?.scheme || 'myapp';
+  const scheme = Constants.manifest?.scheme || 'farmfit';
   console.log("App scheme:", scheme);
   return scheme;
 };
