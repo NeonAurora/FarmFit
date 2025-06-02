@@ -196,7 +196,6 @@ export default function RootLayout() {
             },
             headerTintColor: colorScheme === 'dark' ? '#fff' : '#000',
             headerRight: () => <HeaderRight />,
-            // The drawer already adds a hamburger icon by default
           }}
         >
           <Drawer.Screen 
@@ -213,11 +212,33 @@ export default function RootLayout() {
               drawerLabel: "Profile"
             }} 
           />
+          {/* Add these missing screens */}
           <Drawer.Screen 
-            name="addAnimalScreen" 
+            name="(screens)/addAnimalScreen" 
             options={{ 
               title: "Add Animal",
               drawerLabel: "Add Animal"
+            }} 
+          />
+          <Drawer.Screen 
+            name="(screens)/animalListScreen" 
+            options={{ 
+              title: "My Animals",
+              drawerLabel: "My Animals"
+            }} 
+          />
+          <Drawer.Screen 
+            name="(screens)/animalProfileScreen" 
+            options={{ 
+              title: "Animal Profile",
+              drawerItemStyle: { display: 'none' } // Hide from drawer menu
+            }} 
+          />
+          <Drawer.Screen 
+            name="(screens)/editAnimalProfileScreen" 
+            options={{ 
+              title: "Edit Animal",
+              drawerItemStyle: { display: 'none' } // Hide from drawer menu
             }} 
           />
           <Drawer.Screen 
