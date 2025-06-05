@@ -1,4 +1,4 @@
-// app/(main)/(screens)/addAnimalScreen.jsx
+// app/(main)/(screens)/addPetScreen.jsx
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { TextInput, Button, Text, Divider, List } from 'react-native-paper';
@@ -11,7 +11,7 @@ import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 
-export default function AddAnimalScreen() {
+export default function AddPetScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { user } = useAuth();
@@ -47,10 +47,11 @@ export default function AddAnimalScreen() {
       return;
     }
   
-    // Launch picker
+    // Launch picker with updated API
     const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: "Images",
+      mediaTypes: ['images'], // ✅ Fixed deprecation warning
       quality: 0.7,
+      allowsEditing: true,
     });
   
     // Handle selection
@@ -96,7 +97,7 @@ export default function AddAnimalScreen() {
       
       // Save to Supabase
       const { data, error } = await supabase
-        .from('pets')
+        .from('pets') // ✅ Changed to pets table
         .insert(petData)
         .select();
       
@@ -145,7 +146,7 @@ export default function AddAnimalScreen() {
           value={petName}
           onChangeText={setPetName}
           style={styles.input}
-          mode="outlined"
+          mode="flat"
         />
         
         <TextInput
@@ -153,7 +154,7 @@ export default function AddAnimalScreen() {
           value={species}
           onChangeText={setSpecies}
           style={styles.input}
-          mode="outlined"
+          mode="flat"
           placeholder="e.g., Golden Retriever, Persian Cat"
         />
         
@@ -162,7 +163,7 @@ export default function AddAnimalScreen() {
           value={age}
           onChangeText={setAge}
           style={styles.input}
-          mode="outlined"
+          mode="flat"
           placeholder="e.g., 2 years, 6 months"
         />
         
@@ -171,7 +172,7 @@ export default function AddAnimalScreen() {
           value={sex}
           onChangeText={setSex}
           style={styles.input}
-          mode="outlined"
+          mode="flat"
           placeholder="Male, Female, Unknown"
         />
         
@@ -180,7 +181,7 @@ export default function AddAnimalScreen() {
           value={dateAcquired}
           onChangeText={setDateAcquired}
           style={styles.input}
-          mode="outlined"
+          mode="flat"
           placeholder="2024-01-15"
         />
         
@@ -189,7 +190,7 @@ export default function AddAnimalScreen() {
           value={healthStatus}
           onChangeText={setHealthStatus}
           style={styles.input}
-          mode="outlined"
+          mode="flat"
           placeholder="Healthy, Under treatment, etc."
         />
         
@@ -217,7 +218,7 @@ export default function AddAnimalScreen() {
               value={petType}
               onChangeText={setPetType}
               style={styles.input}
-              mode="outlined"
+              mode="flat"
               placeholder="e.g., Companion, Working, Therapy, Guard"
             />
             
@@ -226,7 +227,7 @@ export default function AddAnimalScreen() {
               value={behavioralNotes}
               onChangeText={setBehavioralNotes}
               style={styles.input}
-              mode="outlined"
+              mode="flat"
               multiline
               numberOfLines={3}
               placeholder="Describe temperament, habits, special behaviors..."
@@ -237,7 +238,7 @@ export default function AddAnimalScreen() {
               value={trainingProgress}
               onChangeText={setTrainingProgress}
               style={styles.input}
-              mode="outlined"
+              mode="flat"
               multiline
               numberOfLines={2}
               placeholder="House trained, commands known, training goals..."
@@ -248,7 +249,7 @@ export default function AddAnimalScreen() {
               value={dietaryPreferences}
               onChangeText={setDietaryPreferences}
               style={styles.input}
-              mode="outlined"
+              mode="flat"
               placeholder="Food brand, allergies, feeding schedule..."
             />
             
@@ -257,7 +258,7 @@ export default function AddAnimalScreen() {
               value={groomingNeeds}
               onChangeText={setGroomingNeeds}
               style={styles.input}
-              mode="outlined"
+              mode="flat"
               placeholder="Brushing frequency, nail trimming, bathing..."
             />
           </View>
@@ -310,6 +311,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 16,
+    backgroundColor: "transparent",
   },
   divider: {
     marginVertical: 20,

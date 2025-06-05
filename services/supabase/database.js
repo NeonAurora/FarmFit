@@ -99,15 +99,15 @@ export const testSupabaseConnection = async () => {
   }
 };
 
-// Subscribe to animal data changes for a specific user
-export const subscribeToAnimals = (userId, callback) => {
+// Subscribe to pet data changes for a specific user
+export const subscribeToPets = (userId, callback) => {
   const subscription = supabase
-    .channel(`public:animals:user_id=eq.${userId}`)
+    .channel(`public:pets:user_id=eq.${userId}`)
     .on('postgres_changes', 
       { 
         event: '*', 
         schema: 'public', 
-        table: 'animals',
+        table: 'pets',
         filter: `user_id=eq.${userId}` 
       }, 
       (payload) => {
@@ -122,18 +122,18 @@ export const subscribeToAnimals = (userId, callback) => {
   };
 };
 
-export const subscribeToAnimal = (animalId, userId, callback) => {
+export const subscribeToPet = (petId, userId, callback) => {
   const subscription = supabase
-    .channel(`public:animals:id=eq.${animalId}`) // Simplify channel name
+    .channel(`public:pets:id=eq.${petId}`) // Simplify channel name
     .on('postgres_changes', 
       { 
         event: '*', 
         schema: 'public', 
-        table: 'animals',
-        filter: `id=eq.${animalId}` // Simplify filter
+        table: 'pets',
+        filter: `id=eq.${petId}` // Simplify filter
       }, 
       (payload) => {
-        console.log('Animal subscription update:', payload); // Add logging
+        console.log('Pet subscription update:', payload); // Add logging
         callback(payload);
       }
     )
@@ -145,44 +145,37 @@ export const subscribeToAnimal = (animalId, userId, callback) => {
   };
 };
 
-// Get all animals for a user
-export const getAnimalsByUserId = async (userId, filterType = 'all') => {
+// Get all pets for a user
+export const getPetsByUserId = async (userId) => {
   try {
-    let query = supabase
-      .from('animals')
+    const { data, error } = await supabase
+      .from('pets')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
-    // Apply filter if not 'all'
-    if (filterType !== 'all') {
-      query = query.eq('animal_type', filterType);
-    }
-    
-    const { data, error } = await query;
-    
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting animals by user ID:', error);
+    console.error('Error getting pets by user ID:', error);
     return [];
   }
 };
 
-// Get a specific animal by ID
-export const getAnimalById = async (animalId, userId) => {
+// Get a specific pet by ID
+export const getPetById = async (petId, userId) => {
   try {
     const { data, error } = await supabase
-      .from('animals')
+      .from('pets')
       .select('*')
-      .eq('id', animalId)
+      .eq('id', petId)
       .eq('user_id', userId)
       .single();
     
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error getting animal by ID:', error);
+    console.error('Error getting pet by ID:', error);
     return null;
   }
 };

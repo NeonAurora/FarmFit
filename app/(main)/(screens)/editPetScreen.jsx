@@ -1,7 +1,7 @@
-// app/(main)/(screens)/editAnimalScreen.jsx
+// app/(main)/(screens)/editPetScreen.jsx
 import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
-import { TextInput, Button, Text, Divider, RadioButton, List } from 'react-native-paper';
+import { TextInput, Button, Text, Divider, List } from 'react-native-paper';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { uploadImage, deleteImage } from '@/services/supabase/storage';
 import { supabase } from '@/services/supabase/config';
@@ -9,38 +9,29 @@ import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAnimal } from '@/hooks/useAnimal';
+import { usePet } from '@/hooks/usePet';
 import { useLocalSearchParams, router } from 'expo-router';
 
-export default function EditAnimalScreen() {
+export default function EditPetScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { user } = useAuth();
-  const { animalId } = useLocalSearchParams();
+  const { petId } = useLocalSearchParams();
   
-  // Use animal hook to get current data
-  const { animal, loading: animalLoading, error: animalError } = useAnimal(animalId);
+  // Use pet hook to get current data
+  const { pet, loading: petLoading, error: petError } = usePet(petId);
   
   // Form state
-  const [animalName, setAnimalName] = useState('');
+  const [petName, setPetName] = useState('');
   const [species, setSpecies] = useState('');
   const [age, setAge] = useState('');
   const [sex, setSex] = useState('');
   const [dateAcquired, setDateAcquired] = useState('');
   const [healthStatus, setHealthStatus] = useState('');
-  const [animalImage, setAnimalImage] = useState(null);
-  const [animalType, setAnimalType] = useState('livestock'); // 'livestock' or 'pet'
+  const [petImage, setPetImage] = useState(null);
   
-  // Expandable sections
-  const [livestockExpanded, setLivestockExpanded] = useState(false);
-  const [petExpanded, setPetExpanded] = useState(false);
-  
-  // Livestock-specific fields
-  const [productionPurpose, setProductionPurpose] = useState('');
-  const [identificationNumber, setIdentificationNumber] = useState('');
-  const [purchasePrice, setPurchasePrice] = useState('');
-  const [weight, setWeight] = useState('');
-  const [feedRequirements, setFeedRequirements] = useState('');
+  // Expandable section
+  const [detailsExpanded, setDetailsExpanded] = useState(true);
   
   // Pet-specific fields
   const [petType, setPetType] = useState('');
@@ -53,48 +44,33 @@ export default function EditAnimalScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Populate form with animal data once loaded
+  // Populate form with pet data once loaded
   useEffect(() => {
-    if (animal) {
-      setAnimalName(animal.name || '');
-      setSpecies(animal.species || '');
-      setAge(animal.age || '');
-      setSex(animal.sex || '');
-      setDateAcquired(animal.date_acquired || '');
-      setHealthStatus(animal.health_status || '');
-      setAnimalImage(animal.image_url || null);
-      setAnimalType(animal.animal_type || 'livestock');
-      
-      // Expand appropriate section based on animal type
-      if (animal.animal_type === 'livestock') {
-        setLivestockExpanded(true);
-      } else if (animal.animal_type === 'pet') {
-        setPetExpanded(true);
-      }
-      
-      // Livestock fields
-      setProductionPurpose(animal.production_purpose || '');
-      setIdentificationNumber(animal.identification_number || '');
-      setPurchasePrice(animal.purchase_price ? String(animal.purchase_price) : '');
-      setWeight(animal.weight ? String(animal.weight) : '');
-      setFeedRequirements(animal.feed_requirements || '');
+    if (pet) {
+      setPetName(pet.name || '');
+      setSpecies(pet.species || '');
+      setAge(pet.age || '');
+      setSex(pet.sex || '');
+      setDateAcquired(pet.date_acquired || '');
+      setHealthStatus(pet.health_status || '');
+      setPetImage(pet.image_url || null);
       
       // Pet fields
-      setPetType(animal.pet_type || '');
-      setBehavioralNotes(animal.behavioral_notes || '');
-      setTrainingProgress(animal.training_progress || '');
-      setDietaryPreferences(animal.dietary_preferences || '');
-      setGroomingNeeds(animal.grooming_needs || '');
+      setPetType(pet.pet_type || '');
+      setBehavioralNotes(pet.behavioral_notes || '');
+      setTrainingProgress(pet.training_progress || '');
+      setDietaryPreferences(pet.dietary_preferences || '');
+      setGroomingNeeds(pet.grooming_needs || '');
     }
-  }, [animal]);
+  }, [pet]);
   
-  // Handle errors from animal hook
+  // Handle errors from pet hook
   useEffect(() => {
-    if (animalError) {
-      Alert.alert("Error", "Could not load animal data. Please try again.");
+    if (petError) {
+      Alert.alert("Error", "Could not load pet data. Please try again.");
       router.back();
     }
-  }, [animalError]);
+  }, [petError]);
   
   const handlePickImage = async () => {
     // Request permissions
@@ -104,75 +80,65 @@ export default function EditAnimalScreen() {
       return;
     }
   
-    // Launch picker
+    // Launch picker with updated API
     const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: ExpoImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'], // ✅ Fixed deprecation warning
       quality: 0.7,
+      allowsEditing: true,
     });
   
     // Handle selection
     if (!result.canceled && result.assets?.length > 0) {
-      setAnimalImage(result.assets[0].uri);
+      setPetImage(result.assets[0].uri);
     }
   };
   
-  const handleUpdateAnimal = async () => {
-    if (!animalName || !species) {
-      alert("Please provide at least a name and species for your animal.");
+  const handleUpdatePet = async () => {
+    if (!petName || !species) {
+      alert("Please provide at least a name and species for your pet.");
       return;
     }
     
     setIsSaving(true);
-    let imageUrl = animal.image_url; // Default to current image URL
+    let imageUrl = pet.image_url; // Default to current image URL
     
     try {
       // If image changed, upload new one and delete old one
-      if (animalImage && animalImage !== animal.image_url) {
+      if (petImage && petImage !== pet.image_url) {
         setIsUploading(true);
         // Upload new image
-        imageUrl = await uploadImage(animalImage);
+        imageUrl = await uploadImage(petImage);
         
         // Delete old image if it exists
-        if (animal.image_url) {
-          await deleteImage(animal.image_url);
+        if (pet.image_url) {
+          await deleteImage(pet.image_url);
         }
         
         setIsUploading(false);
       }
       
-      // Prepare animal data
-      const animalData = {
-        name: animalName,
+      // Prepare pet data
+      const petData = {
+        name: petName,
         species: species,
         age: age,
         sex: sex,
         date_acquired: dateAcquired,
         health_status: healthStatus,
         image_url: imageUrl,
-        animal_type: animalType,
+        pet_type: petType,
+        behavioral_notes: behavioralNotes,
+        training_progress: trainingProgress,
+        dietary_preferences: dietaryPreferences,
+        grooming_needs: groomingNeeds,
         updated_at: new Date().toISOString(),
-        // Conditional fields based on animal type
-        ...(animalType === 'livestock' ? {
-          production_purpose: productionPurpose,
-          identification_number: identificationNumber,
-          purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
-          weight: weight ? parseFloat(weight) : null,
-          feed_requirements: feedRequirements
-        } : {}),
-        ...(animalType === 'pet' ? {
-          pet_type: petType,
-          behavioral_notes: behavioralNotes,
-          training_progress: trainingProgress,
-          dietary_preferences: dietaryPreferences,
-          grooming_needs: groomingNeeds
-        } : {})
       };
       
       // Update in Supabase
       const { data, error } = await supabase
-        .from('animals')
-        .update(animalData)
-        .eq('id', animalId)
+        .from('pets') // ✅ Changed to pets table
+        .update(petData)
+        .eq('id', petId)
         .eq('user_id', user.sub)
         .select();
       
@@ -181,26 +147,26 @@ export default function EditAnimalScreen() {
         throw error;
       }
       
-      Alert.alert("Success", "Animal successfully updated!");
-      // Navigate back to animal profile
+      Alert.alert("Success", "Pet successfully updated!");
+      // Navigate back to pet profile
       router.push({
-        pathname: '/animalProfileScreen',
-        params: { animalId }
+        pathname: '/petProfileScreen',
+        params: { petId }
       });
       
     } catch (error) {
-      console.error('Error updating animal:', error.message || error);
-      Alert.alert("Error", "Failed to update animal. Please try again.");
+      console.error('Error updating pet:', error.message || error);
+      Alert.alert("Error", "Failed to update pet. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
   
-  if (animalLoading) {
+  if (petLoading) {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0a7ea4" />
-        <Text style={styles.loadingText}>Loading animal data...</Text>
+        <Text style={styles.loadingText}>Loading pet data...</Text>
       </ThemedView>
     );
   }
@@ -208,28 +174,15 @@ export default function EditAnimalScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Edit Animal</Text>
+        <Text style={styles.title}>Edit Pet</Text>
         
-        {/* Animal Type Selection */}
-        <View style={styles.typeSelection}>
-          <Text style={styles.sectionLabel}>Animal Type:</Text>
-          <RadioButton.Group onValueChange={value => setAnimalType(value)} value={animalType}>
-            <View style={styles.radioRow}>
-              <RadioButton.Item label="Livestock" value="livestock" position="leading" />
-              <RadioButton.Item label="Pet" value="pet" position="leading" />
-            </View>
-          </RadioButton.Group>
-        </View>
-        
-        <Divider style={styles.divider} />
-        
-        {/* Core Animal Information */}
+        {/* Basic Pet Information */}
         <Text style={styles.sectionLabel}>Basic Information</Text>
         
         <TextInput
-          label="Name"
-          value={animalName}
-          onChangeText={setAnimalName}
+          label="Pet Name"
+          value={petName}
+          onChangeText={setPetName}
           style={styles.input}
           mode="outlined"
         />
@@ -240,6 +193,7 @@ export default function EditAnimalScreen() {
           onChangeText={setSpecies}
           style={styles.input}
           mode="outlined"
+          placeholder="e.g., Golden Retriever, Persian Cat"
         />
         
         <TextInput
@@ -248,7 +202,7 @@ export default function EditAnimalScreen() {
           onChangeText={setAge}
           style={styles.input}
           mode="outlined"
-          keyboardType="default"
+          placeholder="e.g., 2 years, 6 months"
         />
         
         <TextInput
@@ -257,6 +211,7 @@ export default function EditAnimalScreen() {
           onChangeText={setSex}
           style={styles.input}
           mode="outlined"
+          placeholder="Male, Female, Unknown"
         />
         
         <TextInput
@@ -265,6 +220,7 @@ export default function EditAnimalScreen() {
           onChangeText={setDateAcquired}
           style={styles.input}
           mode="outlined"
+          placeholder="2024-01-15"
         />
         
         <TextInput
@@ -273,84 +229,25 @@ export default function EditAnimalScreen() {
           onChangeText={setHealthStatus}
           style={styles.input}
           mode="outlined"
+          placeholder="Healthy, Under treatment, etc."
         />
         
-        <Text style={styles.imageLabel}>Animal Photo</Text>
+        <Text style={styles.imageLabel}>Pet Photo</Text>
         <ImagePicker
-          image={animalImage}
+          image={petImage}
           onPickImage={handlePickImage}
           isUploading={isUploading}
         />
         
         <Divider style={styles.divider} />
         
-        {/* Livestock Details Section */}
-        <List.Accordion
-          title="Livestock Details"
-          expanded={livestockExpanded}
-          onPress={() => setLivestockExpanded(!livestockExpanded)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-          disabled={animalType !== 'livestock'}
-          left={props => <List.Icon {...props} icon="cow" />}
-        >
-          <View style={styles.accordionContent}>
-            <TextInput
-              label="Production Purpose"
-              value={productionPurpose}
-              onChangeText={setProductionPurpose}
-              style={styles.input}
-              mode="outlined"
-              placeholder="e.g., Meat, Dairy, Eggs, Wool"
-            />
-            
-            <TextInput
-              label="Identification/Tag Number"
-              value={identificationNumber}
-              onChangeText={setIdentificationNumber}
-              style={styles.input}
-              mode="outlined"
-            />
-            
-            <TextInput
-              label="Purchase Price"
-              value={purchasePrice}
-              onChangeText={setPurchasePrice}
-              style={styles.input}
-              mode="outlined"
-              keyboardType="numeric"
-              placeholder="0.00"
-            />
-            
-            <TextInput
-              label="Weight (kg)"
-              value={weight}
-              onChangeText={setWeight}
-              style={styles.input}
-              mode="outlined"
-              keyboardType="numeric"
-            />
-            
-            <TextInput
-              label="Feed Requirements"
-              value={feedRequirements}
-              onChangeText={setFeedRequirements}
-              style={styles.input}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-            />
-          </View>
-        </List.Accordion>
-        
         {/* Pet Details Section */}
         <List.Accordion
-          title="Pet Details"
-          expanded={petExpanded}
-          onPress={() => setPetExpanded(!petExpanded)}
+          title="Additional Details"
+          expanded={detailsExpanded}
+          onPress={() => setDetailsExpanded(!detailsExpanded)}
           style={styles.accordion}
           titleStyle={styles.accordionTitle}
-          disabled={animalType !== 'pet'}
           left={props => <List.Icon {...props} icon="paw" />}
         >
           <View style={styles.accordionContent}>
@@ -360,7 +257,7 @@ export default function EditAnimalScreen() {
               onChangeText={setPetType}
               style={styles.input}
               mode="outlined"
-              placeholder="e.g., Companion, Working, Therapy"
+              placeholder="e.g., Companion, Working, Therapy, Guard"
             />
             
             <TextInput
@@ -371,6 +268,7 @@ export default function EditAnimalScreen() {
               mode="outlined"
               multiline
               numberOfLines={3}
+              placeholder="Describe temperament, habits, special behaviors..."
             />
             
             <TextInput
@@ -381,6 +279,7 @@ export default function EditAnimalScreen() {
               mode="outlined"
               multiline
               numberOfLines={2}
+              placeholder="House trained, commands known, training goals..."
             />
             
             <TextInput
@@ -389,6 +288,7 @@ export default function EditAnimalScreen() {
               onChangeText={setDietaryPreferences}
               style={styles.input}
               mode="outlined"
+              placeholder="Food brand, allergies, feeding schedule..."
             />
             
             <TextInput
@@ -397,6 +297,7 @@ export default function EditAnimalScreen() {
               onChangeText={setGroomingNeeds}
               style={styles.input}
               mode="outlined"
+              placeholder="Brushing frequency, nail trimming, bathing..."
             />
           </View>
         </List.Accordion>
@@ -413,12 +314,12 @@ export default function EditAnimalScreen() {
           
           <Button 
             mode="contained" 
-            onPress={handleUpdateAnimal}
+            onPress={handleUpdatePet}
             style={styles.saveButton}
             disabled={isSaving || isUploading}
             loading={isSaving}
           >
-            Update Animal
+            Update Pet
           </Button>
         </View>
       </ScrollView>
@@ -448,14 +349,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-  typeSelection: {
-    marginBottom: 16,
-  },
-  radioRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 8,
-  },
   sectionLabel: {
     fontSize: 18,
     fontWeight: '600',
@@ -464,6 +357,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 16,
+    backgroundColor: "transparent",
   },
   divider: {
     marginVertical: 20,

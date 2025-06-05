@@ -1,3 +1,4 @@
+// app/(main)/index.jsx
 import { StyleSheet } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -13,45 +14,40 @@ export default function HomePage() {
 
   const actions = [
     {
-      icon: 'alpha-a',           // any MaterialCommunityIcon name
-      label: 'Button1',
-      onPress: () => router.push('/addAnimalScreen'),
+      icon: 'plus',
+      label: 'Add Pet',
+      onPress: () => router.push('/addPetScreen'),
     },
     {
-      icon: 'alpha-b',
-      label: 'Button2',
-      onPress: () => router.push('/animalListScreen'),
+      icon: 'paw',
+      label: 'My Pets',
+      onPress: () => router.push('/petListScreen'),
     },
     {
-      icon: 'alpha-c',
-      label: 'Button3',
-      onPress: () => router.push('/'),
-    },
-    {
-      icon: 'alpha-d',
-      label: 'Button4',
-      onPress: () => router.push('/'),
+      icon: 'account',
+      label: 'Profile',
+      onPress: () => router.push('/profile'),
     },
   ];
   
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">Welcome to Home Page</ThemedText>
+      <ThemedText type="title">Welcome to FarmFit</ThemedText>
       
       {user ? (
         <ThemedText style={styles.welcomeText}>
-          Hello, {user.name || user.email || 'User'}! You are signed in.
+          Hello, {user.name || user.email || 'User'}! Manage your pets with ease.
         </ThemedText>
       ) : (
         <ThemedText style={styles.welcomeText}>
-          Sign in using the button in the header to access your profile.
+          Sign in using the button in the header to start managing your pets.
         </ThemedText>
       )}
 
       {/* FAB Group in bottom‑right */}
       <FAB.Group
         open={fabOpen}
-        icon={fabOpen ? 'close' : 'plus'}
+        icon={fabOpen ? 'close' : 'menu'}
         actions={actions}
         onStateChange={({ open }) => setFabOpen(open)}
         style={styles.fab}

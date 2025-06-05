@@ -1,3 +1,4 @@
+// app/(main)/_layout.jsx
 import { DarkTheme as NavigationDarkTheme, DefaultTheme as NavigationDefaultTheme } from '@react-navigation/native';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from 'react-native-paper';
 import { useFonts } from 'expo-font';
@@ -212,32 +213,32 @@ export default function RootLayout() {
               drawerLabel: "Profile"
             }} 
           />
-          {/* Add these missing screens */}
+          {/* Pet-related screens */}
           <Drawer.Screen 
-            name="(screens)/addAnimalScreen" 
+            name="(screens)/addPetScreen" 
             options={{ 
-              title: "Add Animal",
-              drawerLabel: "Add Animal"
+              title: "Add Pet",
+              drawerLabel: "Add Pet"
             }} 
           />
           <Drawer.Screen 
-            name="(screens)/animalListScreen" 
+            name="(screens)/petListScreen" 
             options={{ 
-              title: "My Animals",
-              drawerLabel: "My Animals"
+              title: "My Pets",
+              drawerLabel: "My Pets"
             }} 
           />
           <Drawer.Screen 
-            name="(screens)/animalProfileScreen" 
+            name="(screens)/petProfileScreen" 
             options={{ 
-              title: "Animal Profile",
+              title: "Pet Profile",
               drawerItemStyle: { display: 'none' } // Hide from drawer menu
             }} 
           />
           <Drawer.Screen 
-            name="(screens)/editAnimalProfileScreen" 
+            name="(screens)/editPetScreen" 
             options={{ 
-              title: "Edit Animal",
+              title: "Edit Pet",
               drawerItemStyle: { display: 'none' } // Hide from drawer menu
             }} 
           />
