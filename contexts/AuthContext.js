@@ -161,22 +161,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Set up a subscription to user data changes (Supabase realtime)
-  useEffect(() => {
-    if (!user || !user.sub) return;
-    
-    const unsubscribe = subscribeToUserData(user.sub, (updatedData) => {
-      if (updatedData) {
-        setSupabaseData(updatedData);
-      }
-    });
-    
-    // Clean up subscription on unmount or user change
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [user]);
-
   return (
     <AuthContext.Provider value={{ 
       user, 

@@ -1,65 +1,97 @@
+// app/(main)/profile.jsx
 import React from 'react';
 import { StyleSheet, Pressable, Image, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserData } from '@/hooks/useUserData';
+import { useUserData } from '@/hooks/useUserData'; 
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
-  const { signOut, loading: authLoading } = useAuth();
-  const { userData, loading: dataLoading } = useUserData();
+  const { user, signOut, loading: authLoading } = useAuth();
+  const { userData, loading: dataLoading, error } = useUserData(); // ✅ Get Supabase data
   const router = useRouter();
 
   const loading = authLoading || dataLoading;
 
   React.useEffect(() => {
-    if (!loading && !userData) {
+    if (!loading && !user) {
       router.replace('/');
     }
-  }, [loading, userData]);
+  }, [loading, user]);
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.replace('/'); // Ensure navigation after sign-out
+      router.replace('/');
     } catch (error) {
       console.error("Error during sign out:", error);
     }
   };
 
-  if (loading || !userData) {
+  if (loading) {
     return (
       <ThemedView style={styles.container}>
         <ActivityIndicator size="large" color="#0a7ea4" />
-        <ThemedText style={{ marginTop: 20 }}>
-          {loading ? 'Loading profile...' : 'Redirecting...'}
-        </ThemedText>
+        <ThemedText style={{ marginTop: 20 }}>Loading profile...</ThemedText>
       </ThemedView>
     );
   }
+
+  if (error) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText type="title">Error Loading Profile</ThemedText>
+        <ThemedText style={styles.errorText}>{error}</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (!user) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText type="title">Please Sign In</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  // Use Supabase data with Auth0 fallbacks
+  const displayData = {
+    name: userData?.name || user.name,
+    email: userData?.email || user.email,
+    picture: userData?.picture || user.picture,
+    lastLogin: userData?.last_login,
+    // Add any additional Supabase-only fields here
+    // customField: userData?.custom_field,
+    // preferences: userData?.preferences,
+    // etc.
+  };
 
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">Profile</ThemedText>
       
       <ThemedView style={styles.card}>
-        <ThemedText type="subtitle">Welcome, {userData.name || userData.email || 'User'}!</ThemedText>
+        <ThemedText type="subtitle">
+          Welcome, {displayData.name || displayData.email || 'User'}!
+        </ThemedText>
         
-        {userData.email && (
-          <ThemedText style={styles.detail}>Email: {userData.email}</ThemedText>
+        {displayData.email && (
+          <ThemedText style={styles.detail}>Email: {displayData.email}</ThemedText>
         )}
         
-        {userData.lastLogin && (
+        {displayData.lastLogin && (
           <ThemedText style={styles.detail}>
-            Last login: {new Date(userData.lastLogin).toLocaleString()}
+            Last login: {new Date(displayData.lastLogin).toLocaleString()}
           </ThemedText>
         )}
         
-        {userData.picture && (
+        {/* Add any additional Supabase fields here */}
+        
+        {displayData.picture && (
           <ThemedView style={styles.pictureContainer}>
             <ThemedText style={styles.detail}>Profile Picture:</ThemedText>
-            <Image source={{ uri: userData.picture }} style={styles.picture} />
+            <Image source={{ uri: displayData.picture }} style={styles.picture} />
           </ThemedView>
         )}
       </ThemedView>
@@ -70,7 +102,6 @@ export default function ProfileScreen() {
     </ThemedView>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

@@ -1,5 +1,5 @@
 // app/(main)/(screens)/petProfileScreen.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { Text, Button, Divider, Card, Avatar, List } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { deleteImage } from '@/services/supabase/storage';
 import { supabase } from '@/services/supabase/config';
 import { usePet } from '@/hooks/usePet';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function PetProfileScreen() {
   const route = useRoute();
@@ -26,7 +27,14 @@ export default function PetProfileScreen() {
   const [expandedDetails, setExpandedDetails] = useState(true);
   
   // Use the custom hook for real-time pet data
-  const { pet, loading, error } = usePet(petId);
+  const { pet, loading, error, refetch } = usePet(petId);
+
+  // Refetch data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
   
   // Handle error - navigate back if pet was deleted or not found
   useEffect(() => {

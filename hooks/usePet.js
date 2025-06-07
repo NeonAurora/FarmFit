@@ -1,5 +1,5 @@
 // hooks/usePet.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPetById, subscribeToPet } from '../services/supabase/database';
 
@@ -9,11 +9,22 @@ export function usePet(petId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  console.log('usePet hook effect running for pet ID:', petId);
+  // Add a refetch function
+  const refetch = useCallback(async () => {
+    if (!user?.sub || !petId) return;
+    
+    try {
+      const data = await getPetById(petId, user.sub);
+      setPet(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error refetching pet:', err);
+      setError('Failed to load pet data');
+    }
+  }, [petId, user?.sub]);
   
   useEffect(() => {
     if (!user?.sub || !petId) {
-      console.log('Missing user or petId, skipping subscription');
       setPet(null);
       setLoading(false);
       return;
@@ -21,7 +32,6 @@ export function usePet(petId) {
     
     setLoading(true);
     
-    // Initial fetch of pet data
     const fetchPet = async () => {
       try {
         const data = await getPetById(petId, user.sub);
@@ -37,7 +47,6 @@ export function usePet(petId) {
     
     fetchPet();
     
-    // Subscribe to real-time updates for this specific pet
     const unsubscribe = subscribeToPet(petId, user.sub, (payload) => {
       console.log('Received payload in pet subscription:', payload);
       if (payload.eventType === 'UPDATE') {
@@ -49,12 +58,11 @@ export function usePet(petId) {
       }
     });
     
-    // Clean up subscription when component unmounts or petId/user changes
     return () => {
       console.log('Cleaning up pet subscription');
       unsubscribe();
     };
   }, [petId, user]);
   
-  return { pet, loading, error };
+  return { pet, loading, error, refetch }; // ✅ Return refetch function
 }
