@@ -1,3 +1,5 @@
+// Update components/interfaces/DrawerContent.jsx
+
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
@@ -12,6 +14,12 @@ export function DrawerContent(props) {
   const handleSignOut = async () => {
     await signOut();
     router.replace('/logout');
+    props.navigation.closeDrawer();
+  };
+
+  // Navigation helper function
+  const navigateAndClose = (route) => {
+    router.push(route);
     props.navigation.closeDrawer();
   };
 
@@ -45,41 +53,52 @@ export function DrawerContent(props) {
       
       {/* Navigation Items */}
       <List.Section style={styles.navSection}>
+        {/* Profile Section */}
+        <List.Subheader style={styles.sectionHeader}>Account</List.Subheader>
         <List.Item
-          title="Button 1"
-          left={props => <List.Icon {...props} icon="folder" />}
-          onPress={() => {
-            // Navigate to page (will be implemented later)
-            props.navigation.closeDrawer();
-          }}
+          title="My Profile"
+          left={props => <List.Icon {...props} icon="account" />}
+          onPress={() => navigateAndClose('/profile')}
+        />
+        
+        <Divider style={styles.sectionDivider} />
+        
+        {/* Pet Management Section */}
+        <List.Subheader style={styles.sectionHeader}>Pet Management</List.Subheader>
+        <List.Item
+          title="Add Pet"
+          left={props => <List.Icon {...props} icon="plus" />}
+          onPress={() => navigateAndClose('/addPetScreen')}
         />
         <List.Item
-          title="Button 2"
-          left={props => <List.Icon {...props} icon="folder" />}
-          onPress={() => {
-            props.navigation.closeDrawer();
-          }}
+          title="My Pets"
+          left={props => <List.Icon {...props} icon="paw" />}
+          onPress={() => navigateAndClose('/petListScreen')}
+        />
+        
+        <Divider style={styles.sectionDivider} />
+        
+        {/* Veterinary Services Section */}
+        <List.Subheader style={styles.sectionHeader}>Veterinary Services</List.Subheader>
+        <List.Item
+          title="Find Veterinarians"
+          left={props => <List.Icon {...props} icon="hospital-building" />}
+          onPress={() => navigateAndClose('/vetSearchScreen')}
         />
         <List.Item
-          title="Button 3"
-          left={props => <List.Icon {...props} icon="folder" />}
-          onPress={() => {
-            props.navigation.closeDrawer();
-          }}
+          title="Create Vet Profile"
+          left={props => <List.Icon {...props} icon="medical-bag" />}
+          onPress={() => navigateAndClose('/createVetProfileScreen')}
         />
+        
+        <Divider style={styles.sectionDivider} />
+        
+        {/* Social Section */}
+        <List.Subheader style={styles.sectionHeader}>Community</List.Subheader>
         <List.Item
-          title="Button 4"
-          left={props => <List.Icon {...props} icon="folder" />}
-          onPress={() => {
-            props.navigation.closeDrawer();
-          }}
-        />
-        <List.Item
-          title="Button 5"
-          left={props => <List.Icon {...props} icon="folder" />}
-          onPress={() => {
-            props.navigation.closeDrawer();
-          }}
+          title="Find Users"
+          left={props => <List.Icon {...props} icon="account-search" />}
+          onPress={() => navigateAndClose('/userSearchScreen')}
         />
       </List.Section>
       
@@ -114,6 +133,18 @@ const styles = StyleSheet.create({
   },
   navSection: {
     flexGrow: 1,
+  },
+  sectionHeader: {
+    fontSize: 14,
+    fontWeight: '600',
+    paddingLeft: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+    color: '#2E86DE',
+  },
+  sectionDivider: {
+    marginVertical: 8,
+    marginHorizontal: 16,
   },
   logoutSection: {
     padding: 20,

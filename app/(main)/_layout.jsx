@@ -36,7 +36,7 @@ const CombinedDarkTheme = {
 
 // Custom Header Right Component
 function HeaderRight() {
-  const { user, signIn, signOut } = useAuth();
+  const { user, userData, signIn, signOut } = useAuth();
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false); // ← Add loading state
@@ -69,6 +69,10 @@ function HeaderRight() {
   };
   
   if (user) {
+    // Use Supabase data with Auth0 fallbacks
+    const displayName = userData?.name || user.name;
+    const displayPicture = userData?.picture || user.picture;
+
     return (
       <>
         <Pressable 
@@ -83,8 +87,8 @@ function HeaderRight() {
           }}
         >
           {/* User avatar and name */}
-          {user.picture ? (
-            <Image source={{ uri: user.picture }} 
+          {displayPicture ? (
+            <Image source={{ uri: displayPicture }} 
               style={{
                 width: 32, height: 32, borderRadius: 16,
                 borderWidth: 1, borderColor: '#ddd'
@@ -97,7 +101,7 @@ function HeaderRight() {
               alignItems: 'center', justifyContent: 'center'
             }}>
               <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                {(user.name?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}
+                {(displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}
               </Text>
             </View>
           )}
@@ -106,7 +110,7 @@ function HeaderRight() {
             marginLeft: 10,
             fontWeight: '500'
           }}>
-            {user.name?.split(' ')[0] || 'User'}
+            {displayName?.split(' ')[0] || 'User'}
           </Text>
         </Pressable>
         
@@ -240,6 +244,10 @@ export default function RootLayout() {
           
           {/* System Screens */}
           <Drawer.Screen name="+not-found" options={{ title: "Not Found" }} />
+          
+          {/* User Management Screens */}
+          <Drawer.Screen name="(screens)/userSearchScreen" options={{ title: "Find Users" }} />
+          <Drawer.Screen name="(screens)/userProfileScreen" options={{ title: "User Profile" }} />
         </Drawer>
         <StatusBar style="auto" />
       </PaperProvider>

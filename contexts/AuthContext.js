@@ -141,12 +141,12 @@ export function AuthProvider({ children }) {
 
   // Method to update user data in Supabase
   const updateUserSupabaseData = async (updates) => {
-    if (!user || !user.sub) return false;
+    if (!user || !user.sub || !supabaseData?.id) return false;
     
     try {
-      const result = await updateUserData(user.sub, updates);
+      // Use Supabase ID (supabaseData.id), NOT Auth0 ID (user.sub)
+      const result = await updateUserData(supabaseData.id, updates); // ← Fixed!
       if (result) {
-        // Update local state with the actual data returned from Supabase
         const updatedData = Array.isArray(result) ? result[0] : result;
         setSupabaseData(prev => ({
           ...prev,

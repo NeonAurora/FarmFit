@@ -78,6 +78,48 @@ export const getUserDataByAuthId = async (authUserId) => {
   }
 };
 
+// Search users by name or email (excluding current user)
+export const searchUsers = async (query, currentUserId) => {
+  try {
+    if (!query || query.trim().length < 2) {
+      return []; // Return empty array for short queries
+    }
+    
+    const searchTerm = query.trim().toLowerCase();
+    
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, picture, created_at')
+      .neq('auth_id', currentUserId) // Exclude current user
+      .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+      .order('name', { ascending: true })
+      .limit(50); // Limit results to 50 users
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error searching users:', error);
+    return [];
+  }
+};
+
+// Get user profile by ID (for future use when clicking on a user)
+export const getUserById = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, picture, created_at')
+      .eq('id', userId)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    return null;
+  }
+};
+
 export const testSupabaseConnection = async () => {
   try {
     console.log('Testing Supabase connection...');

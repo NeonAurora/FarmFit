@@ -1,4 +1,4 @@
-// app/(main)/profile.jsx
+// Update app/(main)/profile.jsx
 import React from 'react';
 import { StyleSheet, Pressable, Image, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { user, signOut, loading: authLoading } = useAuth();
-  const { userData, loading: dataLoading, error } = useUserData(); // ✅ Get Supabase data
+  const { userData, loading: dataLoading, error } = useUserData();
   const router = useRouter();
 
   const loading = authLoading || dataLoading;
@@ -27,6 +27,14 @@ export default function ProfileScreen() {
     } catch (error) {
       console.error("Error during sign out:", error);
     }
+  };
+
+  // ← Add this function
+  const handleEditProfile = () => {
+    router.push({
+      pathname: '/editUserSelfProfileScreen',
+      params: { userId: userData?.id || 'current' }
+    });
   };
 
   if (loading) {
@@ -61,15 +69,14 @@ export default function ProfileScreen() {
     email: userData?.email || user.email,
     picture: userData?.picture || user.picture,
     lastLogin: userData?.last_login,
-    // Add any additional Supabase-only fields here
-    // customField: userData?.custom_field,
-    // preferences: userData?.preferences,
-    // etc.
+    bio: userData?.bio,
+    location: userData?.location,
+    phoneNumber: userData?.phone_number,
   };
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">Profile</ThemedText>
+      <ThemedText type="title">My Profile</ThemedText>
       
       <ThemedView style={styles.card}>
         <ThemedText type="subtitle">
@@ -77,16 +84,27 @@ export default function ProfileScreen() {
         </ThemedText>
         
         {displayData.email && (
-          <ThemedText style={styles.detail}>Email: {displayData.email}</ThemedText>
-        )}
-        
-        {displayData.lastLogin && (
-          <ThemedText style={styles.detail}>
-            Last login: {new Date(displayData.lastLogin).toLocaleString()}
-          </ThemedText>
-        )}
-        
-        {/* Add any additional Supabase fields here */}
+        <ThemedText style={styles.detail}>Email: {displayData.email}</ThemedText>
+      )}
+      
+      {/* Only show these if they exist */}
+      {displayData.phoneNumber && (
+        <ThemedText style={styles.detail}>Phone: {displayData.phoneNumber}</ThemedText>
+      )}
+      
+      {displayData.location && (
+        <ThemedText style={styles.detail}>Location: {displayData.location}</ThemedText>
+      )}
+      
+      {displayData.bio && (
+        <ThemedText style={styles.detail}>Bio: {displayData.bio}</ThemedText>
+      )}
+      
+      {displayData.lastLogin && (
+        <ThemedText style={styles.detail}>
+          Last login: {new Date(displayData.lastLogin).toLocaleString()}
+        </ThemedText>
+      )}
         
         {displayData.picture && (
           <ThemedView style={styles.pictureContainer}>
@@ -96,7 +114,12 @@ export default function ProfileScreen() {
         )}
       </ThemedView>
       
-      <Pressable style={styles.button} onPress={handleSignOut}>
+      {/* ← Add Edit Profile Button */}
+      <Pressable style={styles.editButton} onPress={handleEditProfile}>
+        <ThemedText style={styles.editButtonText}>Edit Profile</ThemedText>
+      </Pressable>
+      
+      <Pressable style={styles.signOutButton} onPress={handleSignOut}>
         <ThemedText style={styles.buttonText}>Sign Out</ThemedText>
       </Pressable>
     </ThemedView>
@@ -128,7 +151,20 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginTop: 10,
   },
-  button: {
+  // ← Add these new styles
+  editButton: {
+    backgroundColor: '#2E86DE',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  editButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  signOutButton: {
     backgroundColor: '#E74C3C',
     paddingVertical: 12,
     paddingHorizontal: 32,
@@ -138,5 +174,9 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: '#E74C3C',
+    marginTop: 10,
   },
 });
