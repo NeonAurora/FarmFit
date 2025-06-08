@@ -5,7 +5,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, Text, View, Image, Modal, TouchableWithoutFeedback } from 'react-native';
+import { Pressable, Text, View, Image, Modal, TouchableWithoutFeedback, ActivityIndicator } from 'react-native'; // ← Add ActivityIndicator
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Drawer } from 'expo-router/drawer';
@@ -39,9 +39,18 @@ function HeaderRight() {
   const { user, signIn, signOut } = useAuth();
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false); // ← Add loading state
   
   const handleSignIn = async () => {
-    await signIn();
+    setIsSigningIn(true); // ← Start loading
+    try {
+      await signIn();
+    } catch (error) {
+      console.error('Sign in error:', error);
+      // You might want to show an error message here
+    } finally {
+      setIsSigningIn(false); // ← Stop loading
+    }
   };
   
   const handleSignOut = async () => {
@@ -153,17 +162,32 @@ function HeaderRight() {
   return (
     <Pressable 
       onPress={handleSignIn}
+      disabled={isSigningIn} // ← Disable button when loading
       style={{ 
-        backgroundColor: '#2E86DE', 
+        backgroundColor: isSigningIn ? '#A0A0A0' : '#2E86DE', // ← Change color when loading
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 6,
-        marginRight: 10
+        marginRight: 10,
+        opacity: isSigningIn ? 0.7 : 1, // ← Dim when loading
+        flexDirection: 'row', // ← Add for spinner alignment
+        alignItems: 'center', // ← Center spinner and text
+        justifyContent: 'center', // ← Center content
+        minWidth: 80, // ← Prevent button from shrinking
       }}
     >
-      <Text style={{ color: 'white', fontWeight: 'bold' }}>
-        Sign In
-      </Text>
+      {isSigningIn ? (
+        <>
+          <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>
+            Signing In...
+          </Text>
+        </>
+      ) : (
+        <Text style={{ color: 'white', fontWeight: 'bold' }}>
+          Sign In
+        </Text>
+      )}
     </Pressable>
   );
 }
@@ -199,56 +223,23 @@ export default function RootLayout() {
             headerRight: () => <HeaderRight />,
           }}
         >
-          <Drawer.Screen 
-            name="index" 
-            options={{ 
-              headerTitle: "Home",
-              drawerLabel: "Home"
-            }} 
-          />
-          <Drawer.Screen 
-            name="profile" 
-            options={{ 
-              title: "Profile",
-              drawerLabel: "Profile"
-            }} 
-          />
-          {/* Pet-related screens */}
-          <Drawer.Screen 
-            name="(screens)/addPetScreen" 
-            options={{ 
-              title: "Add Pet",
-              drawerLabel: "Add Pet"
-            }} 
-          />
-          <Drawer.Screen 
-            name="(screens)/petListScreen" 
-            options={{ 
-              title: "My Pets",
-              drawerLabel: "My Pets"
-            }} 
-          />
-          <Drawer.Screen 
-            name="(screens)/petProfileScreen" 
-            options={{ 
-              title: "Pet Profile",
-              drawerItemStyle: { display: 'none' } // Hide from drawer menu
-            }} 
-          />
-          <Drawer.Screen 
-            name="(screens)/editPetScreen" 
-            options={{ 
-              title: "Edit Pet",
-              drawerItemStyle: { display: 'none' } // Hide from drawer menu
-            }} 
-          />
-          <Drawer.Screen 
-            name="+not-found" 
-            options={{ 
-              title: "Not Found",
-              drawerItemStyle: { display: 'none' }
-            }} 
-          />
+          {/* Main Screens */}
+          <Drawer.Screen name="index" options={{ title: "Home" }} />
+          <Drawer.Screen name="profile" options={{ title: "Profile" }} />
+          
+          {/* Pet Management */}
+          <Drawer.Screen name="(screens)/addPetScreen" options={{ title: "Add Pet" }} />
+          <Drawer.Screen name="(screens)/petListScreen" options={{ title: "My Pets" }} />
+          <Drawer.Screen name="(screens)/petProfileScreen" options={{ title: "Pet Profile" }} />
+          <Drawer.Screen name="(screens)/editPetScreen" options={{ title: "Edit Pet" }} />
+          
+          {/* Veterinary Services */}
+          <Drawer.Screen name="(screens)/createVetProfileScreen" options={{ title: "Create Vet Profile" }} />
+          <Drawer.Screen name="(screens)/vetSearchScreen" options={{ title: "Find Veterinarians" }} />
+          <Drawer.Screen name="(screens)/vetProfileViewScreen" options={{ title: "Veterinary Clinic" }} />
+          
+          {/* System Screens */}
+          <Drawer.Screen name="+not-found" options={{ title: "Not Found" }} />
         </Drawer>
         <StatusBar style="auto" />
       </PaperProvider>

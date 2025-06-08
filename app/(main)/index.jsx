@@ -28,6 +28,16 @@ export default function HomePage() {
       label: 'Profile',
       onPress: () => router.push('/profile'),
     },
+    {
+      icon: 'plus',
+      label: 'Create Vet Profile',
+      onPress: () => router.push('/createVetProfileScreen'),
+    },
+    {
+      icon: 'hospital-building',
+      label: 'Search Vet',
+      onPress: () => router.push('/vetSearchScreen'),
+    },
   ];
   
   return (
