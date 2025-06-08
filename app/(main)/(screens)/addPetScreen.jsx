@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { TextInput, Button, Text, Divider, List } from 'react-native-paper';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { uploadImage } from '@/services/supabase/storage';
-import { supabase } from '@/services/supabase/config';
+import { savePetData } from '@/services/supabase';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
@@ -95,20 +95,15 @@ export default function AddPetScreen() {
         created_at: new Date().toISOString(),
       };
       
-      // Save to Supabase
-      const { data, error } = await supabase
-        .from('pets') // ✅ Changed to pets table
-        .insert(petData)
-        .select();
+      // Save using database function
+      const result = await savePetData(petData);
       
-      if (error) {
-        console.error('Detailed Supabase error:', JSON.stringify(error));
-        throw error;
+      if (result) {
+        alert("Pet successfully added!");
+        router.back();
+      } else {
+        throw new Error('Failed to save pet');
       }
-      
-      alert("Pet successfully added!");
-      // Navigate back or clear form
-      router.back();
       
     } catch (error) {
       console.error('Error saving pet:', error.message || error);

@@ -13,7 +13,7 @@ import {
 } from 'react-native-paper';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { uploadImage } from '@/services/supabase/storage';
-import { supabase } from '@/services/supabase/config';
+import { saveVeterinaryClinicData } from '@/services/supabase';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
@@ -249,27 +249,23 @@ export default function CreateVetProfileScreen() {
         is_active: true
       };
       
-      // Save to Supabase (you'll need to create the veterinary_clinics table)
-      const { data, error } = await supabase
-        .from('veterinary_clinics')
-        .insert(vetData)
-        .select();
+      // Save using database function
+      const result = await saveVeterinaryClinicData(vetData);
       
-      if (error) {
-        console.error('Detailed Supabase error:', JSON.stringify(error));
-        throw error;
+      if (result) {
+        Alert.alert(
+          "Success", 
+          "Veterinary clinic profile submitted successfully! It will be reviewed and approved within 24-48 hours.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.back()
+            }
+          ]
+        );
+      } else {
+        throw new Error('Failed to create veterinary profile');
       }
-      
-      Alert.alert(
-        "Success", 
-        "Veterinary clinic profile submitted successfully! It will be reviewed and approved within 24-48 hours.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.back()
-          }
-        ]
-      );
       
     } catch (error) {
       console.error('Error creating vet profile:', error.message || error);

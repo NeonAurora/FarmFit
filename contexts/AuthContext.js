@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { login, getUserInfo, logout } from "@/services/auth0/AuthService";
-import { getUserDataByAuthId, saveUserData, updateUserData, subscribeToUserData, testSupabaseConnection } from "@/services/supabase/database";
+import { getUserDataByAuthId, saveUserData, updateUserData, subscribeToUserData, testSupabaseConnection } from '@/services/supabase';
 
 export const AuthContext = createContext();
 

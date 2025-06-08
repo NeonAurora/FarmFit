@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-na
 import { TextInput, Button, Text, Divider, List } from 'react-native-paper';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { uploadImage, deleteImage } from '@/services/supabase/storage';
-import { supabase } from '@/services/supabase/config';
+import { updatePetData } from '@/services/supabase';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
@@ -134,25 +134,19 @@ export default function EditPetScreen() {
         updated_at: new Date().toISOString(),
       };
       
-      // Update in Supabase
-      const { data, error } = await supabase
-        .from('pets') // ✅ Changed to pets table
-        .update(petData)
-        .eq('id', petId)
-        .eq('user_id', user.sub)
-        .select();
+      // Update using database function
+      const result = await updatePetData(petId, user.sub, petDataToUpdate);
       
-      if (error) {
-        console.error('Detailed Supabase error:', JSON.stringify(error));
-        throw error;
+      if (result) {
+        Alert.alert("Success", "Pet successfully updated!");
+        // Navigate back to pet profile
+        router.push({
+          pathname: '/petProfileScreen',
+          params: { petId }
+        });
+      } else {
+        throw new Error('Failed to update pet');
       }
-      
-      Alert.alert("Success", "Pet successfully updated!");
-      // Navigate back to pet profile
-      router.push({
-        pathname: '/petProfileScreen',
-        params: { petId }
-      });
       
     } catch (error) {
       console.error('Error updating pet:', error.message || error);

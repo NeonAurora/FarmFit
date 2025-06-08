@@ -15,7 +15,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
-import { searchUsers } from '@/services/supabase/database';
+import { searchUsers } from '@/services/supabase';
 import { router } from 'expo-router';
 
 export default function UserSearchScreen() {

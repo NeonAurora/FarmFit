@@ -15,7 +15,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserById, getPetsByUserId } from '@/services/supabase/database';
+import { getUserById, getPetsByUserId } from '@/services/supabase';
 
 export default function UserProfileScreen() {
   const { userId } = useLocalSearchParams();

@@ -17,7 +17,7 @@ import { useFocusEffect } from '@react-navigation/native'; // ← Add this impor
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { getVeterinaryClinics } from '@/services/supabase/database';
+import { getVeterinaryClinics } from '@/services/supabase';
 
 export default function VetSearchScreen() {
   const lastFetchTime = useRef(0);

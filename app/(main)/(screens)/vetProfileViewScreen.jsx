@@ -15,7 +15,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { getVeterinaryClinicById } from '@/services/supabase/database';
+import { getVeterinaryClinicById } from '@/services/supabase';
 
 export default function VetProfileViewScreen() {
   const { clinicId } = useLocalSearchParams();

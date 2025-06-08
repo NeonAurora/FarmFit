@@ -1,7 +1,7 @@
 // hooks/usePets.js
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getPetsByUserId, subscribeToPets } from "../services/supabase/database";
+import { getPetsByUserId, subscribeToPets } from "@/services/supabase";
 
 export function usePets() {
   const { user } = useAuth();

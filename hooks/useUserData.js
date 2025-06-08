@@ -1,7 +1,7 @@
 // hooks/useUserData.js
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserDataByAuthId, subscribeToUserData } from '@/services/supabase/database';
+import { getUserDataByAuthId, subscribeToUserData } from '@/services/supabase';
 
 export function useUserData() {
   const { user } = useAuth();

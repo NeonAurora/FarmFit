@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { deleteImage } from '@/services/supabase/storage';
-import { supabase } from '@/services/supabase/config';
+import { deletePetData } from '@/services/supabase';
 import { usePet } from '@/hooks/usePet';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -70,17 +70,15 @@ export default function PetProfileScreen() {
                 await deleteImage(pet.image_url);
               }
               
-              // Delete record from database
-              const { error } = await supabase
-                .from('pets') // ✅ Changed to pets table
-                .delete()
-                .eq('id', petId)
-                .eq('user_id', user.sub);
+              // Delete record using database function
+              const result = await deletePetData(petId, user.sub);
               
-              if (error) throw error;
-              
-              Alert.alert('Success', 'Pet deleted successfully');
-              router.push('/petListScreen'); // ✅ Navigate to pet list screen
+              if (result) {
+                Alert.alert('Success', 'Pet deleted successfully');
+                router.push('/petListScreen');
+              } else {
+                throw new Error('Failed to delete pet');
+              }
             } catch (error) {
               console.error('Error deleting pet:', error);
               Alert.alert('Error', 'Failed to delete pet');
