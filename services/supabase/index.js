@@ -28,6 +28,17 @@ export {
   searchVetsByService
 } from './vetService';
 
+// Connection Service
+export {
+    sendConnectionRequest,
+    areUsersConnected,
+    respondToConnectionRequest,
+    getConnectionRequests,
+    getConnectionStatus,
+    getUserConnections,
+    subscribeToConnections
+} from './connectionService';
+
 // Common service exports
 export {
   testSupabaseConnection

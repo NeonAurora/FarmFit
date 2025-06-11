@@ -1,6 +1,6 @@
 // app/(main)/(screens)/userProfileScreen.jsx
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { 
   Card, 
   Text, 
@@ -16,6 +16,12 @@ import { ThemedText } from '@/components/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserById, getPetsByUserId } from '@/services/supabase';
+// Import connection services
+import { 
+  sendConnectionRequest, 
+  getConnectionStatus,
+  subscribeToConnections 
+} from '@/services/supabase/connectionService';
 
 export default function UserProfileScreen() {
   const { userId } = useLocalSearchParams();
@@ -30,9 +36,27 @@ export default function UserProfileScreen() {
   const [showPets, setShowPets] = useState(false);
   const [error, setError] = useState(null);
   
+  // Connection-related state
+  const [connectionStatus, setConnectionStatus] = useState('none');
+  const [connectionLoading, setConnectionLoading] = useState(false);
+  
   useEffect(() => {
     fetchUserProfile();
   }, [userId]);
+  
+  // Fetch connection status when user data is loaded
+  useEffect(() => {
+    if (user?.auth_id && currentUser?.sub && user.auth_id !== currentUser.sub) {
+      fetchConnectionStatus();
+      
+      // Subscribe to connection changes
+      const unsubscribe = subscribeToConnections(currentUser.sub, () => {
+        fetchConnectionStatus();
+      });
+      
+      return unsubscribe;
+    }
+  }, [user?.auth_id, currentUser?.sub]);
   
   const fetchUserProfile = async () => {
     if (!userId) {
@@ -59,12 +83,20 @@ export default function UserProfileScreen() {
     }
   };
   
+  const fetchConnectionStatus = async () => {
+    try {
+      const status = await getConnectionStatus(currentUser.sub, user.auth_id);
+      setConnectionStatus(status);
+    } catch (error) {
+      console.error('Error fetching connection status:', error);
+    }
+  };
+  
   const fetchUserPets = async () => {
     if (!user?.auth_id) return;
     
     setPetsLoading(true);
     try {
-      // Note: This assumes pets are public. You might want to add a privacy setting
       const pets = await getPetsByUserId(user.auth_id);
       setUserPets(pets);
     } catch (err) {
@@ -85,15 +117,121 @@ export default function UserProfileScreen() {
   const handleSendMessage = () => {
     // Placeholder for messaging functionality
     console.log('Send message to user:', user.id);
-    // You can implement messaging later
     alert('Messaging feature coming soon!');
   };
   
-  const handleConnect = () => {
-    // Placeholder for friend/follow functionality
-    console.log('Connect with user:', user.id);
-    // You can implement friend system later
-    alert('Connect feature coming soon!');
+  // Updated handleConnect function with actual connection logic
+  const handleConnect = async () => {
+    if (connectionStatus === 'accepted') {
+      // Already connected - could show connection options or do nothing
+      Alert.alert('Already Connected', 'You are already connected with this user.');
+      return;
+    }
+    
+    if (connectionStatus === 'pending') {
+      // Could offer to cancel request
+      Alert.alert(
+        'Request Pending', 
+        'Your connection request is still pending. Would you like to cancel it?',
+        [
+          { text: 'Keep Request', style: 'cancel' },
+          { 
+            text: 'Cancel Request', 
+            style: 'destructive',
+            onPress: () => {
+              // TODO: Implement cancel request functionality
+              alert('Cancel request feature coming soon!');
+            }
+          }
+        ]
+      );
+      return;
+    }
+    
+    if (connectionStatus === 'blocked') {
+      Alert.alert('Cannot Connect', 'Unable to send connection request to this user.');
+      return;
+    }
+    
+    // Send connection request
+    setConnectionLoading(true);
+    try {
+      console.log('Sending connection request to user:', user.auth_id);
+      const result = await sendConnectionRequest(user.auth_id, currentUser.sub);
+      
+      if (result.success) {
+        setConnectionStatus('pending');
+        Alert.alert('Success', 'Connection request sent successfully!');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to send connection request');
+      }
+    } catch (error) {
+      console.error('Error sending connection request:', error);
+      Alert.alert('Error', 'Failed to send connection request. Please try again.');
+    } finally {
+      setConnectionLoading(false);
+    }
+  };
+  
+  // Function to get button properties based on connection status
+  const getConnectButtonProps = () => {
+    switch (connectionStatus) {
+      case 'none':
+        return {
+          children: 'Connect',
+          icon: 'account-plus',
+          mode: 'contained',
+          style: styles.connectButton,
+          disabled: connectionLoading,
+          loading: connectionLoading
+        };
+      
+      case 'pending':
+        return {
+          children: 'Pending',
+          icon: 'clock-outline',
+          mode: 'outlined',
+          style: [styles.connectButton, { borderColor: '#FF9800' }],
+          disabled: connectionLoading,
+          loading: connectionLoading
+        };
+      
+      case 'accepted':
+        return {
+          children: 'Connected',
+          icon: 'check',
+          mode: 'contained',
+          style: [styles.connectButton, { backgroundColor: '#4CAF50' }],
+          disabled: false // Allow tap to show connection options
+        };
+      
+      case 'blocked':
+        return {
+          children: 'Blocked',
+          icon: 'block-helper',
+          mode: 'outlined',
+          style: [styles.connectButton, { borderColor: '#f44336', opacity: 0.6 }],
+          disabled: true
+        };
+      
+      case 'declined':
+        return {
+          children: 'Request Declined',
+          icon: 'close',
+          mode: 'outlined',
+          style: [styles.connectButton, { borderColor: '#f44336', opacity: 0.6 }],
+          disabled: true
+        };
+      
+      default:
+        return {
+          children: 'Connect',
+          icon: 'account-plus',
+          mode: 'contained',
+          style: styles.connectButton,
+          disabled: connectionLoading
+        };
+    }
   };
   
   if (loading) {
@@ -175,13 +313,9 @@ export default function UserProfileScreen() {
             {!isOwnProfile && (
               <View style={styles.actionButtons}>
                 <Button 
-                  mode="contained" 
+                  {...getConnectButtonProps()}
                   onPress={handleConnect}
-                  style={styles.connectButton}
-                  icon="account-plus"
-                >
-                  Connect
-                </Button>
+                />
                 
                 <Button 
                   mode="outlined" 

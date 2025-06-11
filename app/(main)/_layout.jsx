@@ -248,6 +248,9 @@ export default function RootLayout() {
           {/* User Management Screens */}
           <Drawer.Screen name="(screens)/userSearchScreen" options={{ title: "Find Users" }} />
           <Drawer.Screen name="(screens)/userProfileScreen" options={{ title: "User Profile" }} />
+          <Drawer.Screen name="editUserSelfProfileScreen" options={{ title: "Edit Profile" }} />
+          <Drawer.Screen name="(screens)/connectionRequestsScreen" options={{ title: "Requests" }} />
+          
         </Drawer>
         <StatusBar style="auto" />
       </PaperProvider>

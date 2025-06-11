@@ -18,6 +18,11 @@ export default function HomePage() {
       label: 'Add Pet',
       onPress: () => router.push('/addPetScreen'),
     },
+    {
+      icon: 'account-clock',
+      label: 'Incoming Requests',
+      onPress: () => router.push('/connectionRequestsScreen'),
+    },
   ];
   
   return (

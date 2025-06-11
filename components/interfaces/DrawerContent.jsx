@@ -1,5 +1,4 @@
-// Update components/interfaces/DrawerContent.jsx
-
+// components/interfaces/DrawerContent.jsx - UPDATE
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
@@ -78,6 +77,26 @@ export function DrawerContent(props) {
         
         <Divider style={styles.sectionDivider} />
         
+        {/* Social Section - UPDATED */}
+        <List.Subheader style={styles.sectionHeader}>Social</List.Subheader>
+        <List.Item
+          title="My Connections"
+          left={props => <List.Icon {...props} icon="account-group" />}
+          onPress={() => navigateAndClose('/connectionsScreen')}
+        />
+        <List.Item
+          title="Connection Requests"
+          left={props => <List.Icon {...props} icon="account-clock" />}
+          onPress={() => navigateAndClose('/connectionRequestsScreen')}
+        />
+        <List.Item
+          title="Find Users"
+          left={props => <List.Icon {...props} icon="account-search" />}
+          onPress={() => navigateAndClose('/userSearchScreen')}
+        />
+        
+        <Divider style={styles.sectionDivider} />
+        
         {/* Veterinary Services Section */}
         <List.Subheader style={styles.sectionHeader}>Veterinary Services</List.Subheader>
         <List.Item
@@ -89,16 +108,6 @@ export function DrawerContent(props) {
           title="Create Vet Profile"
           left={props => <List.Icon {...props} icon="medical-bag" />}
           onPress={() => navigateAndClose('/createVetProfileScreen')}
-        />
-        
-        <Divider style={styles.sectionDivider} />
-        
-        {/* Social Section */}
-        <List.Subheader style={styles.sectionHeader}>Community</List.Subheader>
-        <List.Item
-          title="Find Users"
-          left={props => <List.Icon {...props} icon="account-search" />}
-          onPress={() => navigateAndClose('/userSearchScreen')}
         />
       </List.Section>
       

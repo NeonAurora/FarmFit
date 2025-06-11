@@ -135,7 +135,7 @@ export default function EditPetScreen() {
       };
       
       // Update using database function
-      const result = await updatePetData(petId, user.sub, petDataToUpdate);
+      const result = await updatePetData(petId, user.sub, petData);
       
       if (result) {
         Alert.alert("Success", "Pet successfully updated!");
