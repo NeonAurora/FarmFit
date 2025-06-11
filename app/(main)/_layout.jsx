@@ -250,6 +250,9 @@ export default function RootLayout() {
           <Drawer.Screen name="(screens)/userProfileScreen" options={{ title: "User Profile" }} />
           <Drawer.Screen name="editUserSelfProfileScreen" options={{ title: "Edit Profile" }} />
           <Drawer.Screen name="(screens)/connectionRequestsScreen" options={{ title: "Requests" }} />
+          <Drawer.Screen name="(screens)/connectionsScreen" options={{ title: "Connections" }} />
+          
+          {/* Social Features */}
           
         </Drawer>
         <StatusBar style="auto" />

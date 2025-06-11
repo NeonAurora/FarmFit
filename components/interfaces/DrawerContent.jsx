@@ -1,7 +1,7 @@
-// components/interfaces/DrawerContent.jsx - UPDATE
+// components/interfaces/DrawerContent.jsx
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { DrawerContentScrollView } from '@react-navigation/drawer';
+import { DrawerContentScrollView } from '@react-navigation/drawer'; // ✅ Use the drawer's scroll view
 import { Avatar, Button, Divider, List, Text } from 'react-native-paper';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
@@ -16,14 +16,20 @@ export function DrawerContent(props) {
     props.navigation.closeDrawer();
   };
 
-  // Navigation helper function
   const navigateAndClose = (route) => {
     router.push(route);
     props.navigation.closeDrawer();
   };
 
   return (
-    <DrawerContentScrollView {...props} contentContainerStyle={styles.container}>
+    <DrawerContentScrollView 
+      {...props} 
+      contentContainerStyle={styles.scrollContainer}
+      showsVerticalScrollIndicator={false}
+      // ✅ These props tell the drawer to handle safe areas properly
+      automaticallyAdjustContentInsets={true}
+      contentInsetAdjustmentBehavior="automatic"
+    >
       {/* Profile Section */}
       <View style={styles.profileSection}>
         {user ? (
@@ -52,61 +58,57 @@ export function DrawerContent(props) {
       
       {/* Navigation Items */}
       <List.Section style={styles.navSection}>
-        {/* Profile Section */}
         <List.Subheader style={styles.sectionHeader}>Account</List.Subheader>
         <List.Item
           title="My Profile"
-          left={props => <List.Icon {...props} icon="account" />}
+          left={(props) => <List.Icon {...props} icon="account" />}
           onPress={() => navigateAndClose('/profile')}
         />
         
         <Divider style={styles.sectionDivider} />
         
-        {/* Pet Management Section */}
         <List.Subheader style={styles.sectionHeader}>Pet Management</List.Subheader>
         <List.Item
           title="Add Pet"
-          left={props => <List.Icon {...props} icon="plus" />}
+          left={(props) => <List.Icon {...props} icon="plus" />}
           onPress={() => navigateAndClose('/addPetScreen')}
         />
         <List.Item
           title="My Pets"
-          left={props => <List.Icon {...props} icon="paw" />}
+          left={(props) => <List.Icon {...props} icon="paw" />}
           onPress={() => navigateAndClose('/petListScreen')}
         />
         
         <Divider style={styles.sectionDivider} />
         
-        {/* Social Section - UPDATED */}
         <List.Subheader style={styles.sectionHeader}>Social</List.Subheader>
         <List.Item
           title="My Connections"
-          left={props => <List.Icon {...props} icon="account-group" />}
+          left={(props) => <List.Icon {...props} icon="account-group" />}
           onPress={() => navigateAndClose('/connectionsScreen')}
         />
         <List.Item
           title="Connection Requests"
-          left={props => <List.Icon {...props} icon="account-clock" />}
+          left={(props) => <List.Icon {...props} icon="account-clock" />}
           onPress={() => navigateAndClose('/connectionRequestsScreen')}
         />
         <List.Item
           title="Find Users"
-          left={props => <List.Icon {...props} icon="account-search" />}
+          left={(props) => <List.Icon {...props} icon="account-search" />}
           onPress={() => navigateAndClose('/userSearchScreen')}
         />
         
         <Divider style={styles.sectionDivider} />
         
-        {/* Veterinary Services Section */}
         <List.Subheader style={styles.sectionHeader}>Veterinary Services</List.Subheader>
         <List.Item
           title="Find Veterinarians"
-          left={props => <List.Icon {...props} icon="hospital-building" />}
+          left={(props) => <List.Icon {...props} icon="hospital-building" />}
           onPress={() => navigateAndClose('/vetSearchScreen')}
         />
         <List.Item
           title="Create Vet Profile"
-          left={props => <List.Icon {...props} icon="medical-bag" />}
+          left={(props) => <List.Icon {...props} icon="medical-bag" />}
           onPress={() => navigateAndClose('/createVetProfileScreen')}
         />
       </List.Section>
@@ -129,8 +131,9 @@ export function DrawerContent(props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   profileSection: {
     padding: 20,
@@ -141,7 +144,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   navSection: {
-    flexGrow: 1,
+    flex: 1,
+    paddingBottom: 10,
   },
   sectionHeader: {
     fontSize: 14,
@@ -157,5 +161,6 @@ const styles = StyleSheet.create({
   },
   logoutSection: {
     padding: 20,
+    paddingTop: 10,
   }
 });
