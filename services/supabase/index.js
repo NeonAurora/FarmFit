@@ -28,7 +28,7 @@ export {
   searchVetsByService
 } from './vetService';
 
-// Connection Service
+// Connection Service exports
 export {
     sendConnectionRequest,
     areUsersConnected,
@@ -38,6 +38,17 @@ export {
     getUserConnections,
     subscribeToConnections
 } from './connectionService';
+
+// Journal service exports
+export {
+  getJournalsByUserId,
+  getJournalById,
+  saveJournalData,
+  updateJournalData,
+  deleteJournalData,
+  subscribeToJournals,
+  getJournalStats
+} from './journalService';
 
 // Common service exports
 export {

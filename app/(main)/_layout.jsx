@@ -252,8 +252,15 @@ export default function RootLayout() {
           <Drawer.Screen name="(screens)/connectionRequestsScreen" options={{ title: "Requests" }} />
           <Drawer.Screen name="(screens)/connectionsScreen" options={{ title: "Connections" }} />
           
-          {/* Social Features */}
-          
+          {/* Journal Features */}
+          <Drawer.Screen name="(screens)/journalListScreen" options={{ title: "My Journals" }} />
+          <Drawer.Screen name="(screens)/addJournalScreen" options={{ title: "Create Journal" }} />
+          <Drawer.Screen name="(screens)/editJournalScreen" options={{ title: "Edit Journal Entry" }} />
+          <Drawer.Screen name="(screens)/journalViewScreen" options={{ title: "Journal Entry" }} />
+          <Drawer.Screen name="(screens)/journalStatsScreen" options={{ title: "Journal Stats" }} />
+          <Drawer.Screen name="(screens)/journalSearchScreen" options={{ title: "Journal Search" }} />
+          <Drawer.Screen name="(screens)/journalSettingsScreen" options={{ title: "Journal Settings" }} />
+
         </Drawer>
         <StatusBar style="auto" />
       </PaperProvider>

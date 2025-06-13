@@ -58,15 +58,16 @@ export function DrawerContent(props) {
       
       {/* Navigation Items */}
       <List.Section style={styles.navSection}>
+        {/* Account */}
         <List.Subheader style={styles.sectionHeader}>Account</List.Subheader>
         <List.Item
           title="My Profile"
           left={(props) => <List.Icon {...props} icon="account" />}
           onPress={() => navigateAndClose('/profile')}
         />
-        
-        <Divider style={styles.sectionDivider} />
-        
+
+        {/* Pet Management */}
+        <Divider style={styles.sectionDivider} />       
         <List.Subheader style={styles.sectionHeader}>Pet Management</List.Subheader>
         <List.Item
           title="Add Pet"
@@ -78,9 +79,37 @@ export function DrawerContent(props) {
           left={(props) => <List.Icon {...props} icon="paw" />}
           onPress={() => navigateAndClose('/petListScreen')}
         />
-        
+
+        {/* Journals */}
         <Divider style={styles.sectionDivider} />
+        <List.Subheader style={styles.sectionHeader}>Journals</List.Subheader>
+        <List.Item
+          title="My Journals"
+          left={(props) => <List.Icon {...props} icon="book" />}
+          onPress={() => navigateAndClose('/journalListScreen')}
+        />
+        <List.Item
+          title="Create Journal"
+          left={(props) => <List.Icon {...props} icon="book-plus" />}
+          onPress={() => navigateAndClose('/addJournalScreen')}
+        />
+        <List.Item
+          title="Journal Stats"
+          left={(props) => <List.Icon {...props} icon="chart-bar" />}
+          onPress={() => navigateAndClose('/journalStatsScreen')}
+        />
+        <List.Item
+          title="Journal Search"
+          left={(props) => <List.Icon {...props} icon="magnify" />}
+          onPress={() => navigateAndClose('/journalSearchScreen')}
+        />
+        <List.Item
+          title="Journal Settings"
+          left={(props) => <List.Icon {...props} icon="cog" />}
+          onPress={() => navigateAndClose('/journalSettingsScreen')}
+        />
         
+        {/* Social */}
         <List.Subheader style={styles.sectionHeader}>Social</List.Subheader>
         <List.Item
           title="My Connections"
@@ -97,9 +126,9 @@ export function DrawerContent(props) {
           left={(props) => <List.Icon {...props} icon="account-search" />}
           onPress={() => navigateAndClose('/userSearchScreen')}
         />
-        
+
+        {/* Veterinary Services */}
         <Divider style={styles.sectionDivider} />
-        
         <List.Subheader style={styles.sectionHeader}>Veterinary Services</List.Subheader>
         <List.Item
           title="Find Veterinarians"
