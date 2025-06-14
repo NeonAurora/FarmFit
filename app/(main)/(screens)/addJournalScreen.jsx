@@ -22,6 +22,7 @@ import { router } from 'expo-router';
 import { uploadImage } from '@/services/supabase/storage';
 import { saveJournalData } from '@/services/supabase/journalService';
 import { getPetsByUserId } from '@/services/supabase/petService';
+import ReanimatedMoodCarousel from '@/components/interfaces/ReanimatedMoodCarousel';
 
 export default function AddJournalScreen() {
   const colorScheme = useColorScheme();
@@ -221,7 +222,7 @@ export default function AddJournalScreen() {
         <Card style={styles.card}>
         <Card.Title title="😊 How are you feeling?" />
         <Card.Content>
-            <HorizontalMoodPicker
+            <ReanimatedMoodCarousel
             value={mood}
             onValueChange={setMood}
             />

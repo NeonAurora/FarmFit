@@ -16,19 +16,14 @@ import * as ExpoImagePicker from 'expo-image-picker';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
+import ReanimatedMoodCarousel from '@/components/interfaces/ReanimatedMoodCarousel'; // ✅ Added import
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, router } from 'expo-router';
 import { uploadImage, deleteImage } from '@/services/supabase/storage';
 import { updateJournalData, getJournalById } from '@/services/supabase/journalService';
 import { getPetsByUserId } from '@/services/supabase/petService';
 
-const MOODS = [
-  { value: 'happy', label: '😊 Happy', color: '#4CAF50' },
-  { value: 'worried', label: '😟 Worried', color: '#FF9800' },
-  { value: 'proud', label: '😤 Proud', color: '#9C27B0' },
-  { value: 'sad', label: '😢 Sad', color: '#2196F3' },
-  { value: 'tired', label: '😴 Tired', color: '#607D8B' }
-];
+// ✅ Removed MOODS constant - it's now in ReanimatedMoodCarousel component
 
 export default function EditJournalScreen() {
   const { journalId } = useLocalSearchParams();
@@ -247,10 +242,7 @@ export default function EditJournalScreen() {
     );
   }
 
-  const moodButtons = MOODS.map(m => ({
-    value: m.value,
-    label: m.label
-  }));
+  // ✅ Removed moodButtons variable - no longer needed
 
   const privacyButtons = [
     { value: false, label: 'Public' },
@@ -297,15 +289,13 @@ export default function EditJournalScreen() {
           </Card.Content>
         </Card>
 
-        {/* Mood Selection */}
+        {/* ✅ Updated Mood Selection - Now uses ReanimatedMoodCarousel */}
         <Card style={styles.card}>
           <Card.Title title="😊 How are you feeling?" />
           <Card.Content>
-            <SegmentedButtons
+            <ReanimatedMoodCarousel
               value={mood}
               onValueChange={setMood}
-              buttons={moodButtons}
-              style={styles.moodButtons}
             />
           </Card.Content>
         </Card>

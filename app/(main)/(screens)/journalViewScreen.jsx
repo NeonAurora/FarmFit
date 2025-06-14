@@ -1,5 +1,5 @@
 // app/(main)/(screens)/journalViewScreen.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert, Image } from 'react-native';
 import { 
   Text, 
@@ -11,6 +11,7 @@ import {
   Divider
 } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native'; // ← Add this import
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -43,6 +44,15 @@ export default function JournalViewScreen() {
   const [journal, setJournal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // ✅ Add useFocusEffect to refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (journalId && user?.sub) {
+        fetchJournal();
+      }
+    }, [journalId, user?.sub])
+  );
   
   useEffect(() => {
     fetchJournal();
@@ -324,6 +334,7 @@ export default function JournalViewScreen() {
   );
 }
 
+// ... rest of the styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
