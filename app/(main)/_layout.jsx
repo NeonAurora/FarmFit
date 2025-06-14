@@ -261,6 +261,12 @@ export default function RootLayout() {
           <Drawer.Screen name="(screens)/journalSearchScreen" options={{ title: "Journal Search" }} />
           <Drawer.Screen name="(screens)/journalSettingsScreen" options={{ title: "Journal Settings" }} />
 
+          {/* Community Features */}
+          <Drawer.Screen name="(screens)/postFeedScreen" options={{ title: "Community Feed" }} />
+          <Drawer.Screen name="(screens)/createPostScreen" options={{ title: "Create Post" }} />
+          <Drawer.Screen name="(screens)/postViewScreen" options={{ title: "Post Detail" }} />
+          <Drawer.Screen name="(screens)/userPostScreen" options={{ title: "Edit Post" }} />
+
         </Drawer>
         <StatusBar style="auto" />
       </PaperProvider>

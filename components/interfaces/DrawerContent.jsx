@@ -141,6 +141,20 @@ export function DrawerContent(props) {
           onPress={() => navigateAndClose('/createVetProfileScreen')}
         />
       </List.Section>
+
+      {/* Community */}
+      <Divider style={styles.sectionDivider} />
+      <List.Subheader style={styles.sectionHeader}>Community</List.Subheader>
+      <List.Item
+        title="Pet Stories"
+        left={(props) => <List.Icon {...props} icon="post" />}
+        onPress={() => navigateAndClose('/postFeedScreen')}
+      />
+      <List.Item
+        title="Share Story"
+        left={(props) => <List.Icon {...props} icon="plus-circle" />}
+        onPress={() => navigateAndClose('/createPostScreen')}
+      />
       
       {user && (
         <View style={styles.logoutSection}>

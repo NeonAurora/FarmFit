@@ -50,6 +50,37 @@ export {
   getJournalStats
 } from './journalService';
 
+// Post service exports
+export {
+  getPostsFeed,
+  getPostById,
+  createPost,
+  updatePost,
+  deletePost,
+  getUserPosts,
+  getPostsByPet,
+  searchPosts,
+  subscribeToPosts,
+  subscribeToUserPosts,
+  getUserPostStats
+} from './postService';
+
+// Comment service exports
+export {
+  getPostComments,
+  getCommentById,
+  createComment,
+  updateComment,
+  deleteComment,
+  getUserComments,
+  getCommentReplies,
+  subscribeToPostComments,
+  subscribeToCommentReplies,
+  getUserCommentStats,
+  getBatchPostCommentCounts,
+  getPostCommentCount
+} from './commentService';
+
 // Common service exports
 export {
   testSupabaseConnection
