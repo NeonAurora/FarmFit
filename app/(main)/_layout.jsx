@@ -230,12 +230,34 @@ export default function RootLayout() {
           {/* Main Screens */}
           <Drawer.Screen name="index" options={{ title: "Home" }} />
           <Drawer.Screen name="profile" options={{ title: "Profile" }} />
+
+          {/* Hide headers for each nested group */}
+          <Drawer.Screen 
+            name="(screens)/(posts)" 
+            options={{ headerShown: false }} 
+          />
+          <Drawer.Screen 
+            name="(screens)/(journals)" 
+            options={{ headerShown: false }} 
+          />
+          <Drawer.Screen 
+            name="(screens)/(pets)" 
+            options={{ headerShown: false }} 
+          />
+          <Drawer.Screen 
+            name="(screens)/(veterinary)" 
+            options={{ headerShown: false }} 
+          />
+          <Drawer.Screen 
+            name="(screens)/(social)" 
+            options={{ headerShown: false }} 
+          />
           
           {/* Pet Management */}
-          {/* <Drawer.Screen name="(screens)/addPetScreen" options={{ title: "Add Pet" }} />
-          <Drawer.Screen name="(screens)/petListScreen" options={{ title: "My Pets" }} />
-          <Drawer.Screen name="(screens)/petProfileScreen" options={{ title: "Pet Profile" }} />
-          <Drawer.Screen name="(screens)/editPetScreen" options={{ title: "Edit Pet" }} /> */}
+          {/* <Drawer.Screen name="(screens)/(pets)/addPetScreen" options={{ title: "Add Pet sdsdd" }} />
+          <Drawer.Screen name="(screens)/(pets)/petListScreen" options={{ title: "My Pets" }} />
+          <Drawer.Screen name="(screens)/(pets)/petProfileScreen" options={{ title: "Pet Profile" }} />
+          <Drawer.Screen name="(screens)/(pets)/editPetScreen" options={{ title: "Edit Pet" }} /> */}
           
           {/* Veterinary Services */}
           {/* <Drawer.Screen name="(screens)/createVetProfileScreen" options={{ title: "Create Vet Profile" }} />

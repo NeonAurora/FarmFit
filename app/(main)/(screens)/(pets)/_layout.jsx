@@ -1,11 +1,11 @@
 import { Stack } from 'expo-router';
 
-export default function JournalsLayout() {
+export default function PetsLayout() {
   return (
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#FF9800',
+          backgroundColor: '#4CAF50',
         },
         headerTintColor: '#fff',
         headerTitleStyle: {
@@ -14,29 +14,29 @@ export default function JournalsLayout() {
       }}
     >
       <Stack.Screen 
-        name="journalListScreen" 
+        name="petListScreen" 
         options={{ 
-          title: 'Journals',
-          headerShown: false 
+          title: 'My Pets',
+          headerShown: true 
         }} 
       />
       <Stack.Screen 
-        name="addJournalScreen" 
+        name="addPetScreen" 
         options={{ 
-          title: 'New Journal',
+          title: 'Add Pet',
           presentation: 'modal'
         }} 
       />
       <Stack.Screen 
-        name="editJournalScreen" 
+        name="editPetScreen" 
         options={{ 
-          title: 'Edit Journal',
+          title: 'Edit Pet',
           presentation: 'modal'
         }} 
       />
       <Stack.Screen 
-        name="journalViewScreen" 
-        options={{ title: 'Journal Details' }} 
+        name="petProfileScreen" 
+        options={{ title: 'Pet Profile' }} 
       />
     </Stack>
   );
