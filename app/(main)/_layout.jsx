@@ -232,40 +232,40 @@ export default function RootLayout() {
           <Drawer.Screen name="profile" options={{ title: "Profile" }} />
           
           {/* Pet Management */}
-          <Drawer.Screen name="(screens)/addPetScreen" options={{ title: "Add Pet" }} />
+          {/* <Drawer.Screen name="(screens)/addPetScreen" options={{ title: "Add Pet" }} />
           <Drawer.Screen name="(screens)/petListScreen" options={{ title: "My Pets" }} />
           <Drawer.Screen name="(screens)/petProfileScreen" options={{ title: "Pet Profile" }} />
-          <Drawer.Screen name="(screens)/editPetScreen" options={{ title: "Edit Pet" }} />
+          <Drawer.Screen name="(screens)/editPetScreen" options={{ title: "Edit Pet" }} /> */}
           
           {/* Veterinary Services */}
-          <Drawer.Screen name="(screens)/createVetProfileScreen" options={{ title: "Create Vet Profile" }} />
+          {/* <Drawer.Screen name="(screens)/createVetProfileScreen" options={{ title: "Create Vet Profile" }} />
           <Drawer.Screen name="(screens)/vetSearchScreen" options={{ title: "Find Veterinarians" }} />
-          <Drawer.Screen name="(screens)/vetProfileViewScreen" options={{ title: "Veterinary Clinic" }} />
+          <Drawer.Screen name="(screens)/vetProfileViewScreen" options={{ title: "Veterinary Clinic" }} /> */}
           
           {/* System Screens */}
-          <Drawer.Screen name="+not-found" options={{ title: "Not Found" }} />
+          {/* <Drawer.Screen name="+not-found" options={{ title: "Not Found" }} /> */}
           
           {/* User Management Screens */}
-          <Drawer.Screen name="(screens)/userSearchScreen" options={{ title: "Find Users" }} />
+          {/* <Drawer.Screen name="(screens)/userSearchScreen" options={{ title: "Find Users" }} />
           <Drawer.Screen name="(screens)/userProfileScreen" options={{ title: "User Profile" }} />
           <Drawer.Screen name="editUserSelfProfileScreen" options={{ title: "Edit Profile" }} />
           <Drawer.Screen name="(screens)/connectionRequestsScreen" options={{ title: "Requests" }} />
-          <Drawer.Screen name="(screens)/connectionsScreen" options={{ title: "Connections" }} />
+          <Drawer.Screen name="(screens)/connectionsScreen" options={{ title: "Connections" }} /> */}
           
           {/* Journal Features */}
-          <Drawer.Screen name="(screens)/journalListScreen" options={{ title: "My Journals" }} />
+          {/* <Drawer.Screen name="(screens)/journalListScreen" options={{ title: "My Journals" }} />
           <Drawer.Screen name="(screens)/addJournalScreen" options={{ title: "Create Journal" }} />
           <Drawer.Screen name="(screens)/editJournalScreen" options={{ title: "Edit Journal Entry" }} />
           <Drawer.Screen name="(screens)/journalViewScreen" options={{ title: "Journal Entry" }} />
           <Drawer.Screen name="(screens)/journalStatsScreen" options={{ title: "Journal Stats" }} />
           <Drawer.Screen name="(screens)/journalSearchScreen" options={{ title: "Journal Search" }} />
-          <Drawer.Screen name="(screens)/journalSettingsScreen" options={{ title: "Journal Settings" }} />
+          <Drawer.Screen name="(screens)/journalSettingsScreen" options={{ title: "Journal Settings" }} /> */}
 
           {/* Community Features */}
-          <Drawer.Screen name="(screens)/postFeedScreen" options={{ title: "Community Feed" }} />
+          {/* <Drawer.Screen name="(screens)/postFeedScreen" options={{ title: "Community Feed" }} />
           <Drawer.Screen name="(screens)/createPostScreen" options={{ title: "Create Post" }} />
           <Drawer.Screen name="(screens)/postViewScreen" options={{ title: "Post Detail" }} />
-          <Drawer.Screen name="(screens)/userPostScreen" options={{ title: "Edit Post" }} />
+          <Drawer.Screen name="(screens)/userPostScreen" options={{ title: "Edit Post" }} /> */}
 
         </Drawer>
         <StatusBar style="auto" />
