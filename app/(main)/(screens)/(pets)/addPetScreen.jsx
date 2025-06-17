@@ -5,11 +5,12 @@ import { TextInput, Button, Text, Divider, List } from 'react-native-paper';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { uploadImage } from '@/services/supabase/storage';
 import { savePetData } from '@/services/supabase';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components/themes/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
+import AgeInput from '@/components/interfaces/AgeInput';
 
 export default function AddPetScreen() {
   const colorScheme = useColorScheme();
@@ -153,13 +154,15 @@ export default function AddPetScreen() {
           placeholder="e.g., Golden Retriever, Persian Cat"
         />
         
-        <TextInput
-          label="Age"
+        <Text style={styles.inputLabel}>Age</Text>
+        <AgeInput
           value={age}
-          onChangeText={setAge}
-          style={styles.input}
-          mode="flat"
-          placeholder="e.g., 2 years, 6 months"
+          onAgeChange={(ageString) => setAge(ageString)}
+          maxYears={25}
+          style={[
+            styles.ageInputContainer,
+            { backgroundColor: isDark ? '#2C2C2E' : '#F8F8F8' }
+          ]}
         />
         
         <TextInput
@@ -348,4 +351,14 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#999',
   },
+  inputLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      marginBottom: 8,
+      marginTop: 16,
+    },
+    ageInputContainer: {
+      borderRadius: 12,
+      marginBottom: 16,
+    },
 });

@@ -11,8 +11,8 @@ import {
   List
 } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themes/ThemedView';
+import { ThemedText } from '@/components/themes/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserById, getPetsByUserId } from '@/services/supabase';

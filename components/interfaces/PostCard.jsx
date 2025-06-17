@@ -9,7 +9,7 @@ import {
   Button,
   IconButton
 } from 'react-native-paper';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@/components/themes/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
 

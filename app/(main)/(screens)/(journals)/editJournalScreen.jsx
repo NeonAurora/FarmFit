@@ -13,7 +13,7 @@ import {
   IconButton
 } from 'react-native-paper';
 import * as ExpoImagePicker from 'expo-image-picker';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components/themes/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import ReanimatedMoodCarousel from '@/components/interfaces/ReanimatedMoodCarousel'; // ✅ Added import

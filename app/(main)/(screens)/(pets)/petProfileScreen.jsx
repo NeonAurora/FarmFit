@@ -4,8 +4,8 @@ import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-na
 import { Text, Button, Divider, Card, Avatar, List } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themes/ThemedView';
+import { ThemedText } from '@/components/themes/ThemedText';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { deleteImage } from '@/services/supabase/storage';

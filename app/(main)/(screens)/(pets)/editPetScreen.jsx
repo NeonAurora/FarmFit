@@ -5,7 +5,7 @@ import { TextInput, Button, Text, Divider, List } from 'react-native-paper';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { uploadImage, deleteImage } from '@/services/supabase/storage';
 import { updatePetData } from '@/services/supabase';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components/themes/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';

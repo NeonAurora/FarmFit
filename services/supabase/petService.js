@@ -18,7 +18,7 @@ export const getPetsByUserId = async (userId) => {
   }
 };
 
-// Get a specific pet by ID
+// Update the getPetById function to include calculated age
 export const getPetById = async (petId, userId) => {
   try {
     const { data, error } = await supabase
@@ -29,6 +29,18 @@ export const getPetById = async (petId, userId) => {
       .single();
     
     if (error) throw error;
+    
+    // Calculate current age if birthday exists
+    if (data && data.birthday) {
+      const calculatedAge = calculateAgeFromBirthday(data.birthday);
+      
+      // Update age in database if it's different
+      if (calculatedAge !== data.age) {
+        await updatePetData(petId, userId, { age: calculatedAge });
+        data.age = calculatedAge;
+      }
+    }
+    
     return data;
   } catch (error) {
     console.error('Error getting pet by ID:', error);
@@ -142,4 +154,41 @@ export const subscribeToPet = (petId, userId, callback) => {
   return () => {
     supabase.removeChannel(subscription);
   };
+};
+
+// Calculate age from birthday
+export const calculateAgeFromBirthday = (birthday) => {
+  if (!birthday) return null;
+  
+  const today = new Date();
+  const birthDate = new Date(birthday);
+  const yearsDiff = today.getFullYear() - birthDate.getFullYear();
+  const monthsDiff = today.getMonth() - birthDate.getMonth();
+  
+  let years = yearsDiff;
+  let months = monthsDiff;
+  
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  // Format age string
+  if (years === 0) {
+    return `${months} month${months !== 1 ? 's' : ''}`;
+  } else if (months === 0) {
+    return `${years} year${years !== 1 ? 's' : ''}`;
+  } else {
+    return `${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`;
+  }
+};
+
+
+// Calculate approximate birthday from age
+export const calculateApproximateBirthday = (ageYears, ageMonths = 0) => {
+  const today = new Date();
+  const approximateBirthday = new Date(today);
+  approximateBirthday.setFullYear(today.getFullYear() - ageYears);
+  approximateBirthday.setMonth(today.getMonth() - ageMonths);
+  return approximateBirthday.toISOString().split('T')[0]; // Return YYYY-MM-DD format
 };

@@ -14,7 +14,7 @@ import {
 import * as ExpoImagePicker from 'expo-image-picker';
 import { uploadImage } from '@/services/supabase/storage';
 import { saveVeterinaryClinicData } from '@/services/supabase';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components/themes/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';

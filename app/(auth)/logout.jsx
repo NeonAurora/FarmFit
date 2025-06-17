@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Pressable } from 'react-native';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themes/ThemedView';
+import { ThemedText } from '@/components/themes/ThemedText';
 import { useRouter } from 'expo-router';
 
 export default function LogoutScreen() {

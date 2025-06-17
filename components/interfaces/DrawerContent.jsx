@@ -1,6 +1,8 @@
 // components/interfaces/DrawerContent.jsx
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTheme } from 'react-native-paper';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { DrawerContentScrollView } from '@react-navigation/drawer'; // ✅ Use the drawer's scroll view
 import { Avatar, Button, Divider, List, Text } from 'react-native-paper';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +11,8 @@ import { useRouter } from 'expo-router';
 export function DrawerContent(props) {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const theme = useTheme();
+  const colorScheme = useColorScheme();
 
   const handleSignOut = async () => {
     await signOut();
@@ -23,11 +27,14 @@ export function DrawerContent(props) {
 
   return (
     <DrawerContentScrollView 
-      {...props} 
-      contentContainerStyle={styles.scrollContainer}
+      {...props}
+      contentContainerStyle={[
+        styles.scrollContainer,
+        { backgroundColor: theme.colors.background }
+      ]}
+      style={{ backgroundColor: theme.colors.background }}
       showsVerticalScrollIndicator={false}
-      // ✅ These props tell the drawer to handle safe areas properly
-      automaticallyAdjustContentInsets={true}
+      automaticallyAdjustContentInsets={true} // ✅ These props tell the drawer to handle safe areas properly
       contentInsetAdjustmentBehavior="automatic"
     >
       {/* Profile Section */}

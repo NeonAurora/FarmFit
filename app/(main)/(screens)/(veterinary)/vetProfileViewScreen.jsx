@@ -1,6 +1,6 @@
 // app/(main)/(screens)/vetProfileViewScreen.jsx
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, View, ActivityIndicator, Linking } from 'react-native';
+import { ScrollView, StyleSheet, View, ActivityIndicator, Linking, Alert } from 'react-native';
 import { 
   Text, 
   Card, 
@@ -12,10 +12,15 @@ import {
   IconButton
 } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themes/ThemedView';
+import { ThemedText } from '@/components/themes/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { getVeterinaryClinicById } from '@/services/supabase';
+import { RatingDisplay } from '@/components/veterinary/RatingDisplay';
+import { RatingForm } from '@/components/veterinary/RatingForm';
+import { RatingsList } from '@/components/veterinary/RatingsList';
+import { useAuth } from '@/contexts/AuthContext';
+import { getClinicRatingSummary, getClinicRatings, submitVetRating, hasUserRatedClinic } from '@/services/supabase';
 
 export default function VetProfileViewScreen() {
   const { clinicId } = useLocalSearchParams();
@@ -27,10 +32,25 @@ export default function VetProfileViewScreen() {
   const [doctorsExpanded, setDoctorsExpanded] = useState(true);
   const [servicesExpanded, setServicesExpanded] = useState(true);
   const [noticesExpanded, setNoticesExpanded] = useState(false);
+
+  const [ratingSummary, setRatingSummary] = useState({ average_rating: 0, total_ratings: 0 });
+  const [ratings, setRatings] = useState([]);
+  const [showRatingForm, setShowRatingForm] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
+  const [ratingsExpanded, setRatingsExpanded] = useState(false);
+
+  const { user } = useAuth();
   
+
   useEffect(() => {
-    fetchClinic();
+      fetchClinic();
   }, [clinicId]);
+
+  useEffect(() => {
+    if (clinic?.id) {
+      loadRatingData();
+    }
+  }, [clinic?.id, user?.sub]);
   
   const fetchClinic = async () => {
     if (!clinicId) return;
@@ -59,6 +79,39 @@ export default function VetProfileViewScreen() {
       const address = encodeURIComponent(clinic?.full_address || clinic?.clinic_name);
       const mapUrl = `https://www.google.com/maps/search/?api=1&query=${address}`;
       Linking.openURL(mapUrl);
+    }
+  };
+
+  // Load rating data
+  const loadRatingData = async () => {
+    try {
+      const [summary, ratingsList, userHasRated] = await Promise.all([
+        getClinicRatingSummary(clinic.id),
+        getClinicRatings(clinic.id, { limit: 10 }),
+        user?.sub ? hasUserRatedClinic(user.sub, clinic.id) : false
+      ]);
+      
+      setRatingSummary(summary);
+      setRatings(ratingsList);
+      setHasRated(userHasRated);
+    } catch (error) {
+      console.error('Error loading rating data:', error);
+    }
+  };
+
+  // Handle rating submission
+  const handleSubmitRating = async (ratingData) => {
+    try {
+      await submitVetRating(ratingData, user);
+      setShowRatingForm(false);
+      setHasRated(true);
+      
+      // Reload rating data
+      await loadRatingData();
+      
+      Alert.alert('Success', 'Thank you for your rating!');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to submit rating');
     }
   };
   
@@ -280,6 +333,47 @@ export default function VetProfileViewScreen() {
             Get Directions
           </Button>
         </View>
+        {/* Rating Section */}
+        <View style={styles.ratingSection}>
+          <RatingDisplay ratingSummary={ratingSummary} />
+          
+          {user && !hasRated && (
+            <Button 
+              mode="outlined" 
+              onPress={() => setShowRatingForm(true)}
+              style={styles.rateButton}
+              icon="star"
+            >
+              Rate This Clinic
+            </Button>
+          )}
+          
+          {ratingSummary.total_ratings > 0 && (
+            <List.Accordion
+              title={`📝 Reviews (${ratingSummary.total_ratings})`}
+              expanded={ratingsExpanded}
+              onPress={() => setRatingsExpanded(!ratingsExpanded)}
+              style={styles.accordion}
+              titleStyle={styles.accordionTitle}
+            >
+              <RatingsList ratings={ratings} />
+            </List.Accordion>
+          )}
+        </View>
+
+        {/* Rating Form Modal */}
+        {showRatingForm && (
+          <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <RatingForm
+              clinicId={clinic.id}
+              clinicName={clinic.clinic_name}
+              onSubmit={handleSubmitRating}
+              onCancel={() => setShowRatingForm(false)}
+            />
+          </View>
+        </View>
+        )}
       </ScrollView>
     </ThemedView>
   );
@@ -479,5 +573,27 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     borderColor: '#2E86DE',
+  },
+  ratingSection: {
+    marginTop: 16,
+  },
+  rateButton: {
+    marginTop: 8,
+    marginHorizontal: 16,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',        // Takes 90% of screen width
+    maxWidth: 400,       // Maximum width for larger screens
+    maxHeight: '80%',    // Maximum height to prevent overflow
   },
 });

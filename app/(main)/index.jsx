@@ -1,7 +1,7 @@
 // app/(main)/index.jsx
 import { StyleSheet } from 'react-native';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themes/ThemedView';
+import { ThemedText } from '@/components/themes/ThemedText';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { FAB } from 'react-native-paper';

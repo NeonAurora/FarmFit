@@ -10,7 +10,7 @@ import {
 } from 'react-native-paper';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, router } from 'expo-router';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components/themes/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
 import ImagePicker from '@/components/interfaces/ImagePicker';

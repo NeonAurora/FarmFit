@@ -3,8 +3,8 @@ import React from 'react';
 import { StyleSheet, Pressable, Image, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData'; 
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themes/ThemedView';
+import { ThemedText } from '@/components/themes/ThemedText';
 import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {

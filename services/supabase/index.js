@@ -81,6 +81,15 @@ export {
   getPostCommentCount
 } from './commentService';
 
+// Rating service exports
+export {
+  getClinicRatings,
+  hasUserRatedClinic,
+  getUserClinicRating,
+  submitVetRating,
+  getClinicRatingSummary,
+} from './ratingService';
+
 // Common service exports
 export {
   testSupabaseConnection
