@@ -88,7 +88,27 @@ export {
   getUserClinicRating,
   submitVetRating,
   getClinicRatingSummary,
+  getUserRatingHistory,
+  updateUserRating,
+  deleteUserRating
 } from './ratingService';
+
+// Moderation service exports
+export {
+  reportRating,
+  getPendingReports,
+  reviewReport,
+  getFlaggedRatings,
+  unflagRating,
+  softDeleteRating
+} from './moderationService';
+
+// Helpfulness Service exports
+export {
+  voteOnRatingHelpfulness,
+  getUserHelpfulnessVotes,
+  getRatingHelpfulnessStats,
+} from './helpfulnessService';
 
 // Common service exports
 export {

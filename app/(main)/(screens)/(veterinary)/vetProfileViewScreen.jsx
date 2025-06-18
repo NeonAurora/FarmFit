@@ -1,6 +1,6 @@
 // app/(main)/(screens)/vetProfileViewScreen.jsx
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, View, ActivityIndicator, Linking, Alert } from 'react-native';
+import { ScrollView, StyleSheet, View, ActivityIndicator, Linking, Alert, Modal } from 'react-native';
 import { 
   Text, 
   Card, 
@@ -19,8 +19,14 @@ import { getVeterinaryClinicById } from '@/services/supabase';
 import { RatingDisplay } from '@/components/veterinary/RatingDisplay';
 import { RatingForm } from '@/components/veterinary/RatingForm';
 import { RatingsList } from '@/components/veterinary/RatingsList';
+import { RatingDimensions } from '@/components/veterinary/RatingDimensions';
+import { RatingDistributionChart } from '@/components/veterinary/RatingDistributionChart';
+import { UserOwnRating } from '@/components/veterinary/UserOwnRating';
+import { RatingEditForm } from '@/components/veterinary/RatingEditForm';
+import { reportRating } from '@/services/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { getClinicRatingSummary, getClinicRatings, submitVetRating, hasUserRatedClinic } from '@/services/supabase';
+import { getClinicRatingSummary, getClinicRatings, submitVetRating, hasUserRatedClinic, getUserHelpfulnessVotes } from '@/services/supabase';
+import { updateUserRating, deleteUserRating, getUserClinicRating } from '@/services/supabase';
 
 export default function VetProfileViewScreen() {
   const { clinicId } = useLocalSearchParams();
@@ -38,6 +44,12 @@ export default function VetProfileViewScreen() {
   const [showRatingForm, setShowRatingForm] = useState(false);
   const [hasRated, setHasRated] = useState(false);
   const [ratingsExpanded, setRatingsExpanded] = useState(false);
+  const [currentSort, setCurrentSort] = useState('created_at');
+
+  const [userOwnRating, setUserOwnRating] = useState(null);
+  const [editingRating, setEditingRating] = useState(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   const { user } = useAuth();
   
@@ -82,36 +94,142 @@ export default function VetProfileViewScreen() {
     }
   };
 
-  // Load rating data
   const loadRatingData = async () => {
     try {
-      const [summary, ratingsList, userHasRated] = await Promise.all([
+      const [summary, ratingsList, userHasRated, userRating] = await Promise.all([
         getClinicRatingSummary(clinic.id),
-        getClinicRatings(clinic.id, { limit: 10 }),
-        user?.sub ? hasUserRatedClinic(user.sub, clinic.id) : false
+        getClinicRatings(clinic.id, { limit: 10, sortBy: currentSort }),
+        user?.sub ? hasUserRatedClinic(user.sub, clinic.id) : false,
+        user?.sub ? getUserClinicRating(user.sub, clinic.id) : null // Get user's rating
       ]);
       
       setRatingSummary(summary);
       setRatings(ratingsList);
       setHasRated(userHasRated);
+      setUserOwnRating(userRating); // Set user's own rating
     } catch (error) {
       console.error('Error loading rating data:', error);
     }
   };
 
-  // Handle rating submission
-  const handleSubmitRating = async (ratingData) => {
+  const handleSortChange = async (newSort) => {
+    setCurrentSort(newSort);
     try {
-      await submitVetRating(ratingData, user);
+      const sortedRatings = await getClinicRatings(clinic.id, { 
+        limit: 10, 
+        sortBy: newSort 
+      });
+      setRatings(sortedRatings);
+    } catch (error) {
+      console.error('Error sorting ratings:', error);
+    }
+  };
+
+  // Handle updating user's rating
+  const handleUpdateUserRating = async (updateData, editReason) => {
+    if (!editingRating) return;
+
+    setUpdating(true);
+    try {
+      const updatedRating = await updateUserRating(
+        editingRating.id, 
+        user.sub, 
+        updateData, 
+        editReason
+      );
+      
+      // Update the user's own rating
+      setUserOwnRating({ ...userOwnRating, ...updatedRating });
+      
+      // Reload rating data to update summary
+      await loadRatingData();
+
+      setShowEditForm(false);
+      setEditingRating(null);
+      Alert.alert('Success', 'Your rating has been updated successfully');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to update rating');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Handle deleting user's rating
+  const handleDeleteUserRating = () => {
+    Alert.alert(
+      'Delete Rating',
+      'Are you sure you want to delete your rating? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteUserRating(userOwnRating.id, user.sub);
+              setUserOwnRating(null);
+              setHasRated(false);
+              
+              // Reload rating data
+              await loadRatingData();
+              
+              Alert.alert('Success', 'Rating deleted successfully');
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to delete rating');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Update the rating submission handler
+  const handleSubmitRating = async (ratingData, errorMessage) => {
+    if (!ratingData && errorMessage) {
+      Alert.alert('Rating Required', errorMessage);
+      return;
+    }
+
+    try {
+      const ipAddress = await getUserIP();
+      const userAgent = navigator?.userAgent || null;
+      
+      const newRating = await submitVetRating(ratingData, user, ipAddress, userAgent);
       setShowRatingForm(false);
       setHasRated(true);
+      setUserOwnRating(newRating); // Set the new rating
       
-      // Reload rating data
       await loadRatingData();
       
       Alert.alert('Success', 'Thank you for your rating!');
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to submit rating');
+    }
+  };
+
+  // Layer 3: Handle rating report
+  const handleReportRating = async (ratingId, reason, details) => {
+    try {
+      await reportRating(ratingId, user.sub, reason, details);
+      Alert.alert('Report Submitted', 'Thank you for your report. We will review it shortly.');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to submit report');
+    }
+  };
+
+  // Handle editing user's own rating
+  const handleEditUserRating = () => {
+    setEditingRating(userOwnRating);
+    setShowEditForm(true);
+  };
+
+  // Layer 3: Get user's IP address (optional - for enhanced security)
+  const getUserIP = async () => {
+    try {
+      // This is optional - you can implement IP detection or skip it
+      return null; // For now, we'll skip IP detection
+    } catch (error) {
+      return null;
     }
   };
   
@@ -333,9 +451,20 @@ export default function VetProfileViewScreen() {
             Get Directions
           </Button>
         </View>
+        {/* User's Own Rating Section */}
+        {user && userOwnRating && (
+          <UserOwnRating
+            userRating={userOwnRating}
+            onEdit={handleEditUserRating}
+            onDelete={handleDeleteUserRating}
+          />
+        )}
         {/* Rating Section */}
         <View style={styles.ratingSection}>
-          <RatingDisplay ratingSummary={ratingSummary} />
+          <RatingDisplay 
+            ratingSummary={ratingSummary} 
+            showDetails={true} // Layer 2: Enable detailed view
+          />
           
           {user && !hasRated && (
             <Button 
@@ -350,30 +479,63 @@ export default function VetProfileViewScreen() {
           
           {ratingSummary.total_ratings > 0 && (
             <List.Accordion
-              title={`📝 Reviews (${ratingSummary.total_ratings})`}
+              title={`📝 Other Reviews (${Math.max(0, ratingSummary.total_ratings - (hasRated ? 1 : 0))})`}
               expanded={ratingsExpanded}
               onPress={() => setRatingsExpanded(!ratingsExpanded)}
               style={styles.accordion}
               titleStyle={styles.accordionTitle}
             >
-              <RatingsList ratings={ratings} />
+              <RatingsList
+                ratings={ratings}
+                onReport={handleReportRating}
+                onSortChange={handleSortChange}
+                currentSort={currentSort}
+              />
             </List.Accordion>
           )}
         </View>
 
-        {/* Rating Form Modal */}
-        {showRatingForm && (
+        {/* Rating Form Modal - Use React Native Modal */}
+        <Modal
+          visible={showRatingForm}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowRatingForm(false)}
+        >
           <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <RatingForm
-              clinicId={clinic.id}
-              clinicName={clinic.clinic_name}
-              onSubmit={handleSubmitRating}
-              onCancel={() => setShowRatingForm(false)}
-            />
+            <View style={styles.modalContent}>
+              <RatingForm
+                clinicId={clinic.id}
+                clinicName={clinic.clinic_name}
+                onSubmit={handleSubmitRating}
+                onCancel={() => setShowRatingForm(false)}
+              />
+            </View>
           </View>
-        </View>
-        )}
+        </Modal>
+        {/* Edit Form Modal */}
+        <Modal
+          visible={showEditForm}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowEditForm(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              {editingRating && (
+                <RatingEditForm
+                  rating={editingRating}
+                  onSubmit={handleUpdateUserRating}
+                  onCancel={() => {
+                    setShowEditForm(false);
+                    setEditingRating(null);
+                  }}
+                  loading={updating}
+                />
+              )}
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </ThemedView>
   );
@@ -582,18 +744,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 16,
   },
   modalContent: {
-    width: '90%',        // Takes 90% of screen width
-    maxWidth: 400,       // Maximum width for larger screens
-    maxHeight: '80%',    // Maximum height to prevent overflow
+    width: '90%',
+    maxWidth: 420,
+    maxHeight: '90%',
   },
 });

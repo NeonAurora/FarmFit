@@ -3,10 +3,17 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { StarRating } from './StarRating';
+import { RatingDimensions } from './RatingDimensions';
+import { RatingDistributionChart } from './RatingDistributionChart';
 
-// Layer 1: Display clinic rating summary
-export const RatingDisplay = ({ ratingSummary, style }) => {
-  const { average_rating, total_ratings } = ratingSummary;
+// Layer 2: Enhanced rating display with dimensions and distribution
+export const RatingDisplay = ({ ratingSummary, showDetails = false, style }) => {
+  const { 
+    average_rating, 
+    total_ratings, 
+    dimensional_averages = {},
+    rating_distribution = {}
+  } = ratingSummary;
 
   if (total_ratings === 0) {
     return (
@@ -20,21 +27,38 @@ export const RatingDisplay = ({ ratingSummary, style }) => {
   }
 
   return (
-    <Card style={[styles.card, style]}>
-      <Card.Content style={styles.content}>
-        <View style={styles.ratingRow}>
-          <StarRating 
-            rating={average_rating} 
-            readonly={true} 
-            size={20}
-            showRatingNumber={true}
+    <View style={style}>
+      {/* Main Rating Summary */}
+      <Card style={styles.card}>
+        <Card.Content style={styles.content}>
+          <View style={styles.ratingRow}>
+            <StarRating 
+              rating={average_rating} 
+              readonly={true} 
+              size={20}
+              showRatingNumber={true}
+            />
+            <Text style={styles.totalRatings}>
+              ({total_ratings} {total_ratings === 1 ? 'rating' : 'ratings'})
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
+
+      {/* Layer 2: Detailed breakdowns */}
+      {showDetails && (
+        <>
+          <RatingDimensions 
+            dimensionalAverages={dimensional_averages}
           />
-          <Text style={styles.totalRatings}>
-            ({total_ratings} {total_ratings === 1 ? 'rating' : 'ratings'})
-          </Text>
-        </View>
-      </Card.Content>
-    </Card>
+          
+          <RatingDistributionChart 
+            ratingDistribution={rating_distribution}
+            totalRatings={total_ratings}
+          />
+        </>
+      )}
+    </View>
   );
 };
 

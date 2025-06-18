@@ -1,69 +1,68 @@
-// components/veterinary/RatingForm.jsx
+// components/veterinary/RatingEditForm.jsx
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Card, Text, Button, TextInput, List } from 'react-native-paper';
 import { StarRating } from './StarRating';
 
-// Layer 2: Enhanced rating form with multi-dimensional ratings and reviews
-export const RatingForm = ({ clinicId, clinicName, onSubmit, onCancel }) => {
-  const [overallRating, setOverallRating] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export const RatingEditForm = ({ 
+  rating, 
+  onSubmit, 
+  onCancel, 
+  loading = false 
+}) => {
+  const [overallRating, setOverallRating] = useState(rating.overall_rating);
+  const [staffFriendliness, setStaffFriendliness] = useState(rating.staff_friendliness || 0);
+  const [cleanliness, setCleanliness] = useState(rating.cleanliness || 0);
+  const [waitTime, setWaitTime] = useState(rating.wait_time || 0);
+  const [valueForMoney, setValueForMoney] = useState(rating.value_for_money || 0);
+  const [treatmentQuality, setTreatmentQuality] = useState(rating.treatment_quality || 0);
+  const [reviewTitle, setReviewTitle] = useState(rating.review_title || '');
+  const [reviewContent, setReviewContent] = useState(rating.review_content || '');
+  const [visitDate, setVisitDate] = useState(rating.visit_date || '');
+  const [editReason, setEditReason] = useState('');
   
-  // Layer 2: Multi-dimensional ratings
-  const [staffFriendliness, setStaffFriendliness] = useState(0);
-  const [cleanliness, setCleanliness] = useState(0);
-  const [waitTime, setWaitTime] = useState(0);
-  const [valueForMoney, setValueForMoney] = useState(0);
-  const [treatmentQuality, setTreatmentQuality] = useState(0);
-  
-  // Layer 2: Review content
-  const [reviewTitle, setReviewTitle] = useState('');
-  const [reviewContent, setReviewContent] = useState('');
-  const [visitDate, setVisitDate] = useState('');
-  
-  // Layer 2: UI state
   const [detailedRatingsExpanded, setDetailedRatingsExpanded] = useState(false);
   const [reviewExpanded, setReviewExpanded] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (overallRating === 0) {
-      onSubmit(null, 'Please select an overall rating before submitting.');
+      alert('Please select an overall rating');
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const ratingData = {
-        clinic_id: clinicId,
-        overall_rating: overallRating,
-        // Layer 2: Include dimensional ratings (only if > 0)
-        staff_friendliness: staffFriendliness > 0 ? staffFriendliness : null,
-        cleanliness: cleanliness > 0 ? cleanliness : null,
-        wait_time: waitTime > 0 ? waitTime : null,
-        value_for_money: valueForMoney > 0 ? valueForMoney : null,
-        treatment_quality: treatmentQuality > 0 ? treatmentQuality : null,
-        // Layer 2: Include review content (only if not empty)
-        review_title: reviewTitle.trim() || null,
-        review_content: reviewContent.trim() || null,
-        visit_date: visitDate || null
-      };
+    const updateData = {
+      overall_rating: overallRating,
+      staff_friendliness: staffFriendliness > 0 ? staffFriendliness : null,
+      cleanliness: cleanliness > 0 ? cleanliness : null,
+      wait_time: waitTime > 0 ? waitTime : null,
+      value_for_money: valueForMoney > 0 ? valueForMoney : null,
+      treatment_quality: treatmentQuality > 0 ? treatmentQuality : null,
+      review_title: reviewTitle.trim() || null,
+      review_content: reviewContent.trim() || null,
+      visit_date: visitDate || null
+    };
 
-      await onSubmit(ratingData);
-    } catch (error) {
-      console.error('Error submitting rating:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    onSubmit(updateData, editReason.trim() || null);
   };
 
   return (
     <Card style={styles.card}>
       <Card.Content>
         <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>Rate Your Experience</Text>
-          <Text style={styles.clinicName}>{clinicName}</Text>
+          <Text style={styles.title}>Edit Your Rating</Text>
+          <Text style={styles.clinicName}>{rating.clinic?.clinic_name}</Text>
           
-          {/* Overall Rating - Required */}
+          {/* Edit count warning */}
+          {rating.edit_count > 0 && (
+            <View style={styles.editWarning}>
+              <Text style={styles.editWarningText}>
+                ⚠️ This rating has been edited {rating.edit_count} time(s). 
+                Maximum {3 - rating.edit_count} edits remaining.
+              </Text>
+            </View>
+          )}
+
+          {/* Overall Rating */}
           <View style={styles.ratingSection}>
             <Text style={styles.ratingLabel}>Overall Rating *</Text>
             <StarRating
@@ -71,14 +70,9 @@ export const RatingForm = ({ clinicId, clinicName, onSubmit, onCancel }) => {
               onRatingChange={setOverallRating}
               size={32}
             />
-            {overallRating > 0 && (
-              <Text style={styles.ratingText}>
-                {getRatingText(overallRating)}
-              </Text>
-            )}
           </View>
 
-          {/* Layer 2: Detailed Ratings - Optional */}
+          {/* Detailed Ratings */}
           <List.Accordion
             title="📊 Detailed Ratings (Optional)"
             expanded={detailedRatingsExpanded}
@@ -114,9 +108,9 @@ export const RatingForm = ({ clinicId, clinicName, onSubmit, onCancel }) => {
             </View>
           </List.Accordion>
 
-          {/* Layer 2: Review Content - Optional */}
+          {/* Review Content */}
           <List.Accordion
-            title="📝 Write a Review (Optional)"
+            title="📝 Review Content (Optional)"
             expanded={reviewExpanded}
             onPress={() => setReviewExpanded(!reviewExpanded)}
             style={styles.accordion}
@@ -129,7 +123,6 @@ export const RatingForm = ({ clinicId, clinicName, onSubmit, onCancel }) => {
                 style={styles.input}
                 mode="outlined"
                 maxLength={100}
-                placeholder="Summarize your experience..."
                 right={<TextInput.Affix text={`${reviewTitle.length}/100`} />}
               />
               
@@ -142,7 +135,6 @@ export const RatingForm = ({ clinicId, clinicName, onSubmit, onCancel }) => {
                 multiline
                 numberOfLines={4}
                 maxLength={1000}
-                placeholder="Share details about your experience to help other pet owners..."
                 right={<TextInput.Affix text={`${reviewContent.length}/1000`} />}
               />
               
@@ -157,12 +149,24 @@ export const RatingForm = ({ clinicId, clinicName, onSubmit, onCancel }) => {
             </View>
           </List.Accordion>
 
+          {/* Edit Reason */}
+          <TextInput
+            label="Reason for Edit (Optional)"
+            value={editReason}
+            onChangeText={setEditReason}
+            style={styles.input}
+            mode="outlined"
+            placeholder="Why are you updating this rating?"
+            maxLength={200}
+            right={<TextInput.Affix text={`${editReason.length}/200`} />}
+          />
+
           <View style={styles.buttonContainer}>
             <Button 
               mode="outlined" 
               onPress={onCancel}
               style={styles.cancelButton}
-              disabled={isSubmitting}
+              disabled={loading}
             >
               Cancel
             </Button>
@@ -170,10 +174,10 @@ export const RatingForm = ({ clinicId, clinicName, onSubmit, onCancel }) => {
               mode="contained" 
               onPress={handleSubmit}
               style={styles.submitButton}
-              loading={isSubmitting}
-              disabled={isSubmitting || overallRating === 0}
+              loading={loading}
+              disabled={loading || overallRating === 0}
             >
-              Submit
+              Update Rating
             </Button>
           </View>
         </ScrollView>
@@ -194,22 +198,10 @@ const DimensionalRating = ({ label, rating, onRatingChange }) => (
   </View>
 );
 
-// Helper function for rating text
-const getRatingText = (rating) => {
-  const texts = {
-    1: 'Poor',
-    2: 'Fair', 
-    3: 'Good',
-    4: 'Very Good',
-    5: 'Excellent'
-  };
-  return texts[rating] || '';
-};
-
 const styles = StyleSheet.create({
   card: {
     margin: 16,
-    maxHeight: '90%', // Prevent overflow
+    maxHeight: '90%',
   },
   title: {
     fontSize: 20,
@@ -221,7 +213,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#666',
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  editWarning: {
+    backgroundColor: '#fff3cd',
+    padding: 12,
+    borderRadius: 4,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ffc107',
+  },
+  editWarningText: {
+    fontSize: 12,
+    color: '#856404',
   },
   ratingSection: {
     alignItems: 'center',
@@ -231,11 +235,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     marginBottom: 12,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
   },
   accordion: {
     marginBottom: 8,

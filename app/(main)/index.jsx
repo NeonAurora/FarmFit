@@ -20,8 +20,8 @@ export default function HomePage() {
     },
     {
       icon: 'account-clock',
-      label: 'Incoming Requests',
-      onPress: () => router.push('/connectionRequestsScreen'),
+      label: 'Rating History',
+      onPress: () => router.push('/userRatingHistoryScreen'),
     },
   ];
   
