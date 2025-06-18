@@ -13,9 +13,9 @@ import {
   IconButton,
   ActivityIndicator
 } from 'react-native-paper';
-import * as ExpoImagePicker from 'expo-image-picker';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
+import ImagePicker from './ImagePicker';
 
 const POST_TYPES = [
   { value: 'text', label: 'Text', emoji: '📝', description: 'Share thoughts and stories' },
@@ -116,42 +116,6 @@ export default function PostForm({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const handlePickMedia = async () => {
-    const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow access to your photos and videos.');
-      return;
-    }
-
-    let mediaTypeOptions = ['images'];
-    if (postType === 'video' || postType === 'mixed') {
-      mediaTypeOptions.push('videos');
-    }
-
-    const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: mediaTypeOptions,
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: postType === 'image' ? [16, 9] : undefined,
-    });
-
-    if (!result.canceled && result.assets?.length > 0) {
-      const asset = result.assets[0];
-      setMediaFile(asset.uri);
-      
-      // Auto-adjust post type based on media
-      if (asset.type === 'video' && postType === 'image') {
-        setPostType('video');
-      } else if (asset.type === 'image' && postType === 'video') {
-        setPostType('image');
-      }
-    }
-  };
-
-  const removeMedia = () => {
-    setMediaFile(null);
   };
 
   const applyTemplate = (templateType) => {
@@ -298,42 +262,14 @@ export default function PostForm({
         <Card style={styles.card}>
           <Card.Title title="📷 Media" />
           <Card.Content>
-            {mediaFile ? (
-              <View style={styles.mediaContainer}>
-                {postType === 'video' ? (
-                  <View style={styles.videoPreview}>
-                    <IconButton 
-                      icon="play-circle" 
-                      size={50} 
-                      iconColor="#fff"
-                    />
-                    <Text style={styles.videoLabel}>Video selected</Text>
-                  </View>
-                ) : (
-                  <Image 
-                    source={{ uri: mediaFile }} 
-                    style={styles.mediaPreview}
-                    resizeMode="cover"
-                  />
-                )}
-                <IconButton
-                  icon="close"
-                  size={20}
-                  onPress={removeMedia}
-                  style={styles.removeMediaButton}
-                  iconColor="#E74C3C"
-                />
-              </View>
-            ) : (
-              <Button
-                mode="outlined"
-                onPress={handlePickMedia}
-                icon="camera"
-                style={styles.mediaButton}
-              >
-                Add {postType === 'video' ? 'Video' : 'Photo'}
-              </Button>
-            )}
+            <ImagePicker
+              mode="post"
+              postType={postType}
+              images={mediaFile}
+              onImagesSelected={setMediaFile}
+              isUploading={isUploading}
+              placeholder={`Tap to add ${postType === 'video' ? 'video' : 'photo'}`}
+            />
           </Card.Content>
         </Card>
       )}
@@ -488,37 +424,6 @@ const styles = StyleSheet.create({
   detailsCard: {
     backgroundColor: '#f8f9fa',
     marginBottom: 16,
-  },
-  mediaContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  mediaPreview: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-  },
-  videoPreview: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#000',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  videoLabel: {
-    color: '#fff',
-    marginTop: 8,
-  },
-  removeMediaButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'white',
-    borderRadius: 20,
-  },
-  mediaButton: {
-    marginBottom: 8,
   },
   petsSection: {
     marginBottom: 16,

@@ -8,7 +8,6 @@ import {
   Card,
   Avatar
 } from 'react-native-paper';
-import * as ExpoImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -53,25 +52,6 @@ export default function EditProfileScreen() {
       setOriginalPicture(currentUser.picture || null);
     }
   }, [userData, currentUser]);
-  
-  const handlePickImage = async () => {
-    const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow access to your photos.');
-      return;
-    }
-  
-    const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      allowsEditing: true,
-      aspect: [1, 1], // Square aspect ratio for profile pictures
-    });
-  
-    if (!result.canceled && result.assets?.length > 0) {
-      setProfilePicture(result.assets[0].uri);
-    }
-  };
   
   const handleSaveProfile = async () => {
     if (!name.trim()) {
@@ -150,26 +130,14 @@ export default function EditProfileScreen() {
         <Card style={styles.pictureCard}>
           <Card.Title title="Profile Picture" />
           <Card.Content>
-            <View style={styles.pictureContainer}>
-              {profilePicture ? (
-                <Avatar.Image size={100} source={{ uri: profilePicture }} />
-              ) : (
-                <Avatar.Text 
-                  size={100} 
-                  label={(name?.charAt(0) || email?.charAt(0) || 'U').toUpperCase()}
-                  backgroundColor={isDark ? '#444' : '#2E86DE'}
-                  color="#fff"
-                />
-              )}
-              <Button 
-                mode="outlined" 
-                onPress={handlePickImage}
-                style={styles.changePictureButton}
-                icon="camera"
-              >
-                Change Picture
-              </Button>
-            </View>
+            <ImagePicker
+              mode="profile"
+              images={profilePicture}
+              onImagesSelected={setProfilePicture}
+              isUploading={isUploading}
+              placeholder="Tap to add profile picture"
+              style={styles.profileImagePicker}
+            />
           </Card.Content>
         </Card>
         
@@ -269,12 +237,9 @@ const styles = StyleSheet.create({
   pictureCard: {
     marginBottom: 16,
   },
-  pictureContainer: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  changePictureButton: {
-    marginTop: 16,
+  profileImagePicker: {
+    height: 140,
+    marginVertical: 8,
   },
   infoCard: {
     marginBottom: 24,

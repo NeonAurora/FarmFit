@@ -11,7 +11,6 @@ import {
   IconButton,
   Chip
 } from 'react-native-paper';
-import * as ExpoImagePicker from 'expo-image-picker';
 import { uploadImage } from '@/services/supabase/storage';
 import { saveVeterinaryClinicData } from '@/services/supabase';
 import { ThemedView } from '@/components/themes/ThemedView';
@@ -69,48 +68,6 @@ export default function CreateVetProfileScreen() {
   // UI states
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
-  const handlePickCoverPhoto = async () => {
-    const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      alert("Please allow access to your photos.");
-      return;
-    }
-  
-    const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      allowsEditing: true,
-    });
-  
-    if (!result.canceled && result.assets?.length > 0) {
-      setCoverPhoto(result.assets[0].uri);
-    }
-  };
-  
-  const handlePickDoctorPhoto = async (doctorId) => {
-    const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      alert("Please allow access to your photos.");
-      return;
-    }
-  
-    const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      allowsEditing: true,
-    });
-  
-    if (!result.canceled && result.assets?.length > 0) {
-      setDoctors(prev => 
-        prev.map(doctor => 
-          doctor.id === doctorId 
-            ? { ...doctor, photo: result.assets[0].uri }
-            : doctor
-        )
-      );
-    }
-  };
   
   const addDoctor = () => {
     setDoctors(prev => [...prev, {
@@ -283,9 +240,11 @@ export default function CreateVetProfileScreen() {
         {/* Cover Photo Section */}
         <Text style={styles.sectionLabel}>📸 Cover Photo of the Clinic</Text>
         <ImagePicker
-          image={coverPhoto}
-          onPickImage={handlePickCoverPhoto}
+          mode="cover"
+          images={coverPhoto}
+          onImagesSelected={setCoverPhoto}
           isUploading={isUploading}
+          placeholder="Tap to add clinic cover photo"
         />
         
         <Divider style={styles.divider} />
@@ -427,9 +386,19 @@ export default function CreateVetProfileScreen() {
                   
                   <Text style={styles.imageLabel}>Photo</Text>
                   <ImagePicker
-                    image={doctor.photo}
-                    onPickImage={() => handlePickDoctorPhoto(doctor.id)}
-                    isUploading={false}
+                    mode="single"
+                    images={doctor.photo}
+                    onImagesSelected={(photoUri) => {
+                      setDoctors(prev => 
+                        prev.map(doc => 
+                          doc.id === doctor.id 
+                            ? { ...doc, photo: photoUri }
+                            : doc
+                        )
+                      );
+                    }}
+                    isUploading={isUploading}
+                    placeholder="Tap to add doctor photo"
                   />
                   
                   <TextInput

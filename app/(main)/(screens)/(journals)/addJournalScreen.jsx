@@ -12,7 +12,6 @@ import {
   SegmentedButtons,
   IconButton
 } from 'react-native-paper';
-import * as ExpoImagePicker from 'expo-image-picker';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
@@ -63,30 +62,6 @@ export default function AddJournalScreen() {
     } catch (error) {
       console.error('Error fetching pets:', error);
     }
-  };
-
-  const handlePickImages = async () => {
-    const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow access to your photos.');
-      return;
-    }
-
-    const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      allowsEditing: false,
-      allowsMultipleSelection: true,
-      selectionLimit: 5
-    });
-
-    if (!result.canceled && result.assets?.length > 0) {
-      setPhotos(prev => [...prev, ...result.assets.map(asset => asset.uri)]);
-    }
-  };
-
-  const removePhoto = (index) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   const addTag = () => {
@@ -336,33 +311,14 @@ export default function AddJournalScreen() {
               {/* Photos */}
               <View style={styles.photosSection}>
                 <Text style={styles.sectionLabel}>Photos</Text>
-                <Button
-                  mode="outlined"
-                  onPress={handlePickImages}
-                  icon="camera"
-                  style={styles.photoButton}
-                >
-                  Add Photos ({photos.length}/5)
-                </Button>
-                
-                <View style={styles.photosContainer}>
-                  {photos.map((photo, index) => (
-                    <View key={index} style={styles.photoContainer}>
-                      <ImagePicker
-                        image={photo}
-                        onPickImage={() => {}}
-                        isUploading={false}
-                      />
-                      <IconButton
-                        icon="close"
-                        size={16}
-                        onPress={() => removePhoto(index)}
-                        style={styles.removePhotoButton}
-                        iconColor="#E74C3C"
-                      />
-                    </View>
-                  ))}
-                </View>
+                <ImagePicker
+                  mode="journal"
+                  images={photos}
+                  onImagesSelected={setPhotos}
+                  isUploading={isUploading}
+                  maxImages={5}
+                  placeholder="Tap to add photos for your journal entry"
+                />
               </View>
             </Card.Content>
           </Card>
@@ -472,26 +428,6 @@ const styles = StyleSheet.create({
   },
   photosSection: {
     marginBottom: 16,
-  },
-  photoButton: {
-    marginBottom: 16,
-  },
-  photosContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  photoContainer: {
-    position: 'relative',
-    width: 100,
-    height: 100,
-  },
-  removePhotoButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: 'white',
-    borderRadius: 12,
   },
   buttonContainer: {
     flexDirection: 'row',

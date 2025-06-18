@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { TextInput, Button, Text, Divider, List } from 'react-native-paper';
-import * as ExpoImagePicker from 'expo-image-picker';
 import { uploadImage, deleteImage } from '@/services/supabase/storage';
 import { updatePetData } from '@/services/supabase';
 import { ThemedView } from '@/components/themes/ThemedView';
@@ -71,27 +70,6 @@ export default function EditPetScreen() {
       router.back();
     }
   }, [petError]);
-  
-  const handlePickImage = async () => {
-    // Request permissions
-    const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      alert("Please allow access to your photos.");
-      return;
-    }
-  
-    // Launch picker with updated API
-    const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'], // ✅ Fixed deprecation warning
-      quality: 0.7,
-      allowsEditing: true,
-    });
-  
-    // Handle selection
-    if (!result.canceled && result.assets?.length > 0) {
-      setPetImage(result.assets[0].uri);
-    }
-  };
   
   const handleUpdatePet = async () => {
     if (!petName || !species) {
@@ -228,8 +206,9 @@ export default function EditPetScreen() {
         
         <Text style={styles.imageLabel}>Pet Photo</Text>
         <ImagePicker
-          image={petImage}
-          onPickImage={handlePickImage}
+          mode="pet"
+          images={petImage}
+          onImagesSelected={setPetImage}
           isUploading={isUploading}
         />
         

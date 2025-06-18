@@ -13,7 +13,6 @@ import {
   IconButton,
   ActivityIndicator
 } from 'react-native-paper';
-import * as ExpoImagePicker from 'expo-image-picker';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ImagePicker from '@/components/interfaces/ImagePicker';
@@ -137,38 +136,6 @@ export default function CreatePostScreen() {
       setUserPets(pets);
     } catch (error) {
       console.error('Error fetching pets:', error);
-    }
-  };
-
-  const handlePickMedia = async () => {
-    const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow access to your photos and videos.');
-      return;
-    }
-
-    let mediaTypeOptions = ['images'];
-    if (postType === 'video' || postType === 'mixed') {
-      mediaTypeOptions.push('videos');
-    }
-
-    const result = await ExpoImagePicker.launchImageLibraryAsync({
-      mediaTypes: mediaTypeOptions,
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: postType === 'image' ? [16, 9] : undefined,
-    });
-
-    if (!result.canceled && result.assets?.length > 0) {
-      const asset = result.assets[0];
-      setMediaFile(asset.uri);
-      
-      // Auto-adjust post type based on media
-      if (asset.type === 'video' && postType === 'image') {
-        setPostType('video');
-      } else if (asset.type === 'image' && postType === 'video') {
-        setPostType('image');
-      }
     }
   };
 
@@ -392,42 +359,14 @@ export default function CreatePostScreen() {
           <Card style={styles.card}>
             <Card.Title title="📷 Media" />
             <Card.Content>
-              {mediaFile ? (
-                <View style={styles.mediaContainer}>
-                  {postType === 'video' ? (
-                    <View style={styles.videoPreview}>
-                      <IconButton 
-                        icon="play-circle" 
-                        size={50} 
-                        iconColor="#fff"
-                      />
-                      <Text style={styles.videoLabel}>Video selected</Text>
-                    </View>
-                  ) : (
-                    <Image 
-                      source={{ uri: mediaFile }} 
-                      style={styles.mediaPreview}
-                      resizeMode="cover"
-                    />
-                  )}
-                  <IconButton
-                    icon="close"
-                    size={20}
-                    onPress={removeMedia}
-                    style={styles.removeMediaButton}
-                    iconColor="#E74C3C"
-                  />
-                </View>
-              ) : (
-                <Button
-                  mode="outlined"
-                  onPress={handlePickMedia}
-                  icon="camera"
-                  style={styles.mediaButton}
-                >
-                  Add {postType === 'video' ? 'Video' : 'Photo'}
-                </Button>
-              )}
+              <ImagePicker
+                mode="post"
+                postType={postType}
+                images={mediaFile}
+                onImagesSelected={setMediaFile}
+                isUploading={isUploading}
+                placeholder={`Tap to add ${postType === 'video' ? 'video' : 'photo'}`}
+              />
             </Card.Content>
           </Card>
         )}
