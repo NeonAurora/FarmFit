@@ -110,6 +110,35 @@ export {
   getRatingHelpfulnessStats,
 } from './helpfulnessService';
 
+// Practitioner service exports
+export {
+  applyForPractitionerRole,
+  getUserRoles,
+  savePractitionerProfileData,
+  getPractitionerProfileByUserId,
+  getPractitionerProfileById ,
+  updatePractitionerProfileData,
+  getVerifiedPractitioners,
+  searchPractitioners,
+  getSearchSuggestions,
+  getRecentPractitioners,
+  getSearchStats,
+  saveVerificationDocuments,
+  checkBVCRegistrationExists,
+  checkExistingPractitionerProfile,
+
+} from './practitionerService';
+
+// Admin service exports
+export {
+  isUserAdmin,
+  getAdminDetails,
+  getPendingApplications,
+  approvePractitionerApplication,
+  rejectPractitionerApplication,
+  getApplicationDetails
+} from './adminService';
+
 // Common service exports
 export {
   testSupabaseConnection

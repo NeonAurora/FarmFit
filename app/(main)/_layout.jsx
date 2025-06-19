@@ -252,6 +252,10 @@ export default function RootLayout() {
             name="(screens)/(social)" 
             options={{ headerShown: false }} 
           />
+          <Drawer.Screen 
+            name="(screens)/(practitioner)" 
+            options={{ headerShown: false }} 
+          />
           
           {/* Pet Management */}
           {/* <Drawer.Screen name="(screens)/(pets)/addPetScreen" options={{ title: "Add Pet sdsdd" }} />
