@@ -20,6 +20,7 @@ import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { searchPractitioners, getRecentPractitioners } from '@/services/supabase';
+import PractitionerCard from '@/components/practitioners/PractitionerCard';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -262,149 +263,15 @@ export default function FindPractitionersScreen() {
   };
   
   // Render practitioner card based on view mode
-  const renderPractitionerCard = ({ item }) => {
-    if (viewMode === 'grid') {
-      return (
-        <View style={styles.gridItemContainer}>
-          <Card 
-            style={styles.gridCard}
-            onPress={() => router.push(`/viewPractitionerProfile?profileId=${item.id}`)}
-          >
-            <Card.Content style={styles.gridCardContent}>
-              {item.profile_photo_url ? (
-                <Avatar.Image 
-                  size={80} 
-                  source={{ uri: item.profile_photo_url }} 
-                />
-              ) : (
-                <Avatar.Text 
-                  size={80} 
-                  label={item.full_name?.charAt(0)?.toUpperCase() || 'P'} 
-                  backgroundColor="#27AE60"
-                />
-              )}
-              
-              <Text variant="titleSmall" style={styles.gridName} numberOfLines={2}>
-                {item.full_name}
-              </Text>
-              <Text variant="bodySmall" style={styles.gridDesignation} numberOfLines={1}>
-                {item.designation}
-              </Text>
-              <Text variant="bodySmall" style={styles.gridLocation} numberOfLines={1}>
-                📍 {item.district}
-              </Text>
-              
-              <View style={styles.gridBadge}>
-                <Text style={styles.gridVerifiedText}>✅</Text>
-              </View>
-            </Card.Content>
-          </Card>
-        </View>
-      );
-    }
-
-    if (viewMode === 'compact') {
-      return (
-        <Card 
-          style={styles.compactCard}
-          onPress={() => router.push(`/viewPractitionerProfile?profileId=${item.id}`)}
-        >
-          <Card.Content>
-            <View style={styles.compactHeader}>
-              {item.profile_photo_url ? (
-                <Avatar.Image 
-                  size={50} 
-                  source={{ uri: item.profile_photo_url }} 
-                />
-              ) : (
-                <Avatar.Text 
-                  size={50} 
-                  label={item.full_name?.charAt(0)?.toUpperCase() || 'P'} 
-                  backgroundColor="#27AE60"
-                />
-              )}
-              
-              <View style={styles.compactInfo}>
-                <Text variant="titleMedium" style={styles.practitionerName}>
-                  {item.full_name}
-                </Text>
-                <Text variant="bodyMedium" style={styles.designation}>
-                  {item.designation} • BVC: {item.bvc_registration_number}
-                </Text>
-                <Text variant="bodySmall" style={styles.location}>
-                  📍 {item.sub_district}, {item.district}
-                </Text>
-              </View>
-              
-              <View style={styles.compactBadge}>
-                <Text style={styles.verifiedText}>✅</Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-      );
-    }
-
-    // Full view (default)
-    return (
-      <Card 
-        style={styles.practitionerCard}
-        onPress={() => router.push(`/viewPractitionerProfile?profileId=${item.id}`)}
-      >
-        <Card.Content>
-          <View style={styles.cardHeader}>
-            <View style={styles.practitionerInfo}>
-              {item.profile_photo_url ? (
-                <Avatar.Image 
-                  size={60} 
-                  source={{ uri: item.profile_photo_url }} 
-                />
-              ) : (
-                <Avatar.Text 
-                  size={60} 
-                  label={item.full_name?.charAt(0)?.toUpperCase() || 'P'} 
-                  backgroundColor="#27AE60"
-                />
-              )}
-              
-              <View style={styles.practitionerDetails}>
-                <Text variant="titleMedium" style={styles.practitionerName}>
-                  {item.full_name}
-                </Text>
-                <Text variant="bodyMedium" style={styles.designation}>
-                  {item.designation}
-                </Text>
-                <Text variant="bodySmall" style={styles.location}>
-                  📍 {item.sub_district}, {item.district}
-                </Text>
-                <Text variant="bodySmall" style={styles.bvc}>
-                  BVC: {item.bvc_registration_number}
-                </Text>
-              </View>
-            </View>
-            
-            <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedText}>✅</Text>
-            </View>
-          </View>
-          
-          <Divider style={styles.cardDivider} />
-          
-          <Text variant="bodySmall" style={styles.expertise} numberOfLines={2}>
-            <Text style={styles.expertiseLabel}>Expertise: </Text>
-            {item.areas_of_expertise}
-          </Text>
-          
-          {/* Placeholder for future layers */}
-          <View style={styles.placeholderContainer}>
-            <Text variant="bodySmall" style={styles.placeholderText}>
-              ⭐ 4.8 (12 reviews) • Available today
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
-    );
-  };
+  // Replace the entire renderPractitionerCard function with:
+  const renderPractitionerCard = ({ item }) => (
+    <PractitionerCard 
+      practitioner={item}
+      mode={viewMode} // 'full' | 'compact' | 'grid'
+      showActions={true}
+      onPress={() => router.push(`/viewPractitionerProfile?profileId=${item.id}`)}
+    />
+  );
   
   // Get number of columns for FlatList
   const getNumColumns = () => {
@@ -651,6 +518,10 @@ const styles = StyleSheet.create({
   },
   searchBarContainer: {
     // Width controlled by animation
+    paddingBottom: 15,
+    paddingRight: 0,
+    paddingLeft: 0,
+    marginLeft: -5,
   },
   searchBar: {
     elevation: 4,
@@ -661,6 +532,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     height: 56,
+    paddingBottom: 10,
   },
   actionButton: {
     marginLeft: 4,

@@ -1,6 +1,6 @@
 // app/(main)/(screens)/(practitioner)/viewPractitionerProfile.jsx
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, View, ActivityIndicator, Alert, Linking } from 'react-native';
+import { ScrollView, StyleSheet, View, ActivityIndicator, Alert, Linking, Modal } from 'react-native';
 import { 
   Card, 
   Text, 
@@ -18,6 +18,25 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, router } from 'expo-router';
 import { getPractitionerProfileById } from '@/services/supabase';
 
+// Import practitioner rating components
+import { PractitionerRatingDisplay } from '@/components/practitioners/PractitionerRatingDisplay';
+import { PractitionerRatingForm } from '@/components/practitioners/PractitionerRatingForm';
+import { PractitionerRatingsList } from '@/components/practitioners/PractitionerRatingsList';
+import { PractitionerUserOwnRating } from '@/components/practitioners/PractitionerUserOwnRating';
+import { PractitionerRatingEditForm } from '@/components/practitioners/PractitionerRatingEditForm';
+
+// Import practitioner rating services
+import { 
+  getPractitionerRatingSummary, 
+  getPractitionerRatings, 
+  submitPractitionerRating, 
+  hasUserRatedPractitioner, 
+  getUserPractitionerRating,
+  updatePractitionerRating,
+  deletePractitionerRating,
+  reportPractitionerRating
+} from '@/services/supabase';
+
 export default function ViewPractitionerProfileScreen() {
   const colorScheme = useColorScheme();
   const { user, currentRole } = useAuth();
@@ -28,9 +47,28 @@ export default function ViewPractitionerProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Rating-related state
+  const [ratingSummary, setRatingSummary] = useState({ average_rating: 0, total_ratings: 0 });
+  const [ratings, setRatings] = useState([]);
+  const [showRatingForm, setShowRatingForm] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
+  const [ratingsExpanded, setRatingsExpanded] = useState(false);
+  const [currentSort, setCurrentSort] = useState('created_at');
+
+  const [userOwnRating, setUserOwnRating] = useState(null);
+  const [editingRating, setEditingRating] = useState(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
   useEffect(() => {
     fetchProfile();
   }, [profileId]);
+
+  useEffect(() => {
+    if (profile?.id) {
+      loadRatingData();
+    }
+  }, [profile?.id, user?.sub]);
 
   const fetchProfile = async () => {
     if (!profileId) {
@@ -56,6 +94,120 @@ export default function ViewPractitionerProfileScreen() {
     }
   };
 
+  const loadRatingData = async () => {
+    try {
+      const [summary, ratingsList, userHasRated, userRating] = await Promise.all([
+        getPractitionerRatingSummary(profile.id),
+        getPractitionerRatings(profile.id, { limit: 10, sortBy: currentSort }),
+        user?.sub ? hasUserRatedPractitioner(user.sub, profile.id) : false,
+        user?.sub ? getUserPractitionerRating(user.sub, profile.id) : null
+      ]);
+      
+      setRatingSummary(summary);
+      setRatings(ratingsList);
+      setHasRated(userHasRated);
+      setUserOwnRating(userRating);
+    } catch (error) {
+      console.error('Error loading rating data:', error);
+    }
+  };
+
+  const handleSortChange = async (newSort) => {
+    setCurrentSort(newSort);
+    try {
+      const sortedRatings = await getPractitionerRatings(profile.id, { 
+        limit: 10, 
+        sortBy: newSort 
+      });
+      setRatings(sortedRatings);
+    } catch (error) {
+      console.error('Error sorting ratings:', error);
+    }
+  };
+
+  const handleSubmitRating = async (ratingData, errorMessage = null) => {
+    if (errorMessage) {
+      Alert.alert('Error', errorMessage);
+      return;
+    }
+
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please sign in to submit a rating.');
+      return;
+    }
+
+    try {
+      await submitPractitionerRating(ratingData, user);
+      
+      // Refresh rating data
+      await loadRatingData();
+      
+      setShowRatingForm(false);
+      Alert.alert('Success', 'Your rating has been submitted successfully!');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to submit rating');
+    }
+  };
+
+  const handleUpdateUserRating = async (updateData, editReason) => {
+    if (!editingRating) return;
+
+    setUpdating(true);
+    try {
+      const updatedRating = await updatePractitionerRating(
+        editingRating.id, 
+        user.sub, 
+        updateData, 
+        editReason
+      );
+      
+      // Update the user's own rating
+      setUserOwnRating({ ...userOwnRating, ...updatedRating });
+      
+      // Reload rating data to update summary
+      await loadRatingData();
+
+      setShowEditForm(false);
+      setEditingRating(null);
+      Alert.alert('Success', 'Your rating has been updated successfully');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to update rating');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteUserRating = () => {
+    Alert.alert(
+      'Delete Rating',
+      'Are you sure you want to delete your rating? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deletePractitionerRating(userOwnRating.id, user.sub);
+              await loadRatingData();
+              Alert.alert('Success', 'Your rating has been deleted');
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to delete rating');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleReportRating = async (ratingId, reportReason, reportDetails) => {
+    try {
+      await reportPractitionerRating(ratingId, user.sub, reportReason, reportDetails);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const handleContactPress = (contactNumber) => {
     const phoneNumber = contactNumber.replace(/\s/g, '');
     Linking.openURL(`tel:${phoneNumber}`);
@@ -73,24 +225,18 @@ export default function ViewPractitionerProfileScreen() {
   };
 
   const handleRequestService = () => {
-    // Hook for Layer 6 - Service Request System
     Alert.alert(
       'Service Request',
       'Service request feature will be available soon!',
-      [
-        { text: 'OK' }
-      ]
+      [{ text: 'OK' }]
     );
   };
 
   const handleBookAppointment = () => {
-    // Hook for Layer 7 - Appointment System
     Alert.alert(
       'Book Appointment',
       'Appointment booking feature will be available soon!',
-      [
-        { text: 'OK' }
-      ]
+      [{ text: 'OK' }]
     );
   };
 
@@ -98,7 +244,7 @@ export default function ViewPractitionerProfileScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#27AE60" />
+          <ActivityIndicator size="large" />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       </ThemedView>
@@ -125,214 +271,127 @@ export default function ViewPractitionerProfileScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        
-        {/* Header Card with Profile Photo and Basic Info */}
+        {/* Profile Header */}
         <Card style={styles.headerCard}>
-          <Card.Content style={styles.headerContent}>
-            <View style={styles.profileSection}>
-              <View style={styles.profilePhotoContainer}>
-                {profile.profile_photo_url ? (
-                  <Avatar.Image 
-                    size={120} 
-                    source={{ uri: profile.profile_photo_url }} 
-                  />
-                ) : (
-                  <Avatar.Text 
-                    size={120} 
-                    label={profile.full_name?.charAt(0)?.toUpperCase() || 'P'} 
-                    backgroundColor="#27AE60"
-                  />
-                )}
-                
-                {/* Verified Badge */}
+          <Card.Content>
+            <View style={styles.headerContent}>
+              <Avatar.Image 
+                size={80} 
+                source={{ uri: profile.profile_photo_url || 'https://via.placeholder.com/80' }}
+                style={styles.avatar}
+              />
+              <View style={styles.headerInfo}>
+                <Text style={styles.practitionerName}>{profile.full_name}</Text>
+                <Text style={styles.designation}>{profile.designation}</Text>
+                <Text style={styles.location}>
+                  {profile.sub_district}, {profile.district}
+                </Text>
                 <Badge style={styles.verifiedBadge}>
-                  Verified ✅
+                  ✅ Verified Practitioner
                 </Badge>
               </View>
-              
-              <View style={styles.profileInfo}>
-                <Text variant="headlineSmall" style={styles.practitionerName}>
-                  {profile.full_name}
-                </Text>
-                <Text variant="titleMedium" style={styles.designation}>
-                  {profile.designation}
-                </Text>
-                <Text variant="bodyMedium" style={styles.degrees}>
-                  {profile.degrees_certificates}
-                </Text>
-                
-                {/* Location Chip */}
-                <Chip 
-                  mode="outlined" 
-                  style={styles.locationChip}
-                  icon="map-marker"
-                >
-                  {profile.sub_district}, {profile.district}
-                </Chip>
-              </View>
-            </View>
-            
-            {/* Quick Contact Actions */}
-            <View style={styles.quickContactContainer}>
-              <IconButton
-                icon="phone"
-                mode="contained"
-                size={30}
-                iconColor="#fff"
-                containerColor="#27AE60"
-                onPress={() => handleContactPress(profile.contact_info)}
-                style={styles.contactIcon}
-              />
-              
-              {profile.whatsapp_number && (
-                <IconButton
-                  icon="whatsapp"
-                  mode="contained"
-                  size={30}
-                  iconColor="#fff"
-                  containerColor="#25D366"
-                  onPress={() => handleWhatsAppPress(profile.whatsapp_number)}
-                  style={styles.contactIcon}
-                />
-              )}
-              
-              <IconButton
-                icon="map"
-                mode="contained"
-                size={30}
-                iconColor="#fff"
-                containerColor="#3498DB"
-                onPress={handleDirectionsPress}
-                style={styles.contactIcon}
-              />
             </View>
           </Card.Content>
         </Card>
 
-        {/* Action Buttons - Only for Pet Owners */}
-        {currentRole === 'pet_owner' && (
-          <Card style={styles.actionsCard}>
+        {/* Rating Display */}
+        <PractitionerRatingDisplay 
+          ratingSummary={ratingSummary} 
+          showDetails={true}
+        />
+
+        {/* User's Own Rating */}
+        {user && userOwnRating && (
+          <PractitionerUserOwnRating
+            userRating={userOwnRating}
+            onEdit={() => {
+              setEditingRating(userOwnRating);
+              setShowEditForm(true);
+            }}
+            onDelete={handleDeleteUserRating}
+          />
+        )}
+
+        {/* Rating Action Buttons */}
+        {user && !hasRated && (
+          <Card style={styles.actionCard}>
             <Card.Content>
-              <View style={styles.actionButtons}>
-                <Button
-                  mode="contained"
-                  onPress={handleRequestService}
-                  style={styles.primaryAction}
-                  icon="clipboard-plus"
-                >
-                  Request Service
-                </Button>
-                
-                <Button
-                  mode="outlined"
-                  onPress={handleBookAppointment}
-                  style={styles.secondaryAction}
-                  icon="calendar-plus"
-                >
-                  Book Appointment
-                </Button>
-              </View>
+              <Button
+                mode="contained"
+                onPress={() => setShowRatingForm(true)}
+                style={styles.rateButton}
+              >
+                Rate This Practitioner
+              </Button>
             </Card.Content>
           </Card>
         )}
 
-        {/* Professional Credentials */}
-        <Card style={styles.infoCard}>
-          <Card.Title 
-            title="Professional Credentials" 
-            left={(props) => <List.Icon {...props} icon="certificate" />}
-          />
+        {/* Professional Details */}
+        <Card style={styles.detailsCard}>
           <Card.Content>
-            <List.Item
-              title="BVC Registration"
-              description={`Registration #${profile.bvc_registration_number}`}
-              left={(props) => <List.Icon {...props} icon="badge-account" />}
-            />
-            <Divider />
-            <List.Item
-              title="Qualifications"
-              description={profile.degrees_certificates}
-              left={(props) => <List.Icon {...props} icon="school" />}
-            />
+            <List.Section>
+              <List.Subheader>Professional Information</List.Subheader>
+              
+              <List.Item
+                title="Degrees & Certificates"
+                description={profile.degrees_certificates}
+                left={props => <List.Icon {...props} icon="school" />}
+              />
+              
+              <List.Item
+                title="BVC Registration"
+                description={profile.bvc_registration_number}
+                left={props => <List.Icon {...props} icon="card-account-details" />}
+              />
+              
+              <List.Item
+                title="Areas of Expertise"
+                description={profile.areas_of_expertise}
+                left={props => <List.Icon {...props} icon="star" />}
+              />
+            </List.Section>
           </Card.Content>
         </Card>
 
-        {/* Areas of Expertise */}
-        <Card style={styles.infoCard}>
-          <Card.Title 
-            title="Areas of Expertise" 
-            left={(props) => <List.Icon {...props} icon="medical-bag" />}
-          />
+        {/* Contact & Location */}
+        <Card style={styles.contactCard}>
           <Card.Content>
-            <Text style={styles.expertiseText}>
-              {profile.areas_of_expertise}
-            </Text>
-            
-            {/* Hook for Layer 6 - Service Offerings */}
-            <View style={styles.servicesPlaceholder}>
-              <Text variant="bodySmall" style={styles.placeholderText}>
-                📋 Detailed services and pricing will be displayed here
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Location & Practice Information */}
-        <Card style={styles.infoCard}>
-          <Card.Title 
-            title="Practice Location" 
-            left={(props) => <List.Icon {...props} icon="map-marker" />}
-          />
-          <Card.Content>
-            <List.Item
-              title="Chamber Address"
-              description={profile.chamber_address}
-              left={(props) => <List.Icon {...props} icon="home-city" />}
-              right={(props) => (
-                <IconButton
-                  {...props}
-                  icon="directions"
-                  onPress={handleDirectionsPress}
-                />
-              )}
-            />
-            <Divider />
-            <List.Item
-              title="Area"
-              description={`${profile.sub_district}, ${profile.district}`}
-              left={(props) => <List.Icon {...props} icon="map" />}
-            />
-          </Card.Content>
-        </Card>
-
-        {/* Contact Information */}
-        <Card style={styles.infoCard}>
-          <Card.Title 
-            title="Contact Information" 
-            left={(props) => <List.Icon {...props} icon="phone" />}
-          />
-          <Card.Content>
-            <List.Item
-              title="Primary Contact"
-              description={profile.contact_info}
-              left={(props) => <List.Icon {...props} icon="phone" />}
-              right={(props) => (
-                <IconButton
-                  {...props}
-                  icon="phone-dial"
-                  onPress={() => handleContactPress(profile.contact_info)}
-                />
-              )}
-            />
-            
-            {profile.whatsapp_number && (
-              <>
-                <Divider />
+            <List.Section>
+              <List.Subheader>Contact & Location</List.Subheader>
+              
+              <List.Item
+                title="Chamber Address"
+                description={`${profile.chamber_address}, ${profile.sub_district}, ${profile.district}`}
+                left={props => <List.Icon {...props} icon="map-marker" />}
+                right={props => (
+                  <IconButton
+                    {...props}
+                    icon="directions"
+                    onPress={handleDirectionsPress}
+                  />
+                )}
+              />
+              
+              <List.Item
+                title="Contact Number"
+                description={profile.contact_info}
+                left={props => <List.Icon {...props} icon="phone" />}
+                right={props => (
+                  <IconButton
+                    {...props}
+                    icon="phone"
+                    onPress={() => handleContactPress(profile.contact_info)}
+                  />
+                )}
+              />
+              
+              {profile.whatsapp_number && (
                 <List.Item
                   title="WhatsApp"
                   description={profile.whatsapp_number}
-                  left={(props) => <List.Icon {...props} icon="whatsapp" />}
-                  right={(props) => (
+                  left={props => <List.Icon {...props} icon="whatsapp" />}
+                  right={props => (
                     <IconButton
                       {...props}
                       icon="whatsapp"
@@ -340,75 +399,97 @@ export default function ViewPractitionerProfileScreen() {
                     />
                   )}
                 />
-              </>
-            )}
+              )}
+            </List.Section>
           </Card.Content>
         </Card>
 
-        {/* Hook for Layer 7 - Availability Display */}
-        <Card style={styles.infoCard}>
-          <Card.Title 
-            title="Availability" 
-            left={(props) => <List.Icon {...props} icon="clock-outline" />}
-          />
+        {/* Action Buttons */}
+        <Card style={styles.actionCard}>
           <Card.Content>
-            <View style={styles.availabilityPlaceholder}>
-              <Text variant="bodySmall" style={styles.placeholderText}>
-                🕒 Practice hours and availability will be displayed here
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Hook for Layer 6 - Rating & Reviews Display */}
-        <Card style={styles.infoCard}>
-          <Card.Title 
-            title="Reviews & Ratings" 
-            left={(props) => <List.Icon {...props} icon="star" />}
-          />
-          <Card.Content>
-            <View style={styles.reviewsPlaceholder}>
-              <Text variant="bodySmall" style={styles.placeholderText}>
-                ⭐ Patient reviews and ratings will be displayed here
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Professional Network - Only for other practitioners */}
-        {currentRole === 'practitioner' && (
-          <Card style={styles.infoCard}>
-            <Card.Title title="Professional Actions" />
-            <Card.Content>
+            <View style={styles.actionButtons}>
+              <Button
+                mode="contained"
+                style={[styles.actionButton, { backgroundColor: '#25D366' }]}
+                onPress={() => handleWhatsAppPress(profile.whatsapp_number || profile.contact_info)}
+                icon="whatsapp"
+              >
+                WhatsApp
+              </Button>
               <Button
                 mode="outlined"
-                onPress={() => Alert.alert('Professional Network', 'Connect with fellow practitioners')}
-                style={styles.networkButton}
-                icon="account-plus"
+                style={styles.actionButton}
+                onPress={handleRequestService}
+                icon="medical-bag"
               >
-                Connect as Colleague
+                Request Service
               </Button>
-            </Card.Content>
-          </Card>
-        )}
-
-        {/* Report/Feedback */}
-        <Card style={styles.footerCard}>
-          <Card.Content>
-            <Text variant="bodySmall" style={styles.footerText}>
-              Profile verified on {new Date(profile.verified_at || profile.created_at).toLocaleDateString()}
-            </Text>
-            <Button
-              mode="text"
-              onPress={() => Alert.alert('Report', 'Report functionality will be added')}
-              style={styles.reportButton}
-              textColor="#E74C3C"
-            >
-              Report Profile
-            </Button>
+              <Button
+                mode="outlined"
+                style={styles.actionButton}
+                onPress={handleBookAppointment}
+                icon="calendar-clock"
+              >
+                Book Appointment
+              </Button>
+            </View>
           </Card.Content>
         </Card>
 
+        {/* Ratings & Reviews */}
+        <Card style={styles.ratingsCard}>
+          <Card.Content>
+            <List.Accordion
+              title={`Reviews & Ratings (${ratingSummary.total_ratings})`}
+              expanded={ratingsExpanded}
+              onPress={() => setRatingsExpanded(!ratingsExpanded)}
+            >
+              <PractitionerRatingsList
+                ratings={ratings}
+                onReport={handleReportRating}
+                onSortChange={handleSortChange}
+                currentSort={currentSort}
+              />
+            </List.Accordion>
+          </Card.Content>
+        </Card>
+
+        {/* Spacing at bottom */}
+        <View style={styles.bottomSpacing} />
+
+        {/* Rating Form Modal */}
+        <Modal
+          visible={showRatingForm}
+          onDismiss={() => setShowRatingForm(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <PractitionerRatingForm
+            practitionerId={profile.id}
+            practitionerName={profile.full_name}
+            onSubmit={handleSubmitRating}
+            onCancel={() => setShowRatingForm(false)}
+          />
+        </Modal>
+
+        {/* Edit Rating Modal */}
+        <Modal
+          visible={showEditForm}
+          onDismiss={() => setShowEditForm(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          {editingRating && (
+            <PractitionerRatingEditForm
+              rating={editingRating}
+              practitionerName={profile.full_name}
+              onSubmit={handleUpdateUserRating}
+              onCancel={() => {
+                setShowEditForm(false);
+                setEditingRating(null);
+              }}
+              isUpdating={updating}
+            />
+          )}
+        </Modal>
       </ScrollView>
     </ThemedView>
   );
@@ -420,7 +501,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    padding: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -441,117 +521,80 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 24,
-    color: '#E74C3C',
+    color: '#666',
   },
   backButton: {
-    marginTop: 16,
+    minWidth: 120,
   },
   headerCard: {
-    marginBottom: 16,
-    elevation: 3,
+    margin: 16,
+    marginBottom: 8,
   },
   headerContent: {
-    paddingVertical: 24,
-  },
-  profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  profilePhotoContainer: {
-    position: 'relative',
-    marginRight: 20,
+  avatar: {
+    marginRight: 16,
   },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: -8,
-    right: -8,
-    backgroundColor: '#27AE60',
-  },
-  profileInfo: {
+  headerInfo: {
     flex: 1,
   },
   practitionerName: {
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   designation: {
-    color: '#27AE60',
-    fontWeight: '500',
+    fontSize: 16,
+    color: '#666',
     marginBottom: 4,
   },
-  degrees: {
-    opacity: 0.7,
+  location: {
+    fontSize: 14,
+    color: '#888',
     marginBottom: 8,
   },
-  locationChip: {
+  verifiedBadge: {
+    backgroundColor: '#4CAF50',
     alignSelf: 'flex-start',
   },
-  quickContactContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
+  detailsCard: {
+    margin: 16,
+    marginVertical: 8,
   },
-  contactIcon: {
-    marginHorizontal: 4,
+  contactCard: {
+    margin: 16,
+    marginVertical: 8,
   },
-  actionsCard: {
-    marginBottom: 16,
-    elevation: 2,
+  actionCard: {
+    margin: 16,
+    marginVertical: 8,
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  primaryAction: {
-    flex: 2,
-  },
-  secondaryAction: {
+  actionButton: {
     flex: 1,
+    minWidth: 100,
   },
-  infoCard: {
-    marginBottom: 16,
-    elevation: 1,
-  },
-  expertiseText: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 16,
-  },
-  servicesPlaceholder: {
-    backgroundColor: '#E8F5E8',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  availabilityPlaceholder: {
-    backgroundColor: '#E3F2FD',
-    padding: 16,
-    borderRadius: 8,
-  },
-  reviewsPlaceholder: {
-    backgroundColor: '#FFF3E0',
-    padding: 16,
-    borderRadius: 8,
-  },
-  placeholderText: {
-    textAlign: 'center',
-    fontStyle: 'italic',
-    opacity: 0.8,
-  },
-  networkButton: {
-    marginTop: 8,
-  },
-  footerCard: {
-    marginBottom: 32,
-    elevation: 1,
-  },
-  footerText: {
-    textAlign: 'center',
-    opacity: 0.6,
-    marginBottom: 8,
-  },
-  reportButton: {
+  rateButton: {
     alignSelf: 'center',
+    minWidth: 200,
+  },
+  ratingsCard: {
+    margin: 16,
+    marginVertical: 8,
+  },
+  bottomSpacing: {
+    height: 32,
+  },
+  modalContainer: {
+    margin: 16,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    maxHeight: '90%',
   },
 });

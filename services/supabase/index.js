@@ -129,6 +129,21 @@ export {
 
 } from './practitionerService';
 
+// Practitioner rating service exports
+export {
+  hasUserRatedPractitioner,
+  getUserPractitionerRating,
+  submitPractitionerRating,
+  getPractitionerRatingSummary,
+  getPractitionerRatings,
+  updatePractitionerRating,
+  deletePractitionerRating,
+  getUserPractitionerRatingHistory,
+  voteOnPractitionerRatingHelpfulness,
+  getUserPractitionerHelpfulnessVotes,
+  reportPractitionerRating
+} from './practitionerRatingService';
+
 // Admin service exports
 export {
   isUserAdmin,

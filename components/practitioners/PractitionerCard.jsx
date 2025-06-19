@@ -1,5 +1,5 @@
 // components/practitioners/PractitionerCard.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { 
   Card, 
@@ -7,9 +7,12 @@ import {
   Avatar, 
   Chip,
   Button,
-  Divider
+  Divider,
+  ActivityIndicator
 } from 'react-native-paper';
 import { router } from 'expo-router';
+import { StarRating } from '../veterinary/StarRating';
+import { getPractitionerRatingSummary } from '@/services/supabase';
 
 export default function PractitionerCard({ 
   practitioner, 
@@ -17,6 +20,30 @@ export default function PractitionerCard({
   showActions = true,
   onPress
 }) {
+  const [ratingSummary, setRatingSummary] = useState(null);
+  const [ratingLoading, setRatingLoading] = useState(true);
+
+  // Fetch rating data when component mounts
+  useEffect(() => {
+    const fetchRatingData = async () => {
+      try {
+        setRatingLoading(true);
+        const summary = await getPractitionerRatingSummary(practitioner.id);
+        setRatingSummary(summary);
+      } catch (error) {
+        console.error('Error fetching practitioner rating:', error);
+        // Set empty summary on error
+        setRatingSummary({ average_rating: 0, total_ratings: 0 });
+      } finally {
+        setRatingLoading(false);
+      }
+    };
+
+    if (practitioner?.id) {
+      fetchRatingData();
+    }
+  }, [practitioner?.id]);
+
   const handlePress = () => {
     if (onPress) {
       onPress(practitioner);
@@ -35,6 +62,41 @@ export default function PractitionerCard({
     e.stopPropagation();
     // Hook for Layer 7 - Appointment booking
     console.log('Book appointment with:', practitioner.id);
+  };
+
+  // Rating display component
+  const RatingDisplay = ({ compact = false }) => {
+    if (ratingLoading) {
+      return (
+        <View style={compact ? styles.compactRatingContainer : styles.ratingContainer}>
+          <ActivityIndicator size="small" color="#FFD700" />
+          <Text variant="bodySmall" style={styles.ratingLoadingText}>Loading...</Text>
+        </View>
+      );
+    }
+
+    if (!ratingSummary || ratingSummary.total_ratings === 0) {
+      return (
+        <View style={compact ? styles.compactRatingContainer : styles.ratingContainer}>
+          <Text variant="bodySmall" style={styles.noRatingText}>
+            No ratings yet
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={compact ? styles.compactRatingContainer : styles.ratingContainer}>
+        <StarRating 
+          rating={ratingSummary.average_rating} 
+          readonly={true} 
+          size={compact ? 12 : 14}
+        />
+        <Text variant="bodySmall" style={styles.ratingText}>
+          {ratingSummary.average_rating.toFixed(1)} ({ratingSummary.total_ratings})
+        </Text>
+      </View>
+    );
   };
 
   if (mode === 'grid') {
@@ -64,12 +126,8 @@ export default function PractitionerCard({
             📍 {practitioner.district}
           </Text>
           
-          {/* Hook for Layer 6 - Rating Display */}
-          <View style={styles.ratingPlaceholder}>
-            <Text variant="bodySmall" style={styles.placeholderText}>
-              ⭐ 4.8 (12)
-            </Text>
-          </View>
+          {/* Real Rating Display */}
+          <RatingDisplay compact={true} />
         </Card.Content>
       </Card>
     );
@@ -103,6 +161,9 @@ export default function PractitionerCard({
               <Text variant="bodySmall" style={styles.location}>
                 📍 {practitioner.sub_district}, {practitioner.district}
               </Text>
+              
+              {/* Real Rating Display for compact mode */}
+              <RatingDisplay compact={true} />
             </View>
             
             <View style={styles.compactBadge}>
@@ -145,13 +206,11 @@ export default function PractitionerCard({
               </Text>
               
               <View style={styles.locationContainer}>
-                <Chip 
-                  mode="outlined" 
-                  style={styles.locationChip}
-                  compact
-                >
-                  📍 {practitioner.sub_district}, {practitioner.district}
-                </Chip>
+                <View style={styles.locationChipCustom}>
+                  <Text variant="bodySmall" style={styles.locationChipText} numberOfLines={2}>
+                    📍 {practitioner.sub_district}, {practitioner.district}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
@@ -168,12 +227,8 @@ export default function PractitionerCard({
           {practitioner.areas_of_expertise}
         </Text>
         
-        {/* Hook for Layer 6 - Rating Display */}
-        <View style={styles.ratingPlaceholder}>
-          <Text variant="bodySmall" style={styles.placeholderText}>
-            ⭐ 4.8 (24 reviews) • Response time: 2 hours
-          </Text>
-        </View>
+        {/* Real Rating Display */}
+        <RatingDisplay />
 
         {/* Hook for Layer 7 - Availability Display */}
         <View style={styles.availabilityPlaceholder}>
@@ -228,6 +283,7 @@ const styles = StyleSheet.create({
   practitionerDetails: {
     marginLeft: 16,
     flex: 1,
+    minWidth: 0, // Allow shrinking
   },
   practitionerName: {
     fontWeight: 'bold',
@@ -243,9 +299,29 @@ const styles = StyleSheet.create({
   },
   locationContainer: {
     alignSelf: 'flex-start',
+    marginTop: 4,
+    maxWidth: '100%',
+  },
+  locationChipCustom: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    minHeight: 38,
+  },
+  locationChipText: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
+    textAlign: 'center',
   },
   locationChip: {
-    height: 28,
+    minHeight: 38,
+    flexShrink: 1,
   },
   verifiedBadge: {
     backgroundColor: '#E8F5E8',
@@ -267,12 +343,37 @@ const styles = StyleSheet.create({
   expertiseLabel: {
     fontWeight: '500',
   },
-  ratingPlaceholder: {
-    backgroundColor: '#FFF3E0',
+  
+  // Rating display styles
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
     padding: 8,
     borderRadius: 6,
     marginBottom: 8,
   },
+  compactRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  ratingText: {
+    marginLeft: 6,
+    color: '#F57C00',
+    fontWeight: '500',
+  },
+  ratingLoadingText: {
+    marginLeft: 6,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  noRatingText: {
+    color: '#999',
+    fontStyle: 'italic',
+    fontSize: 12,
+  },
+  
   availabilityPlaceholder: {
     backgroundColor: '#E3F2FD',
     padding: 8,
