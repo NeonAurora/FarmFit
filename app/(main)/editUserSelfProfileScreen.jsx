@@ -56,72 +56,134 @@ export default function EditProfileScreen() {
   }, [userData, currentUser]);
   
   const handleSaveProfile = async () => {
-    if (!name.trim()) {
-      Alert.alert('Validation Error', 'Name is required');
-      return;
-    }
-    
-    if (!email.trim()) {
-      Alert.alert('Validation Error', 'Email is required');
-      return;
-    }
-    
-    setSaving(true);
-    let imageUrl = originalPicture; // Default to original picture
-    
-    try {
-      // Handle image upload if picture changed
-      if (profilePicture && profilePicture !== originalPicture) {
-        setIsUploading(true);
-        
+  // Validation
+  if (!name.trim()) {
+    Alert.alert('Validation Error', 'Name is required');
+    return;
+  }
+  
+  if (!email.trim()) {
+    Alert.alert('Validation Error', 'Email is required');
+    return;
+  }
+  
+  setSaving(true);
+  let imageUrl = originalPicture; // Default to original picture
+  let imageUploadSuccess = false;
+  
+  try {
+    // Handle image upload if picture changed
+    if (profilePicture && profilePicture !== originalPicture) {
+      console.log('Image changed, starting upload process...');
+      console.log('Original picture:', originalPicture);
+      console.log('New picture:', profilePicture);
+      
+      setIsUploading(true);
+      
+      try {
         // Upload new image
-        imageUrl = await uploadImage(profilePicture);
+        const uploadedUrl = await uploadImage(profilePicture);
+        console.log('Upload result:', uploadedUrl);
         
-        // Delete old image if it exists and upload was successful
-        if (originalPicture && imageUrl) {
-          await deleteImage(originalPicture);
+        // Validate the upload result
+        if (!uploadedUrl || typeof uploadedUrl !== 'string') {
+          throw new Error('Image upload failed - no URL returned');
         }
         
+        if (!uploadedUrl.startsWith('https://')) {
+          throw new Error('Image upload returned invalid URL format');
+        }
+        
+        // Upload successful
+        imageUrl = uploadedUrl;
+        imageUploadSuccess = true;
+        console.log('Image upload successful. New URL:', imageUrl);
+        
+      } catch (uploadError) {
+        console.error('Image upload error:', uploadError);
         setIsUploading(false);
+        Alert.alert('Upload Error', 'Failed to upload image. Please try again.');
+        return; // Stop execution if upload fails
       }
       
-      // Prepare update data
-      const updateData = {
-        name: name.trim(),
-        email: email.trim(),
-        bio: bio.trim(),
-        location: location.trim(),
-        phone_number: phoneNumber.trim(),
-        picture: imageUrl,
-        updated_at: new Date().toISOString(),
-      };
-      
-      // Update in Supabase
-      const result = await updateUserData(updateData);
-      
-      if (result) {
-        Alert.alert(
-          'Success', 
-          'Profile updated successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.back()
-            }
-          ]
-        );
-      } else {
-        throw new Error('Failed to update profile');
-      }
-      
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
-    } finally {
-      setSaving(false);
       setIsUploading(false);
     }
-  };
+    
+    // Prepare update data
+    const updateData = {
+      name: name.trim(),
+      email: email.trim(),
+      bio: bio.trim() || null,
+      location: location.trim() || null,
+      phone_number: phoneNumber.trim() || null,
+      picture: imageUrl, // This will be the new uploaded URL or original
+      updated_at: new Date().toISOString(),
+    };
+    
+    console.log('Updating user profile with data:', updateData);
+    
+    // Update in Supabase using the AuthContext function
+    const result = await updateUserData(updateData);
+    console.log('Database update result:', result);
+    
+    if (result) {
+      console.log('Profile update successful');
+      
+      // Only delete old image after successful database update
+      // and only if it's a Supabase storage URL
+      if (imageUploadSuccess && originalPicture) {
+        console.log('Attempting to delete old image:', originalPicture);
+        
+        // Check if the original picture is from Supabase storage
+        if (originalPicture.includes('supabase.co/storage') && originalPicture.includes('farmfit/')) {
+          try {
+            const deleteResult = await deleteImage(originalPicture);
+            console.log('Old image deletion result:', deleteResult);
+          } catch (deleteError) {
+            console.warn('Failed to delete old image (non-critical):', deleteError);
+            // Don't fail the entire operation if old image deletion fails
+          }
+        } else {
+          console.log('Skipping deletion of external image (Auth0/Google):', originalPicture);
+        }
+      }
+      
+      Alert.alert(
+        'Success', 
+        'Profile updated successfully!',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.back()
+          }
+        ]
+      );
+    } else {
+      throw new Error('Database update failed - no result returned');
+    }
+    
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    
+    // If database update failed but image was uploaded, we should clean up the uploaded image
+    if (imageUploadSuccess && imageUrl !== originalPicture) {
+      console.log('Cleaning up uploaded image due to profile update failure...');
+      try {
+        await deleteImage(imageUrl);
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup uploaded image:', cleanupError);
+      }
+    }
+    
+    Alert.alert(
+      'Error', 
+      `Failed to update profile: ${error.message || 'Please try again.'}`
+    );
+  } finally {
+    setSaving(false);
+    setIsUploading(false);
+  }
+};
 
   const dynamicStyles = createDynamicStyles(colors, inputColors);
   

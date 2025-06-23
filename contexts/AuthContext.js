@@ -2,7 +2,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { login, getUserInfo, logout } from "@/services/auth0/AuthService";
+import { login, getUserInfo, logout, validateToken, refreshToken } from "@/services/auth0/AuthService";
 import { 
   getUserDataByAuthId, 
   saveUserData, 
@@ -46,6 +46,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [supabaseData, setSupabaseData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   
   // NEW: Role management state
   const [userRoles, setUserRoles] = useState({
@@ -60,6 +61,83 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminDetails, setAdminDetails] = useState(null);
 
+
+  useEffect(() => {
+    console.log('AuthProvider mounted, checking for existing session...');
+    checkExistingSession();
+  }, []);
+
+  const checkExistingSession = async () => {
+    try {
+      setLoading(true);
+      console.log('Checking for existing auth session...');
+      
+      await testSupabaseConnection();
+      
+      const storedToken = await tokenStorage.getItem('auth_token');
+      
+      if (!storedToken) {
+        console.log('No stored token found - user needs to sign in');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Stored token found, validating...');
+      
+      const validation = await validateToken(storedToken);
+      
+      if (validation.isValid && validation.userInfo) {
+        console.log('Token is valid, auto-signing in user');
+        
+        // Set user from validated token
+        setUser(validation.userInfo);
+        
+        // Initialize user data
+        const supabaseResult = await initializeUserData(validation.userInfo);
+        console.log('Auto-login successful');
+        
+        if (!supabaseResult) {
+          console.warn('Auto-login succeeded but Supabase initialization failed');
+        }
+        
+      } else {
+        // Token is invalid, expired, or validation failed
+        console.log('Token validation failed:', validation.error || 'Unknown error');
+        
+        if (validation.expired) {
+          console.log('Token has expired - clearing and requiring re-login');
+        } else {
+          console.log('Token is invalid - clearing and requiring re-login');
+        }
+        
+        await clearStoredTokens();
+      }
+      
+    } catch (error) {
+      console.error('Error checking existing session:', error);
+      
+      // On any error, clear tokens to ensure clean state
+      await clearStoredTokens();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearStoredTokens = async () => {
+    try {
+      console.log('Clearing all stored authentication data...');
+      
+      await tokenStorage.removeItem('auth_token');
+      await tokenStorage.removeItem('refresh_token'); // Keep this for future compatibility
+      await tokenStorage.removeItem('current_role');
+      
+      console.log('Stored tokens cleared successfully');
+    } catch (error) {
+      console.error('Error clearing stored tokens:', error);
+    }
+  };
+
+
   // Initialize or get user data from Supabase (your existing code)
   const initializeUserData = async (authUser) => {
     if (!authUser || !authUser.sub) return null;
@@ -69,6 +147,7 @@ export function AuthProvider({ children }) {
       let userData = await getUserDataByAuthId(authUserId);
       
       if (!userData) {
+        // Create new user - this part is fine
         const newUserData = {
           auth_id: authUserId,
           email: authUser.email,
@@ -76,7 +155,6 @@ export function AuthProvider({ children }) {
           picture: authUser.picture,
           created_at: new Date().toISOString(),
           last_login: new Date().toISOString(),
-          // NEW: Initialize with default roles
           is_pet_owner: true,
           is_practitioner: false
         };
@@ -84,18 +162,54 @@ export function AuthProvider({ children }) {
         const result = await saveUserData(newUserData);
         if (result) userData = Array.isArray(result) ? result[0] : result;
       } else {
+        // User exists - be selective about updates
+        console.log('Existing user found, updating minimal fields...');
+        
         const updates = {
           last_login: new Date().toISOString(),
-          picture: authUser.picture || userData.picture
         };
         
-        const result = await updateUserData(userData.id, updates);
-        if (result) userData = Array.isArray(result) ? result[0] : result;
+        // Only update email if it changed in Auth0
+        if (authUser.email && authUser.email !== userData.email) {
+          console.log('Email changed in Auth0, updating...');
+          updates.email = authUser.email;
+        }
+        
+        // Only update name if user hasn't set a custom name
+        // (Check if current name is the same as email, indicating no custom name set)
+        if (authUser.name && userData.name === userData.email && authUser.name !== authUser.email) {
+          console.log('Setting name from Auth0 for first time...');
+          updates.name = authUser.name;
+        }
+        
+        // Only update picture if user is still using Auth0/Google picture
+        // (i.e., if current picture is NOT from Supabase storage)
+        if (authUser.picture && userData.picture && 
+            !userData.picture.includes('supabase.co/storage')) {
+          console.log('Updating Auth0/Google profile picture...');
+          updates.picture = authUser.picture;
+        }
+        
+        // If user has no picture at all, set Auth0 picture
+        if (authUser.picture && !userData.picture) {
+          console.log('Setting initial profile picture from Auth0...');
+          updates.picture = authUser.picture;
+        }
+        
+        console.log('Updating user with:', updates);
+        
+        // Only update if there are meaningful changes (beyond just last_login)
+        if (Object.keys(updates).length > 1) {
+          const result = await updateUserData(userData.id, updates);
+          if (result) userData = Array.isArray(result) ? result[0] : result;
+        } else {
+          // Just update last_login
+          const result = await updateUserData(userData.id, { last_login: updates.last_login });
+          if (result) userData = Array.isArray(result) ? result[0] : result;
+        }
       }
       
       setSupabaseData(userData);
-      
-      // NEW: Load user roles after user data is set
       await loadUserRoles(authUserId);
       
       return userData;
@@ -229,40 +343,66 @@ export function AuthProvider({ children }) {
     }
   }, [userRoles]);
 
-  // Your existing signIn method
+  // Updated sign in with better token storage
+  // In AuthContext.js - Update the signIn function
   const signIn = async () => {
+    if (isAuthenticating) return;
+    
+    setIsAuthenticating(true);
     setLoading(true);
-    await testSupabaseConnection();
+    
     try {
-      const token = await login();
-      console.log('Auth0 token received:', token ? 'Token present' : 'No token');
+      console.log('Starting manual sign in...');
       
-      if (token) {
-        await tokenStorage.setItem('auth_token', token);
-        const userInfo = await getUserInfo(token);
-        console.log('Auth0 user info:', JSON.stringify(userInfo));
+      const result = await login();
+      console.log('Auth0 login result:', result ? 'Success' : 'Failed');
+      
+      if (result && result.accessToken) {
+        // Ensure we're storing strings
+        console.log('Storing access token...');
+        await tokenStorage.setItem('auth_token', String(result.accessToken));
         
-        setUser(userInfo);
+        if (result.refreshToken) {
+          console.log('Storing refresh token...');
+          await tokenStorage.setItem('refresh_token', String(result.refreshToken));
+        }
         
-        const supabaseResult = await initializeUserData(userInfo);
-        console.log('Supabase initialization result:', supabaseResult);
+        const userInfo = await getUserInfo(result.accessToken);
+        console.log('Auth0 user info:', userInfo ? 'Retrieved successfully' : 'Failed to retrieve');
+        
+        if (userInfo) {
+          setUser(userInfo);
+          const supabaseResult = await initializeUserData(userInfo);
+          console.log('Supabase initialization result:', supabaseResult);
+        } else {
+          throw new Error('Failed to get user information');
+        }
+      } else {
+        throw new Error('Login failed - no access token received');
       }
     } catch (error) {
       console.error('Sign in error:', error);
+      await clearStoredTokens();
     } finally {
       setLoading(false);
+      setIsAuthenticating(false);
     }
   };
 
-  // Your existing signOut method
+  // Updated sign out
   const signOut = async () => {
     try {
-      await tokenStorage.removeItem('auth_token');
-      await tokenStorage.removeItem('current_role'); // NEW: Clear role preference
+      console.log('Signing out user...');
+      
+      // Clear all stored data
+      await clearStoredTokens();
+      
+      // Auth0 logout
       await logout();
+      
+      // Reset all state
       setUser(null);
       setSupabaseData(null);
-      // NEW: Reset role state
       setUserRoles({
         is_pet_owner: false,
         is_practitioner: false,
@@ -271,6 +411,10 @@ export function AuthProvider({ children }) {
       });
       setCurrentRole('pet_owner');
       setPractitionerProfile(null);
+      setIsAdmin(false);
+      setAdminDetails(null);
+      
+      console.log('Sign out complete');
     } catch (error) {
       console.error('Sign out error:', error);
     }
@@ -297,6 +441,35 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // NEW: Check if user is authenticated
+  const isAuthenticated = () => {
+    return !!user;
+  };
+
+  // NEW: Force token refresh
+  const forceTokenRefresh = async () => {
+    try {
+      const storedRefreshToken = await tokenStorage.getItem('refresh_token');
+      if (!storedRefreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const refreshResult = await refreshToken(storedRefreshToken);
+      
+      if (refreshResult.success) {
+        await tokenStorage.setItem('auth_token', refreshResult.accessToken);
+        if (refreshResult.refreshToken) {
+          await tokenStorage.setItem('refresh_token', refreshResult.refreshToken);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Force token refresh failed:', error);
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       // Your existing values
@@ -316,7 +489,13 @@ export function AuthProvider({ children }) {
       roleLoading,
       switchRole,
       hasRole,
-      refreshRoles
+      refreshRoles,
+
+      // NEW: Persistent login values
+      isAuthenticated,
+      isAuthenticating,
+      forceTokenRefresh,
+      checkExistingSession
     }}>
       {children}
     </AuthContext.Provider>

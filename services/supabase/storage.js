@@ -132,6 +132,7 @@ const uploadImageMobile = async (uri) => {
     return null;
   }
 };
+
 /**
  * Delete an image from Supabase Storage
  * @param {string} url - The public URL of the image
@@ -139,11 +140,17 @@ const uploadImageMobile = async (uri) => {
  */
 export const deleteImage = async (url) => {
   try {
+    // Check if this is a Supabase storage URL
+    if (!url.includes('farmfit/') || !url.includes(supabase.storage.url)) {
+      console.log('Skipping deletion of external URL:', url);
+      return true; // Return true to indicate "successful" handling
+    }
+    
     // Extract the path from the URL
     const path = url.split('farmfit/')[1];
     
     if (!path) {
-      console.error('Invalid URL format');
+      console.error('Invalid URL format for Supabase storage');
       return false;
     }
     

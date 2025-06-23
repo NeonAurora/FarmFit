@@ -13,7 +13,7 @@ import { RoleBasedComponent, CurrentRoleComponent } from '@/components/roles/Rol
 import RoleSwitcher from '@/components/roles/RoleSwitcher';
 
 export function DrawerContent(props) {
-  const { user, signOut, currentRole, hasRole, userRoles } = useAuth();
+  const { user, userData, signOut, currentRole, hasRole, userRoles } = useAuth();
   const router = useRouter();
   const { colorScheme, isDark } = useColorScheme();
 
@@ -29,6 +29,20 @@ export function DrawerContent(props) {
   const navigateAndClose = (route) => {
     router.push(route);
     props.navigation.closeDrawer();
+  };
+
+  // Helper functions for clean data access
+  const getDisplayPicture = () => {
+    return userData?.picture || user?.picture || null;
+  };
+  
+  const getDisplayName = () => {
+    return userData?.name || user?.name || userData?.email || user?.email || 'User';
+  };
+  
+  const getInitials = () => {
+    const name = getDisplayName();
+    return name.charAt(0).toUpperCase();
   };
 
   // Dynamic colors based on theme
@@ -48,17 +62,23 @@ export function DrawerContent(props) {
       <View style={styles.profileSection}>
         {user ? (
           <>
-            {user.picture ? (
-              <Avatar.Image size={80} source={{ uri: user.picture }} />
+            {/* Use Supabase picture with Auth0 fallback */}
+            {getDisplayPicture() ? (
+              <Avatar.Image 
+                size={80} 
+                source={{ uri: getDisplayPicture() }} 
+              />
             ) : (
               <Avatar.Text 
                 size={80} 
-                label={(user.name?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()} 
+                label={getInitials()} 
                 backgroundColor="#2E86DE"
               />
             )}
+            
+            {/* Use Supabase name with Auth0 fallback */}
             <Text variant="titleMedium" style={styles.userName}>
-              {user.name || user.email || 'User'}
+              {getDisplayName()}
             </Text>
             
             {/* Role Badge */}

@@ -5,10 +5,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { DefaultTheme as NavigationDefaultTheme, DarkTheme as NavigationDarkTheme } from '@react-navigation/native';
 import { MD3LightTheme, MD3DarkTheme, Provider as PaperProvider } from 'react-native-paper';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { ThemeProvider } from '@/contexts/ThemeContext'; // ✅ Add this
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors, BrandColors } from '@/constants/Colors';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,10 +44,30 @@ const CombinedDarkTheme = {
   },
 };
 
-export default function RootLayout() {
+// NEW: Component that consumes AuthContext
+function AppContent() {
+  const { loading } = useAuth();
   const { colorScheme } = useColorScheme();
   const theme = colorScheme === 'dark' ? CombinedDarkTheme : CombinedLightTheme;
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={BrandColors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <ThemeProvider>
+      <PaperProvider theme={theme}>
+        <Slot />
+      </PaperProvider>
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -58,16 +79,25 @@ export default function RootLayout() {
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={BrandColors.primary} />
+      </View>
+    );
   }
 
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <PaperProvider theme={theme}>
-          <Slot />
-        </PaperProvider>
-      </ThemeProvider>
+      <AppContent />
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff', // or your preferred background color
+  },
+});
