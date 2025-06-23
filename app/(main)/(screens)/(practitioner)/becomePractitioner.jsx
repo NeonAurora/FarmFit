@@ -12,11 +12,11 @@ import {
   Chip
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import ImagePicker from '@/components/interfaces/ImagePicker';
-import { uploadImage } from '@/services/supabase/storage';
+import { uploadImage } from '@/services/supabase';
 import { 
   savePractitionerProfileData, 
   saveVerificationDocuments,

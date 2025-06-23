@@ -6,7 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, Text, View, Image, Modal, TouchableWithoutFeedback, ActivityIndicator, Platform } from 'react-native';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Drawer } from 'expo-router/drawer';
 import { DrawerContent } from '@/components/interfaces/DrawerContent';
@@ -250,6 +250,7 @@ export default function RootLayout() {
           {/* Main Screens */}
           <Drawer.Screen name="index" options={{ title: "Home" }} />
           <Drawer.Screen name="profile" options={{ title: "Profile" }} />
+          <Drawer.Screen name="editUserSelfProfileScreen" options={{ title: "Edit Profile" }} />
 
           {/* Hide headers for each nested group */}
           <Drawer.Screen 

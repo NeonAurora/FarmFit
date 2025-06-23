@@ -10,7 +10,7 @@ import {
   useTheme
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 

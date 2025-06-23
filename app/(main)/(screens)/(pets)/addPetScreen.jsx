@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View, Platform } from 'react-native';
 import { TextInput, Button, Text, Divider, List } from 'react-native-paper';
-import { uploadImage } from '@/services/supabase/storage';
+import { uploadImage } from '@/services/supabase';
 import { savePetData } from '@/services/supabase';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';

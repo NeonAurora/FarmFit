@@ -6,7 +6,7 @@ import { Text } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 
 export default function AgeInput({ 
   value = '', 

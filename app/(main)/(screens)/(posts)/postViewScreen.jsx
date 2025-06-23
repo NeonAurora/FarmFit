@@ -16,14 +16,14 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, router } from 'expo-router';
 import { usePost } from '@/hooks/usePost';
 import { useComments, useCommentForm } from '@/hooks/useComments';
 import { deletePost } from '@/services/supabase/postService';
 import { createComment, updateComment, deleteComment } from '@/services/supabase/commentService';
-import { deleteImage } from '@/services/supabase/storage';
+import { deleteImage } from '@/services/supabase';
 
 const POST_TYPE_EMOJIS = {
   text: '📝',

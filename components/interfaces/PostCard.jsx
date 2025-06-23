@@ -10,7 +10,7 @@ import {
   IconButton
 } from 'react-native-paper';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { useAuth } from '@/contexts/AuthContext';
 
 const POST_TYPE_EMOJIS = {

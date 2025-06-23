@@ -13,12 +13,12 @@ import {
   IconButton
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import ReanimatedMoodCarousel from '@/components/interfaces/ReanimatedMoodCarousel'; // ✅ Added import
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, router } from 'expo-router';
-import { uploadImage, deleteImage } from '@/services/supabase/storage';
+import { uploadImage, deleteImage } from '@/services/supabase';
 import { updateJournalData, getJournalById } from '@/services/supabase/journalService';
 import { getPetsByUserId } from '@/services/supabase/petService';
 

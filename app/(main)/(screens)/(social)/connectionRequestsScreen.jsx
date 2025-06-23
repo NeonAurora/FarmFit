@@ -12,7 +12,7 @@ import {
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
 import { useAuth } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { 
   getConnectionRequests, 
   respondToConnectionRequest,

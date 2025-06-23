@@ -14,10 +14,10 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native'; // ← Add this import
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { useAuth } from '@/contexts/AuthContext';
 import { getJournalById, deleteJournalData } from '@/services/supabase/journalService';
-import { deleteImage } from '@/services/supabase/storage';
+import { deleteImage } from '@/services/supabase';
 
 const MOOD_EMOJIS = {
   happy: '😊',

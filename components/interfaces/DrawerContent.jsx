@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Badge } from 'react-native-paper';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { Avatar, Button, Divider, List, Text } from 'react-native-paper';
 import { useAuth } from '@/contexts/AuthContext';

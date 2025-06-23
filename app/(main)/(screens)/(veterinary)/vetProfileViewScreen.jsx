@@ -14,7 +14,7 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { getVeterinaryClinicById } from '@/services/supabase';
 import { RatingDisplay } from '@/components/veterinary/RatingDisplay';
 import { RatingForm } from '@/components/veterinary/RatingForm';

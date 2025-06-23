@@ -14,7 +14,7 @@ import {
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { router } from 'expo-router';
 import { useJournals } from '@/hooks/useJournals';
 

@@ -3,22 +3,24 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { 
   TextInput, 
-  Button, 
-  Text, 
-  Card,
   Avatar
 } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useInputColors, useActivityIndicatorColors } from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import ImagePicker from '@/components/interfaces/ImagePicker';
-import { uploadImage, deleteImage } from '@/services/supabase/storage';
+import { uploadImage, deleteImage } from '@/services/supabase';
 
 export default function EditProfileScreen() {
   const { userId } = useLocalSearchParams();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark } = useTheme();
+  const inputColors = useInputColors();
+  const activityIndicatorColors = useActivityIndicatorColors();
   const { user: currentUser, userData, updateUserData } = useAuth();
   
   const [loading, setLoading] = useState(false);
@@ -120,16 +122,43 @@ export default function EditProfileScreen() {
       setIsUploading(false);
     }
   };
+
+  const dynamicStyles = createDynamicStyles(colors, inputColors);
+  
+  if (loading) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator 
+            size="large" 
+            color={activityIndicatorColors.primary} 
+          />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading profile...
+          </ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
   
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Edit Profile</Text>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <ThemedText type="title" style={styles.title}>
+          Edit Profile
+        </ThemedText>
         
         {/* Profile Picture Section */}
-        <Card style={styles.pictureCard}>
-          <Card.Title title="Profile Picture" />
-          <Card.Content>
+        <ThemedCard variant="elevated" style={styles.pictureCard}>
+          <View style={styles.cardHeader}>
+            <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+              Profile Picture
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <ImagePicker
               mode="profile"
               images={profilePicture}
@@ -138,134 +167,225 @@ export default function EditProfileScreen() {
               placeholder="Tap to add profile picture"
               style={styles.profileImagePicker}
             />
-          </Card.Content>
-        </Card>
+            {isUploading && (
+              <View style={styles.uploadingContainer}>
+                <ActivityIndicator 
+                  size="small" 
+                  color={activityIndicatorColors.primary} 
+                />
+                <ThemedText style={[styles.uploadingText, { color: colors.textSecondary }]}>
+                  Uploading image...
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        </ThemedCard>
         
         {/* Basic Information */}
-        <Card style={styles.infoCard}>
-          <Card.Title title="Basic Information" />
-          <Card.Content>
+        <ThemedCard variant="elevated" style={styles.infoCard}>
+          <View style={styles.cardHeader}>
+            <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+              Basic Information
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <TextInput
               label="Full Name *"
               value={name}
               onChangeText={setName}
-              style={styles.input}
+              style={[styles.input, dynamicStyles.input]}
               mode="outlined"
+              outlineColor={inputColors.border}
+              activeOutlineColor={inputColors.borderFocused}
+              textColor={inputColors.text}
+              placeholderTextColor={inputColors.placeholder}
             />
             
             <TextInput
               label="Email Address *"
               value={email}
               onChangeText={setEmail}
-              style={styles.input}
+              style={[styles.input, dynamicStyles.input]}
               mode="outlined"
               keyboardType="email-address"
               autoCapitalize="none"
+              outlineColor={inputColors.border}
+              activeOutlineColor={inputColors.borderFocused}
+              textColor={inputColors.text}
+              placeholderTextColor={inputColors.placeholder}
             />
             
             <TextInput
               label="Phone Number"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
-              style={styles.input}
+              style={[styles.input, dynamicStyles.input]}
               mode="outlined"
               keyboardType="phone-pad"
+              outlineColor={inputColors.border}
+              activeOutlineColor={inputColors.borderFocused}
+              textColor={inputColors.text}
+              placeholderTextColor={inputColors.placeholder}
             />
             
             <TextInput
               label="Location"
               value={location}
               onChangeText={setLocation}
-              style={styles.input}
+              style={[styles.input, dynamicStyles.input]}
               mode="outlined"
               placeholder="City, Country"
+              outlineColor={inputColors.border}
+              activeOutlineColor={inputColors.borderFocused}
+              textColor={inputColors.text}
+              placeholderTextColor={inputColors.placeholder}
             />
             
             <TextInput
               label="Bio"
               value={bio}
               onChangeText={setBio}
-              style={styles.input}
+              style={[styles.input, styles.bioInput, dynamicStyles.input]}
               mode="outlined"
               multiline
               numberOfLines={3}
               placeholder="Tell others about yourself..."
+              outlineColor={inputColors.border}
+              activeOutlineColor={inputColors.borderFocused}
+              textColor={inputColors.text}
+              placeholderTextColor={inputColors.placeholder}
             />
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
         
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <Button 
-            mode="outlined" 
+          <ThemedButton 
+            variant="outlined" 
             onPress={() => router.back()}
             style={styles.cancelButton}
-            labelStyle={styles.cancelButtonText}
+            disabled={saving || isUploading}
           >
             Cancel
-          </Button>
+          </ThemedButton>
           
-          <Button 
-            mode="contained" 
+          <ThemedButton 
+            variant="primary" 
             onPress={handleSaveProfile}
             style={styles.saveButton}
             disabled={saving || isUploading}
             loading={saving}
           >
-            Save Changes
-          </Button>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </ThemedButton>
         </View>
+        
+        {/* Status Indicator */}
+        {(saving || isUploading) && (
+          <View style={styles.statusContainer}>
+            <ActivityIndicator 
+              size="small" 
+              color={activityIndicatorColors.primary} 
+            />
+            <ThemedText style={[styles.statusText, { color: colors.textSecondary }]}>
+              {isUploading ? 'Uploading image...' : 'Saving profile...'}
+            </ThemedText>
+          </View>
+        )}
       </ScrollView>
     </ThemedView>
   );
 }
 
+// Create dynamic styles that respond to theme changes
+const createDynamicStyles = (colors, inputColors) => StyleSheet.create({
+  input: {
+    backgroundColor: inputColors.background,
+  },
+});
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   },
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: 'center',
   },
   pictureCard: {
     marginBottom: 16,
   },
+  infoCard: {
+    marginBottom: 24,
+  },
+  cardHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  cardTitle: {
+    fontSize: 16,
+  },
+  cardContent: {
+    padding: 16,
+    paddingTop: 8,
+  },
   profileImagePicker: {
     height: 140,
     marginVertical: 8,
   },
-  infoCard: {
-    marginBottom: 24,
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  uploadingText: {
+    marginLeft: 8,
+    fontSize: 14,
   },
   input: {
     marginBottom: 16,
-    backgroundColor: "transparent",
+  },
+  bioInput: {
+    minHeight: 80,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 24,
+    gap: 12,
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 8,
-    marginLeft: 8,
-    backgroundColor: '#2E86DE',
+    borderRadius: 8,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderColor: '#999',
+    borderRadius: 8,
   },
-  cancelButtonText: {
-    color: '#999',
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    padding: 12,
+  },
+  statusText: {
+    marginLeft: 8,
+    fontSize: 14,
   },
 });

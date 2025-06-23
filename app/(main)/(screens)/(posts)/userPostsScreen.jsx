@@ -17,7 +17,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, router } from 'expo-router';
 import { usePosts } from '@/hooks/usePosts';

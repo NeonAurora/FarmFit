@@ -159,5 +159,11 @@ export {
   testSupabaseConnection
 } from './commonService';
 
+// Common service exports
+export {
+  uploadImage,
+  deleteImage,
+} from './storage';
+
 // Config export
 export { supabase } from './config';

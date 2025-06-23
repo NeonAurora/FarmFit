@@ -14,11 +14,11 @@ import {
   ActivityIndicator
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, router } from 'expo-router';
-import { uploadImage, deleteImage } from '@/services/supabase/storage';
+import { uploadImage, deleteImage } from '@/services/supabase';
 import { createPost, updatePost, getPostById } from '@/services/supabase/postService';
 import { getPetsByUserId } from '@/services/supabase/petService';
 

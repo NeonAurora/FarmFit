@@ -8,7 +8,7 @@ import {
   IconButton,
   TextInput
 } from 'react-native-paper';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function CommentItem({ 

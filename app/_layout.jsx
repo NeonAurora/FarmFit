@@ -6,21 +6,25 @@ import { useFonts } from 'expo-font';
 import { DefaultTheme as NavigationDefaultTheme, DarkTheme as NavigationDarkTheme } from '@react-navigation/native';
 import { MD3LightTheme, MD3DarkTheme, Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext'; // ✅ Add this
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/constants/Colors'; // Import your Colors
+import { Colors, BrandColors } from '@/constants/Colors';
 
-// Prevent splash screen from auto-hiding until assets are ready
 SplashScreen.preventAutoHideAsync();
 
-// Create CUSTOM combined themes using YOUR colors
+// Create themes using your colors
 const CombinedLightTheme = {
   ...NavigationDefaultTheme,
   ...MD3LightTheme,
   colors: {
     ...NavigationDefaultTheme.colors,
     ...MD3LightTheme.colors,
-    background: Colors.light.background, // Use your custom color
+    primary: BrandColors.primary,
+    background: Colors.light.background,
     text: Colors.light.text,
+    surface: Colors.light.surface,
+    card: Colors.light.card.background,
+    border: Colors.light.border,
   },
 };
 
@@ -30,15 +34,17 @@ const CombinedDarkTheme = {
   colors: {
     ...NavigationDarkTheme.colors,
     ...MD3DarkTheme.colors,
-    background: Colors.dark.background, // Use your custom grey (#151718)
+    primary: BrandColors.primary,
+    background: Colors.dark.background,
     text: Colors.dark.text,
-    surface: Colors.dark.background, // Paper components background
-    surfaceVariant: Colors.dark.background, // Alternative surfaces
+    surface: Colors.dark.surface,
+    card: Colors.dark.card.background,
+    border: Colors.dark.border,
   },
 };
 
 export default function RootLayout() {
-  const { colorScheme } = useColorScheme(); // Use destructured version
+  const { colorScheme } = useColorScheme();
   const theme = colorScheme === 'dark' ? CombinedDarkTheme : CombinedLightTheme;
 
   const [fontsLoaded] = useFonts({
@@ -57,9 +63,11 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <PaperProvider theme={theme}>
-        <Slot />
-      </PaperProvider>
+      <ThemeProvider>
+        <PaperProvider theme={theme}>
+          <Slot />
+        </PaperProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

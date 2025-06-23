@@ -13,7 +13,7 @@ import {
   IconButton,
   ActivityIndicator
 } from 'react-native-paper';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { useAuth } from '@/contexts/AuthContext';
 import ImagePicker from './ImagePicker';
 

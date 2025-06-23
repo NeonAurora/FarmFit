@@ -11,10 +11,10 @@ import {
   IconButton,
   Chip
 } from 'react-native-paper';
-import { uploadImage } from '@/services/supabase/storage';
+import { uploadImage } from '@/services/supabase';
 import { saveVeterinaryClinicData } from '@/services/supabase';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';

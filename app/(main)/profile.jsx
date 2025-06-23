@@ -1,15 +1,21 @@
-// Update app/(main)/profile.jsx
+// app/(main)/profile.jsx
 import React from 'react';
-import { StyleSheet, Pressable, Image, ActivityIndicator } from 'react-native';
+import { StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData'; 
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useActivityIndicatorColors } from '@/hooks/useThemeColor';
 import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { user, signOut, loading: authLoading } = useAuth();
   const { userData, loading: dataLoading, error } = useUserData();
+  const { colors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
   const router = useRouter();
 
   const loading = authLoading || dataLoading;
@@ -29,7 +35,6 @@ export default function ProfileScreen() {
     }
   };
 
-  // ← Add this function
   const handleEditProfile = () => {
     router.push({
       pathname: '/editUserSelfProfileScreen',
@@ -40,8 +45,13 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.container}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
-        <ThemedText style={{ marginTop: 20 }}>Loading profile...</ThemedText>
+        <ActivityIndicator 
+          size="large" 
+          color={activityIndicatorColors.primary} 
+        />
+        <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Loading profile...
+        </ThemedText>
       </ThemedView>
     );
   }
@@ -50,7 +60,9 @@ export default function ProfileScreen() {
     return (
       <ThemedView style={styles.container}>
         <ThemedText type="title">Error Loading Profile</ThemedText>
-        <ThemedText style={styles.errorText}>{error}</ThemedText>
+        <ThemedText style={[styles.errorText, { color: colors.error }]}>
+          {error}
+        </ThemedText>
       </ThemedView>
     );
   }
@@ -74,57 +86,99 @@ export default function ProfileScreen() {
     phoneNumber: userData?.phone_number,
   };
 
+  const dynamicStyles = createDynamicStyles(colors, isDark);
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">My Profile</ThemedText>
       
-      <ThemedView style={styles.card}>
-        <ThemedText type="subtitle">
+      <ThemedCard variant="elevated" style={styles.card}>
+        <ThemedText type="subtitle" style={styles.welcomeText}>
           Welcome, {displayData.name || displayData.email || 'User'}!
         </ThemedText>
         
         {displayData.email && (
-        <ThemedText style={styles.detail}>Email: {displayData.email}</ThemedText>
-      )}
-      
-      {/* Only show these if they exist */}
-      {displayData.phoneNumber && (
-        <ThemedText style={styles.detail}>Phone: {displayData.phoneNumber}</ThemedText>
-      )}
-      
-      {displayData.location && (
-        <ThemedText style={styles.detail}>Location: {displayData.location}</ThemedText>
-      )}
-      
-      {displayData.bio && (
-        <ThemedText style={styles.detail}>Bio: {displayData.bio}</ThemedText>
-      )}
-      
-      {displayData.lastLogin && (
-        <ThemedText style={styles.detail}>
-          Last login: {new Date(displayData.lastLogin).toLocaleString()}
-        </ThemedText>
-      )}
+          <ThemedText style={[styles.detail, { color: colors.textSecondary }]}>
+            Email: {displayData.email}
+          </ThemedText>
+        )}
         
+        {/* Only show these if they exist */}
+        {displayData.phoneNumber && (
+          <ThemedText style={[styles.detail, { color: colors.textSecondary }]}>
+            Phone: {displayData.phoneNumber}
+          </ThemedText>
+        )}
+        
+        {displayData.location && (
+          <ThemedText style={[styles.detail, { color: colors.textSecondary }]}>
+            Location: {displayData.location}
+          </ThemedText>
+        )}
+        
+        {displayData.bio && (
+          <ThemedText style={[styles.detail, { color: colors.textSecondary }]}>
+            Bio: {displayData.bio}
+          </ThemedText>
+        )}
+        
+        {displayData.lastLogin && (
+          <ThemedText style={[styles.detail, { color: colors.textMuted }]}>
+            Last login: {new Date(displayData.lastLogin).toLocaleString()}
+          </ThemedText>
+        )}
+          
         {displayData.picture && (
           <ThemedView style={styles.pictureContainer}>
-            <ThemedText style={styles.detail}>Profile Picture:</ThemedText>
-            <Image source={{ uri: displayData.picture }} style={styles.picture} />
+            <ThemedText style={[styles.detail, { color: colors.textSecondary }]}>
+              Profile Picture:
+            </ThemedText>
+            <Image 
+              source={{ uri: displayData.picture }} 
+              style={[
+                styles.picture, 
+                { 
+                  borderColor: colors.border,
+                  borderWidth: 2,
+                }
+              ]} 
+            />
           </ThemedView>
         )}
-      </ThemedView>
+      </ThemedCard>
       
-      {/* ← Add Edit Profile Button */}
-      <Pressable style={styles.editButton} onPress={handleEditProfile}>
-        <ThemedText style={styles.editButtonText}>Edit Profile</ThemedText>
-      </Pressable>
+      {/* Edit Profile Button */}
+      <ThemedButton 
+        variant="secondary" 
+        style={styles.editButton}
+        onPress={handleEditProfile}
+      >
+        Edit Profile
+      </ThemedButton>
       
-      <Pressable style={styles.signOutButton} onPress={handleSignOut}>
-        <ThemedText style={styles.buttonText}>Sign Out</ThemedText>
-      </Pressable>
+      {/* Sign Out Button */}
+      <ThemedButton 
+        variant="primary" 
+        style={[styles.signOutButton, dynamicStyles.signOutButton]}
+        labelStyle={dynamicStyles.signOutButtonText}
+        onPress={handleSignOut}
+      >
+        Sign Out
+      </ThemedButton>
     </ThemedView>
   );
 }
+
+// Create dynamic styles that respond to theme changes
+const createDynamicStyles = (colors, isDark) => StyleSheet.create({
+  signOutButton: {
+    backgroundColor: colors.error,
+  },
+  signOutButtonText: {
+    color: '#fff', // Always white text on error background
+    fontWeight: 'bold',
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -134,12 +188,13 @@ const styles = StyleSheet.create({
   card: {
     marginVertical: 20,
     padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  },
+  welcomeText: {
+    marginBottom: 10,
   },
   detail: {
     marginTop: 10,
+    fontSize: 16,
   },
   pictureContainer: {
     marginTop: 15,
@@ -151,32 +206,19 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginTop: 10,
   },
-  // ← Add these new styles
   editButton: {
-    backgroundColor: '#2E86DE',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    alignItems: 'center',
     marginBottom: 10,
-  },
-  editButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    borderRadius: 8,
   },
   signOutButton: {
-    backgroundColor: '#E74C3C',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
     borderRadius: 8,
-    alignItems: 'center',
   },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
+  loadingText: {
+    marginTop: 20,
+    textAlign: 'center',
   },
   errorText: {
-    color: '#E74C3C',
     marginTop: 10,
+    textAlign: 'center',
   },
 });

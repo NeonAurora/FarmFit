@@ -18,7 +18,7 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { searchPractitioners, getRecentPractitioners } from '@/services/supabase';
 import PractitionerCard from '@/components/practitioners/PractitionerCard';
 

@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, Dimensions, TouchableOpacity, Platform } from 'react-native';
 import { Text, IconButton } from 'react-native-paper';
 import Carousel from 'react-native-reanimated-carousel';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 
 const MOODS = [
   { value: '', label: 'None', emoji: '😐', color: '#9E9E9E' },

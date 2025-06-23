@@ -18,7 +18,7 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/useColorScheme.native';
 import { getVeterinaryClinics } from '@/services/supabase';
 import { getClinicRatingSummary } from '@/services/supabase/ratingService';
 import { StarRating } from '@/components/veterinary/StarRating';
