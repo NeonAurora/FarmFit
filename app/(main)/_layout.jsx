@@ -5,12 +5,13 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, Text, View, Image, Modal, TouchableWithoutFeedback, ActivityIndicator } from 'react-native'; // ← Add ActivityIndicator
+import { Pressable, Text, View, Image, Modal, TouchableWithoutFeedback, ActivityIndicator, Platform } from 'react-native';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Drawer } from 'expo-router/drawer';
 import { DrawerContent } from '@/components/interfaces/DrawerContent';
 import { useRouter } from 'expo-router';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -39,17 +40,19 @@ function HeaderRight() {
   const { user, userData, signIn, signOut } = useAuth();
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isSigningIn, setIsSigningIn] = useState(false); // ← Add loading state
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  
+  // Add theme awareness to HeaderRight component
+  const { colorScheme, isDark } = useColorScheme();
   
   const handleSignIn = async () => {
-    setIsSigningIn(true); // ← Start loading
+    setIsSigningIn(true);
     try {
       await signIn();
     } catch (error) {
       console.error('Sign in error:', error);
-      // You might want to show an error message here
     } finally {
-      setIsSigningIn(false); // ← Stop loading
+      setIsSigningIn(false);
     }
   };
   
@@ -67,6 +70,13 @@ function HeaderRight() {
   const toggleDropdown = () => {
     setShowDropdown(prev => !prev);
   };
+  
+  // Dynamic colors for the HeaderRight component
+  const modalBackgroundColor = isDark ? '#333' : '#fff';
+  const modalTextColor = isDark ? '#fff' : '#000';
+  const modalBorderColor = isDark ? '#555' : '#eee';
+  const headerTextColor = isDark ? '#fff' : '#000';
+  const avatarBorderColor = isDark ? '#555' : '#ddd';
   
   if (user) {
     // Use Supabase data with Auth0 fallbacks
@@ -91,7 +101,7 @@ function HeaderRight() {
             <Image source={{ uri: displayPicture }} 
               style={{
                 width: 32, height: 32, borderRadius: 16,
-                borderWidth: 1, borderColor: '#ddd'
+                borderWidth: 1, borderColor: avatarBorderColor // Dynamic border color
               }}
             />
           ) : (
@@ -106,7 +116,7 @@ function HeaderRight() {
             </View>
           )}
           <Text style={{ 
-            color: '#fff', 
+            color: headerTextColor, // Dynamic text color
             marginLeft: 10,
             fontWeight: '500'
           }}>
@@ -126,7 +136,7 @@ function HeaderRight() {
                 position: 'absolute',
                 right: 10,
                 top: 50,
-                backgroundColor: '#fff',
+                backgroundColor: modalBackgroundColor, // Dynamic background
                 borderRadius: 8,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 2 },
@@ -141,10 +151,10 @@ function HeaderRight() {
                     paddingVertical: 12,
                     paddingHorizontal: 16,
                     borderBottomWidth: 1,
-                    borderBottomColor: '#eee'
+                    borderBottomColor: modalBorderColor // Dynamic border
                   }}
                 >
-                  <Text>View Profile</Text>
+                  <Text style={{ color: modalTextColor }}>View Profile</Text>
                 </Pressable>
                 <Pressable 
                   onPress={handleSignOut}
@@ -166,18 +176,18 @@ function HeaderRight() {
   return (
     <Pressable 
       onPress={handleSignIn}
-      disabled={isSigningIn} // ← Disable button when loading
+      disabled={isSigningIn}
       style={{ 
-        backgroundColor: isSigningIn ? '#A0A0A0' : '#2E86DE', // ← Change color when loading
+        backgroundColor: isSigningIn ? '#A0A0A0' : '#2E86DE',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 6,
         marginRight: 10,
-        opacity: isSigningIn ? 0.7 : 1, // ← Dim when loading
-        flexDirection: 'row', // ← Add for spinner alignment
-        alignItems: 'center', // ← Center spinner and text
-        justifyContent: 'center', // ← Center content
-        minWidth: 80, // ← Prevent button from shrinking
+        opacity: isSigningIn ? 0.7 : 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 80,
       }}
     >
       {isSigningIn ? (
@@ -197,8 +207,18 @@ function HeaderRight() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const { colorScheme, isDark } = useColorScheme(); // Fix: Destructure properly
   const theme = colorScheme === 'dark' ? CombinedDarkTheme : CombinedLightTheme;
+  const headerBackgroundColor = useThemeColor({}, 'background');
+  const headerTextColor = useThemeColor({}, 'text');
+
+  console.log('=== LAYOUT DEBUG ===');
+  console.log('Platform:', Platform.OS);
+  console.log('colorScheme:', colorScheme);
+  console.log('isDark:', isDark);
+  console.log('headerBackgroundColor:', headerBackgroundColor);
+  console.log('Colors.dark.background:', '#151718'); // Expected value
+  console.log('===================');
   
   const [loaded] = useFonts({
     SpaceMono: require('../../assets/fonts/SpaceMono-Regular.ttf'),
@@ -219,13 +239,13 @@ export default function RootLayout() {
       <PaperProvider theme={theme}>
         <Drawer
           drawerContent={(props) => <DrawerContent {...props} />}
-          screenOptions={{
+          screenOptions={({ navigation, route }) => ({
             headerStyle: {
-              backgroundColor: colorScheme === 'dark' ? '#121212' : '#fff',
+              backgroundColor: headerBackgroundColor, // Use isDark for consistency
             },
-            headerTintColor: colorScheme === 'dark' ? '#fff' : '#000',
+            headerTintColor: headerTextColor, // Use isDark for consistency
             headerRight: () => <HeaderRight />,
-          }}
+          })}
         >
           {/* Main Screens */}
           <Drawer.Screen name="index" options={{ title: "Home" }} />
@@ -256,43 +276,6 @@ export default function RootLayout() {
             name="(screens)/(practitioner)" 
             options={{ headerShown: false }} 
           />
-          
-          {/* Pet Management */}
-          {/* <Drawer.Screen name="(screens)/(pets)/addPetScreen" options={{ title: "Add Pet sdsdd" }} />
-          <Drawer.Screen name="(screens)/(pets)/petListScreen" options={{ title: "My Pets" }} />
-          <Drawer.Screen name="(screens)/(pets)/petProfileScreen" options={{ title: "Pet Profile" }} />
-          <Drawer.Screen name="(screens)/(pets)/editPetScreen" options={{ title: "Edit Pet" }} /> */}
-          
-          {/* Veterinary Services */}
-          {/* <Drawer.Screen name="(screens)/createVetProfileScreen" options={{ title: "Create Vet Profile" }} />
-          <Drawer.Screen name="(screens)/vetSearchScreen" options={{ title: "Find Veterinarians" }} />
-          <Drawer.Screen name="(screens)/vetProfileViewScreen" options={{ title: "Veterinary Clinic" }} /> */}
-          
-          {/* System Screens */}
-          {/* <Drawer.Screen name="+not-found" options={{ title: "Not Found" }} /> */}
-          
-          {/* User Management Screens */}
-          {/* <Drawer.Screen name="(screens)/userSearchScreen" options={{ title: "Find Users" }} />
-          <Drawer.Screen name="(screens)/userProfileScreen" options={{ title: "User Profile" }} />
-          <Drawer.Screen name="editUserSelfProfileScreen" options={{ title: "Edit Profile" }} />
-          <Drawer.Screen name="(screens)/connectionRequestsScreen" options={{ title: "Requests" }} />
-          <Drawer.Screen name="(screens)/connectionsScreen" options={{ title: "Connections" }} /> */}
-          
-          {/* Journal Features */}
-          {/* <Drawer.Screen name="(screens)/journalListScreen" options={{ title: "My Journals" }} />
-          <Drawer.Screen name="(screens)/addJournalScreen" options={{ title: "Create Journal" }} />
-          <Drawer.Screen name="(screens)/editJournalScreen" options={{ title: "Edit Journal Entry" }} />
-          <Drawer.Screen name="(screens)/journalViewScreen" options={{ title: "Journal Entry" }} />
-          <Drawer.Screen name="(screens)/journalStatsScreen" options={{ title: "Journal Stats" }} />
-          <Drawer.Screen name="(screens)/journalSearchScreen" options={{ title: "Journal Search" }} />
-          <Drawer.Screen name="(screens)/journalSettingsScreen" options={{ title: "Journal Settings" }} /> */}
-
-          {/* Community Features */}
-          {/* <Drawer.Screen name="(screens)/postFeedScreen" options={{ title: "Community Feed" }} />
-          <Drawer.Screen name="(screens)/createPostScreen" options={{ title: "Create Post" }} />
-          <Drawer.Screen name="(screens)/postViewScreen" options={{ title: "Post Detail" }} />
-          <Drawer.Screen name="(screens)/userPostScreen" options={{ title: "Edit Post" }} /> */}
-
         </Drawer>
         <StatusBar style="auto" />
       </PaperProvider>
