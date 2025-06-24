@@ -14,6 +14,7 @@ import {
   isUserAdmin,
   getAdminDetails 
 } from '@/services/supabase';
+import { TokenRequest } from 'expo-auth-session';
 
 export const AuthContext = createContext();
 
@@ -68,60 +69,77 @@ export function AuthProvider({ children }) {
   }, []);
 
   const checkExistingSession = async () => {
-    try {
-      setLoading(true);
-      console.log('Checking for existing auth session...');
-      
-      await testSupabaseConnection();
-      
-      const storedToken = await tokenStorage.getItem('auth_token');
-      
-      if (!storedToken) {
-        console.log('No stored token found - user needs to sign in');
-        setLoading(false);
-        return;
-      }
+  try {
+    setLoading(true);
+    console.log('Checking for existing auth session...');
+    
+    await testSupabaseConnection();
+    
+    const storedToken = await tokenStorage.getItem('auth_token');
+    const storedRefreshToken = await tokenStorage.getItem('refresh_token');
+    
+    if (!storedToken) {
+      console.log('No stored token found - user needs to sign in');
+      setLoading(false);
+      return;
+    }
 
-      console.log('Stored token found, validating...');
+    console.log('Stored token found, validating...');
+    
+    const validation = await validateToken(storedToken);
+    
+    if (validation.isValid && validation.userInfo) {
+      console.log('Token is valid, auto-signing in user');
+      setUser(validation.userInfo);
+      const supabaseResult = await initializeUserData(validation.userInfo);
+      console.log('Auto-login successful');
       
-      const validation = await validateToken(storedToken);
+    } else if (validation.expired && storedRefreshToken) {
+      console.log('Token expired, attempting refresh...');
       
-      if (validation.isValid && validation.userInfo) {
-        console.log('Token is valid, auto-signing in user');
+      const refreshResult = await refreshToken(storedRefreshToken);
+      
+      if (refreshResult.success) {
+        console.log('Token refreshed successfully');
         
-        // Set user from validated token
-        setUser(validation.userInfo);
-        
-        // Initialize user data
-        const supabaseResult = await initializeUserData(validation.userInfo);
-        console.log('Auto-login successful');
-        
-        if (!supabaseResult) {
-          console.warn('Auto-login succeeded but Supabase initialization failed');
+        // Store new tokens
+        await tokenStorage.setItem('auth_token', String(refreshResult.accessToken));
+        if (refreshResult.refreshToken) {
+          await tokenStorage.setItem('refresh_token', String(refreshResult.refreshToken));
+        }
+
+        // Log rotation info
+        if (refreshResult.rotated) {
+          console.log('🔄 Refresh token was rotated - old token is now invalid');
         }
         
+        // Validate new token and sign in
+        const newValidation = await validateToken(refreshResult.accessToken);
+        if (newValidation.isValid) {
+          setUser(newValidation.userInfo);
+          await initializeUserData(newValidation.userInfo);
+          console.log('Auto-login with refreshed token successful');
+        }
       } else {
-        // Token is invalid, expired, or validation failed
-        console.log('Token validation failed:', validation.error || 'Unknown error');
+        console.log('Token refresh failed, clearing stored tokens');
         
-        if (validation.expired) {
-          console.log('Token has expired - clearing and requiring re-login');
-        } else {
-          console.log('Token is invalid - clearing and requiring re-login');
+        if (refreshResult.shouldClearTokens) {
+          console.log('🗑️ Clearing tokens due to rotation/expiration');
         }
-        
         await clearStoredTokens();
       }
-      
-    } catch (error) {
-      console.error('Error checking existing session:', error);
-      
-      // On any error, clear tokens to ensure clean state
+    } else {
+      console.log('Token validation failed:', validation.error);
       await clearStoredTokens();
-    } finally {
-      setLoading(false);
     }
-  };
+    
+  } catch (error) {
+    console.error('Error checking existing session:', error);
+    await clearStoredTokens();
+  } finally {
+    setLoading(false);
+  }
+};
 
   const clearStoredTokens = async () => {
     try {
@@ -457,9 +475,9 @@ export function AuthProvider({ children }) {
       const refreshResult = await refreshToken(storedRefreshToken);
       
       if (refreshResult.success) {
-        await tokenStorage.setItem('auth_token', refreshResult.accessToken);
+        await tokenStorage.setItem('auth_token', String(refreshResult.accessToken));
         if (refreshResult.refreshToken) {
-          await tokenStorage.setItem('refresh_token', refreshResult.refreshToken);
+          await tokenStorage.setItem('refresh_token', String(refreshResult.refreshToken));
         }
         return true;
       }
@@ -467,6 +485,32 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Force token refresh failed:', error);
       return false;
+    }
+  };
+
+  const testTokenRefresh = async () => {
+    try {
+      console.log('Testing token refresh...');
+      const storedRefreshToken = await tokenStorage.getItem('refresh_token');
+      
+      if (!storedRefreshToken) {
+        console.log('No refresh token to test');
+        return;
+      }
+      
+      const refreshResult = await refreshToken(storedRefreshToken);
+      
+      if (refreshResult.success) {
+        console.log('✅ Token refresh test successful!');
+        await tokenStorage.setItem('auth_token', String(refreshResult.accessToken));
+        if (refreshResult.refreshToken) {
+          await tokenStorage.setItem('refresh_token', String(refreshResult.refreshToken));
+        }
+      } else {
+        console.log('❌ Token refresh test failed:', refreshResult.error);
+      }
+    } catch (error) {
+      console.error('Token refresh test error:', error);
     }
   };
 
@@ -479,6 +523,7 @@ export function AuthProvider({ children }) {
       signIn, 
       signOut,
       updateUserData: updateUserSupabaseData,
+      testTokenRefresh,
       
       // NEW: Role management values
       userRoles,

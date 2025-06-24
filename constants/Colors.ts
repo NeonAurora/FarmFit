@@ -42,6 +42,11 @@ export const BrandColors = {
   warning: '#ff9800',
   error: '#f44336',
   info: '#2196f3',
+
+  // Special colors for features
+  debug: '#ff6b35',
+  debugLight: 'rgba(255, 107, 53, 0.1)',
+  debugBorder: 'rgba(255, 107, 53, 0.2)',
 } as const;
 
 // Post type colors (from your existing components)
