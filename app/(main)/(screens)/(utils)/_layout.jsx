@@ -1,3 +1,4 @@
+// app/(main)/(screens)/(utils)/_layout.jsx
 import { Stack, useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { BrandColors } from '@/constants/Colors';
@@ -45,13 +46,12 @@ function CustomHeaderLeft() {
   );
 }
 
-
-export default function PostsLayout() {
+export default function PractitionerLayout() {
   return (
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: BrandColors.success,
+          backgroundColor: BrandColors.success, // Green theme for practitioner features
         },
         headerTintColor: '#fff',
         headerTitleStyle: {
@@ -60,30 +60,14 @@ export default function PostsLayout() {
         headerLeft: () => <CustomHeaderLeft />,
       }}
     >
+      {/* Profile Creation & Management */}
       <Stack.Screen 
-        name="postFeedScreen" 
+        name="userRatingHistoryScreen" 
         options={{ 
-          title: 'Posts Feed',
-          headerShown: true 
-        }} 
-      />
-      <Stack.Screen 
-        name="postViewScreen" 
-        options={{ 
-          title: 'Post Details',
+          title: 'Rating History',
+          headerShown: true,
           presentation: 'modal'
         }} 
-      />
-      <Stack.Screen 
-        name="createPostScreen" 
-        options={{ 
-          title: 'Create Post',
-          presentation: 'modal'
-        }} 
-      />
-      <Stack.Screen 
-        name="userPostsScreen" 
-        options={{ title: 'My Posts' }} 
       />
     </Stack>
   );

@@ -1,20 +1,20 @@
 // app/(main)/(screens)/createPostScreen.jsx
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, View, Alert, Image } from 'react-native';
+import { ScrollView, StyleSheet, View, Alert } from 'react-native';
 import { 
   TextInput, 
   Button, 
-  Text, 
-  Divider, 
   List, 
-  Card,
   Chip,
   SegmentedButtons,
-  IconButton,
   ActivityIndicator
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useActivityIndicatorColors } from '@/hooks/useThemeColor';
+import { BrandColors } from '@/constants/Colors';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -23,18 +23,18 @@ import { createPost, updatePost, getPostById } from '@/services/supabase/postSer
 import { getPetsByUserId } from '@/services/supabase/petService';
 
 const POST_TYPES = [
-  { value: 'text', label: 'Text', emoji: '📝', description: 'Share thoughts and stories' },
-  { value: 'image', label: 'Photo', emoji: '📸', description: 'Share photos with your pets' },
-  { value: 'video', label: 'Video', emoji: '🎥', description: 'Share videos of your pets' },
-  { value: 'article', label: 'Article', emoji: '📰', description: 'Write a detailed article' },
-  { value: 'journal', label: 'Journal', emoji: '📔', description: 'Share from your journal' },
-  { value: 'mixed', label: 'Mixed', emoji: '🎭', description: 'Text with media' }
+  { value: 'text', label: 'Text', description: 'Share thoughts and stories' },
+  { value: 'image', label: 'Photo', description: 'Share photos with your pets' },
+  { value: 'video', label: 'Video', description: 'Share videos of your pets' },
+  { value: 'article', label: 'Article', description: 'Write a detailed article' },
+  { value: 'journal', label: 'Journal', description: 'Share from your journal' },
+  { value: 'mixed', label: 'Mixed', description: 'Text with media' }
 ];
 
 const VISIBILITY_OPTIONS = [
-  { value: 'public', label: 'Public', emoji: '🌍', description: 'Everyone can see this post' },
-  { value: 'connections', label: 'Friends', emoji: '👥', description: 'Only your connections can see' },
-  { value: 'private', label: 'Private', emoji: '🔒', description: 'Only you can see this post' }
+  { value: 'public', label: 'Public', description: 'Everyone can see this post' },
+  { value: 'connections', label: 'Friends', description: 'Only your connections can see' },
+  { value: 'private', label: 'Private', description: 'Only you can see this post' }
 ];
 
 const POST_TEMPLATES = {
@@ -65,9 +65,9 @@ const POST_TEMPLATES = {
 };
 
 export default function CreatePostScreen() {
-  const { postId } = useLocalSearchParams(); // For edit mode
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { postId } = useLocalSearchParams();
+  const { colors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
   const { user } = useAuth();
   
   const isEditMode = !!postId;
@@ -139,10 +139,6 @@ export default function CreatePostScreen() {
     }
   };
 
-  const removeMedia = () => {
-    setMediaFile(null);
-  };
-
   const applyTemplate = (templateType) => {
     const template = POST_TEMPLATES[templateType];
     if (template) {
@@ -176,7 +172,7 @@ export default function CreatePostScreen() {
     if (!validateForm()) return;
     
     setIsSaving(true);
-    let mediaUrl = originalMediaUrl; // Default to original media URL
+    let mediaUrl = originalMediaUrl;
     
     try {
       // Handle media upload if there's a new file
@@ -206,10 +202,8 @@ export default function CreatePostScreen() {
 
       let result;
       if (isEditMode) {
-        // Update existing post
         result = await updatePost(postId, user.sub, postData);
       } else {
-        // Create new post
         postData.user_id = user.sub;
         result = await createPost(postData);
       }
@@ -249,23 +243,28 @@ export default function CreatePostScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
-        <Text style={styles.loadingText}>
-          {isEditMode ? 'Loading post...' : 'Setting up...'}
-        </Text>
+      <ThemedView style={styles.container}>
+        <View style={styles.centerState}>
+          <ActivityIndicator 
+            size="large" 
+            color={activityIndicatorColors.primary}
+          />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            {isEditMode ? 'Loading post...' : 'Setting up...'}
+          </ThemedText>
+        </View>
       </ThemedView>
     );
   }
 
   const postTypeButtons = POST_TYPES.map(type => ({
     value: type.value,
-    label: `${type.emoji} ${type.label}`
+    label: type.label
   }));
 
   const visibilityButtons = VISIBILITY_OPTIONS.map(option => ({
     value: option.value,
-    label: `${option.emoji} ${option.label}`
+    label: option.label
   }));
 
   const selectedPostTypeInfo = POST_TYPES.find(type => type.value === postType);
@@ -273,69 +272,24 @@ export default function CreatePostScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>
-          {isEditMode ? 'Edit Post' : 'Share Your Story'}
-        </Text>
-        
-        {/* Post Type Selection */}
-        <Card style={styles.card}>
-          <Card.Title title="📝 Post Type" />
-          <Card.Content>
-            <SegmentedButtons
-              value={postType}
-              onValueChange={setPostType}
-              buttons={postTypeButtons.slice(0, 3)} // Show first 3 options
-              style={styles.segmentedButtons}
-            />
-            <SegmentedButtons
-              value={postType}
-              onValueChange={setPostType}
-              buttons={postTypeButtons.slice(3)} // Show remaining options
-              style={styles.segmentedButtons}
-            />
-            {selectedPostTypeInfo && (
-              <Text style={styles.typeDescription}>
-                {selectedPostTypeInfo.description}
-              </Text>
-            )}
-          </Card.Content>
-        </Card>
-
-        {/* Quick Templates */}
-        {!isEditMode && (
-          <List.Accordion
-            title="🎯 Quick Templates"
-            expanded={templateExpanded}
-            onPress={() => setTemplateExpanded(!templateExpanded)}
-            style={styles.accordion}
-            titleStyle={styles.accordionTitle}
-          >
-            <View style={styles.templatesContainer}>
-              {POST_TYPES.map(type => (
-                <Chip
-                  key={type.value}
-                  onPress={() => applyTemplate(type.value)}
-                  style={styles.templateChip}
-                  icon={() => <Text>{type.emoji}</Text>}
-                >
-                  {type.label}
-                </Chip>
-              ))}
-            </View>
-          </List.Accordion>
-        )}
-
-        {/* Basic Information */}
-        <Card style={styles.card}>
-          <Card.Title title="✍️ Content" />
-          <Card.Content>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Content Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <View style={styles.cardContent}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Content
+            </ThemedText>
+            
             <TextInput
-              label="Title *"
+              label="Title"
               value={title}
               onChangeText={setTitle}
               style={styles.input}
               mode="outlined"
+              outlineStyle={styles.inputOutline}
               placeholder="What's this post about?"
               maxLength={255}
               right={<TextInput.Affix text={`${title.length}/255`} />}
@@ -347,67 +301,136 @@ export default function CreatePostScreen() {
               onChangeText={setContent}
               style={styles.input}
               mode="outlined"
+              outlineStyle={styles.inputOutline}
               multiline
-              numberOfLines={6}
+              numberOfLines={5}
               placeholder={selectedPostTypeInfo?.description || "Share your thoughts..."}
             />
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
-        {/* Media Upload */}
+        {/* Post Type & Visibility Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <View style={styles.cardContent}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Settings
+            </ThemedText>
+            
+            {/* Post Type */}
+            <View style={styles.settingSection}>
+              <ThemedText style={styles.settingLabel}>Post Type</ThemedText>
+              <SegmentedButtons
+                value={postType}
+                onValueChange={setPostType}
+                buttons={postTypeButtons.slice(0, 3)}
+                style={styles.segmentedButtons}
+              />
+              <SegmentedButtons
+                value={postType}
+                onValueChange={setPostType}
+                buttons={postTypeButtons.slice(3)}
+                style={styles.segmentedButtons}
+              />
+              {selectedPostTypeInfo && (
+                <ThemedText style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  {selectedPostTypeInfo.description}
+                </ThemedText>
+              )}
+            </View>
+
+            {/* Visibility */}
+            <View style={styles.settingSection}>
+              <ThemedText style={styles.settingLabel}>Visibility</ThemedText>
+              <SegmentedButtons
+                value={visibility}
+                onValueChange={setVisibility}
+                buttons={visibilityButtons}
+                style={styles.segmentedButtons}
+              />
+              {selectedVisibilityInfo && (
+                <ThemedText style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  {selectedVisibilityInfo.description}
+                </ThemedText>
+              )}
+            </View>
+          </View>
+        </ThemedCard>
+
+        {/* Media Upload Card */}
         {(postType === 'image' || postType === 'video' || postType === 'mixed') && (
-          <Card style={styles.card}>
-            <Card.Title title="📷 Media" />
-            <Card.Content>
+          <ThemedCard variant="elevated" style={styles.card}>
+            <View style={styles.cardContent}>
+              <ThemedText type="subtitle" style={styles.sectionTitle}>
+                Media
+              </ThemedText>
               <ImagePicker
                 mode="post"
                 postType={postType}
                 images={mediaFile}
                 onImagesSelected={setMediaFile}
                 isUploading={isUploading}
-                placeholder={`Tap to add ${postType === 'video' ? 'video' : 'photo'}`}
+                placeholder={`Add ${postType === 'video' ? 'video' : 'photo'}`}
               />
-            </Card.Content>
-          </Card>
+            </View>
+          </ThemedCard>
         )}
 
-        {/* Visibility Settings */}
-        <Card style={styles.card}>
-          <Card.Title title="👁️ Visibility" />
-          <Card.Content>
-            <SegmentedButtons
-              value={visibility}
-              onValueChange={setVisibility}
-              buttons={visibilityButtons}
-              style={styles.segmentedButtons}
-            />
-            {selectedVisibilityInfo && (
-              <Text style={styles.visibilityDescription}>
-                {selectedVisibilityInfo.description}
-              </Text>
-            )}
-          </Card.Content>
-        </Card>
+        {/* Quick Templates Card */}
+        {!isEditMode && (
+          <ThemedCard variant="elevated" style={styles.card}>
+            <List.Accordion
+              title="Quick Templates"
+              expanded={templateExpanded}
+              onPress={() => setTemplateExpanded(!templateExpanded)}
+              style={styles.accordion}
+              titleStyle={[styles.accordionTitle, { color: colors.text }]}
+              left={props => <List.Icon {...props} icon="chevron-down" />}
+            >
+              <View style={styles.accordionContent}>
+                <View style={styles.templatesContainer}>
+                  {POST_TYPES.map(type => (
+                    <Chip
+                      key={type.value}
+                      onPress={() => applyTemplate(type.value)}
+                      style={[styles.templateChip, { backgroundColor: colors.surface }]}
+                      textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                    >
+                      {type.label}
+                    </Chip>
+                  ))}
+                </View>
+              </View>
+            </List.Accordion>
+          </ThemedCard>
+        )}
 
-        {/* Additional Details */}
-        <List.Accordion
-          title="🐾 Additional Details"
-          expanded={detailsExpanded}
-          onPress={() => setDetailsExpanded(!detailsExpanded)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-        >
-          <Card style={styles.detailsCard}>
-            <Card.Content>
+        {/* Additional Details Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <List.Accordion
+            title="Additional Details"
+            expanded={detailsExpanded}
+            onPress={() => setDetailsExpanded(!detailsExpanded)}
+            style={styles.accordion}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+            left={props => <List.Icon {...props} icon="chevron-down" />}
+          >
+            <View style={styles.accordionContent}>
               {/* Pet Selection */}
               {userPets.length > 0 && (
                 <View style={styles.petsSection}>
-                  <Text style={styles.sectionLabel}>About which pet?</Text>
+                  <ThemedText style={styles.inputLabel}>Related Pet</ThemedText>
                   <View style={styles.petsContainer}>
                     <Chip
                       selected={selectedPetId === ''}
                       onPress={() => setSelectedPetId('')}
-                      style={styles.petChip}
+                      style={[
+                        styles.petChip,
+                        selectedPetId === '' && { backgroundColor: BrandColors.primary + '15' }
+                      ]}
+                      textStyle={[
+                        styles.chipText,
+                        selectedPetId === '' && { color: BrandColors.primary }
+                      ]}
                     >
                       General
                     </Chip>
@@ -416,8 +439,14 @@ export default function CreatePostScreen() {
                         key={pet.id}
                         selected={selectedPetId === pet.id}
                         onPress={() => setSelectedPetId(pet.id)}
-                        style={styles.petChip}
-                        avatar={pet.image_url ? undefined : 'paw'}
+                        style={[
+                          styles.petChip,
+                          selectedPetId === pet.id && { backgroundColor: BrandColors.primary + '15' }
+                        ]}
+                        textStyle={[
+                          styles.chipText,
+                          selectedPetId === pet.id && { color: BrandColors.primary }
+                        ]}
                       >
                         {pet.name}
                       </Chip>
@@ -425,9 +454,9 @@ export default function CreatePostScreen() {
                   </View>
                 </View>
               )}
-            </Card.Content>
-          </Card>
-        </List.Accordion>
+            </View>
+          </List.Accordion>
+        </ThemedCard>
         
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
@@ -435,7 +464,7 @@ export default function CreatePostScreen() {
             mode="outlined" 
             onPress={() => router.back()}
             style={styles.cancelButton}
-            labelStyle={styles.cancelButtonText}
+            labelStyle={[styles.buttonLabel, { color: colors.text }]}
           >
             Cancel
           </Button>
@@ -444,6 +473,7 @@ export default function CreatePostScreen() {
             mode="contained" 
             onPress={handleSavePost}
             style={styles.saveButton}
+            labelStyle={styles.buttonLabel}
             disabled={isSaving || isUploading}
             loading={isSaving}
           >
@@ -453,9 +483,14 @@ export default function CreatePostScreen() {
 
         {/* Upload Progress */}
         {isUploading && (
-          <View style={styles.uploadProgress}>
-            <ActivityIndicator size="small" color="#0a7ea4" />
-            <Text style={styles.uploadText}>Uploading media...</Text>
+          <View style={[styles.uploadProgress, { backgroundColor: colors.surface }]}>
+            <ActivityIndicator 
+              size="small" 
+              color={activityIndicatorColors.primary}
+            />
+            <ThemedText style={[styles.uploadText, { color: colors.textSecondary }]}>
+              Uploading media...
+            </ThemedText>
           </View>
         )}
       </ScrollView>
@@ -467,106 +502,85 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
+  centerState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
   },
   loadingText: {
-    marginTop: 10,
+    textAlign: 'center',
+    marginTop: 16,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
   card: {
-    marginBottom: 16,
+    marginBottom: 20,
+    elevation: 1,
+  },
+  cardContent: {
+    padding: 20,
+  },
+  sectionTitle: {
+    marginBottom: 20,
+    color: '#666',
   },
   input: {
     marginBottom: 16,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
+  },
+  inputOutline: {
+    borderRadius: 12,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  settingSection: {
+    marginBottom: 20,
+  },
+  settingLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  settingDescription: {
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
   },
   segmentedButtons: {
     marginBottom: 8,
   },
-  typeDescription: {
-    fontSize: 12,
-    opacity: 0.6,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  visibilityDescription: {
-    fontSize: 12,
-    opacity: 0.6,
-    marginTop: 4,
-    textAlign: 'center',
-  },
   accordion: {
-    marginBottom: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
   },
   accordionTitle: {
     fontWeight: '500',
-    fontSize: 16,
+    fontSize: 18,
+  },
+  accordionContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   templatesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 16,
     gap: 8,
   },
   templateChip: {
-    marginRight: 8,
     marginBottom: 8,
   },
-  detailsCard: {
-    backgroundColor: '#f8f9fa',
-    marginBottom: 16,
-  },
-  mediaContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  mediaPreview: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-  },
-  videoPreview: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#000',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  videoLabel: {
-    color: '#fff',
-    marginTop: 8,
-  },
-  removeMediaButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'white',
-    borderRadius: 20,
-  },
-  mediaButton: {
-    marginBottom: 8,
+  chipText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   petsSection: {
-    marginBottom: 16,
-  },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: '500',
     marginBottom: 8,
   },
   petsContainer: {
@@ -575,28 +589,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   petChip: {
-    marginRight: 8,
-    marginBottom: 8,
+    minHeight: 32,
+    paddingVertical: 2,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 16,
     marginTop: 24,
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 8,
-    marginLeft: 8,
-    backgroundColor: '#2E86DE',
+    paddingVertical: 4,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderColor: '#999',
+    paddingVertical: 4,
   },
-  cancelButtonText: {
-    color: '#999',
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   uploadProgress: {
     flexDirection: 'row',
@@ -604,12 +616,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     padding: 12,
-    backgroundColor: '#f0f0f0',
     borderRadius: 8,
   },
   uploadText: {
     marginLeft: 8,
     fontSize: 14,
-    opacity: 0.7,
   },
 });

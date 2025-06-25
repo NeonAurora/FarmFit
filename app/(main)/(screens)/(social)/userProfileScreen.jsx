@@ -2,10 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { 
-  Card, 
   Text, 
   Avatar, 
-  Button, 
   Divider,
   Chip,
   List
@@ -13,7 +11,15 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { 
+  useActivityIndicatorColors, 
+  useChipColors,
+  useAvatarColors,
+  useCardColors 
+} from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserById, getPetsByUserId } from '@/services/supabase';
 // Import connection services
@@ -25,8 +31,11 @@ import {
 
 export default function UserProfileScreen() {
   const { userId } = useLocalSearchParams();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, brandColors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const chipColors = useChipColors();
+  const avatarColors = useAvatarColors();
+  const cardColors = useCardColors();
   const { user: currentUser } = useAuth();
   
   const [user, setUser] = useState(null);
@@ -115,21 +124,17 @@ export default function UserProfileScreen() {
   };
   
   const handleSendMessage = () => {
-    // Placeholder for messaging functionality
     console.log('Send message to user:', user.id);
-    alert('Messaging feature coming soon!');
+    Alert.alert('Coming Soon', 'Messaging feature will be available soon!');
   };
   
-  // Updated handleConnect function with actual connection logic
   const handleConnect = async () => {
     if (connectionStatus === 'accepted') {
-      // Already connected - could show connection options or do nothing
       Alert.alert('Already Connected', 'You are already connected with this user.');
       return;
     }
     
     if (connectionStatus === 'pending') {
-      // Could offer to cancel request
       Alert.alert(
         'Request Pending', 
         'Your connection request is still pending. Would you like to cancel it?',
@@ -139,8 +144,7 @@ export default function UserProfileScreen() {
             text: 'Cancel Request', 
             style: 'destructive',
             onPress: () => {
-              // TODO: Implement cancel request functionality
-              alert('Cancel request feature coming soon!');
+              Alert.alert('Coming Soon', 'Cancel request feature will be available soon!');
             }
           }
         ]
@@ -180,8 +184,7 @@ export default function UserProfileScreen() {
         return {
           children: 'Connect',
           icon: 'account-plus',
-          mode: 'contained',
-          style: styles.connectButton,
+          variant: 'primary',
           disabled: connectionLoading,
           loading: connectionLoading
         };
@@ -190,8 +193,9 @@ export default function UserProfileScreen() {
         return {
           children: 'Pending',
           icon: 'clock-outline',
-          mode: 'outlined',
-          style: [styles.connectButton, { borderColor: '#FF9800' }],
+          variant: 'outlined',
+          style: { borderColor: brandColors.warning },
+          labelStyle: { color: brandColors.warning },
           disabled: connectionLoading,
           loading: connectionLoading
         };
@@ -200,17 +204,18 @@ export default function UserProfileScreen() {
         return {
           children: 'Connected',
           icon: 'check',
-          mode: 'contained',
-          style: [styles.connectButton, { backgroundColor: '#4CAF50' }],
-          disabled: false // Allow tap to show connection options
+          style: { backgroundColor: brandColors.success },
+          labelStyle: { color: colors.textInverse },
+          disabled: false
         };
       
       case 'blocked':
         return {
           children: 'Blocked',
           icon: 'block-helper',
-          mode: 'outlined',
-          style: [styles.connectButton, { borderColor: '#f44336', opacity: 0.6 }],
+          variant: 'outlined',
+          style: { borderColor: brandColors.error, opacity: 0.6 },
+          labelStyle: { color: brandColors.error },
           disabled: true
         };
       
@@ -218,8 +223,9 @@ export default function UserProfileScreen() {
         return {
           children: 'Request Declined',
           icon: 'close',
-          mode: 'outlined',
-          style: [styles.connectButton, { borderColor: '#f44336', opacity: 0.6 }],
+          variant: 'outlined',
+          style: { borderColor: brandColors.error, opacity: 0.6 },
+          labelStyle: { color: brandColors.error },
           disabled: true
         };
       
@@ -227,8 +233,7 @@ export default function UserProfileScreen() {
         return {
           children: 'Connect',
           icon: 'account-plus',
-          mode: 'contained',
-          style: styles.connectButton,
+          variant: 'primary',
           disabled: connectionLoading
         };
     }
@@ -237,8 +242,10 @@ export default function UserProfileScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
-        <ThemedText style={styles.loadingText}>Loading profile...</ThemedText>
+        <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
+        <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Loading profile...
+        </ThemedText>
       </ThemedView>
     );
   }
@@ -246,20 +253,25 @@ export default function UserProfileScreen() {
   if (error || !user) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <Avatar.Icon size={80} icon="account-off" backgroundColor="#e0e0e0" />
-        <ThemedText type="title" style={styles.errorTitle}>
+        <Avatar.Icon 
+          size={80} 
+          icon="account-off" 
+          backgroundColor={colors.backgroundSecondary}
+          color={colors.textSecondary}
+        />
+        <ThemedText type="subtitle" style={styles.errorTitle}>
           {error || 'User Not Found'}
         </ThemedText>
-        <ThemedText style={styles.errorText}>
+        <ThemedText style={[styles.errorText, { color: colors.textSecondary }]}>
           This user profile is not available.
         </ThemedText>
-        <Button 
-          mode="contained" 
+        <ThemedButton 
+          variant="primary"
           onPress={() => router.back()} 
           style={styles.backButton}
         >
           Go Back
-        </Button>
+        </ThemedButton>
       </ThemedView>
     );
   }
@@ -274,35 +286,42 @@ export default function UserProfileScreen() {
   
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
-        <Card style={styles.headerCard}>
-          <Card.Content style={styles.headerContent}>
+        <ThemedCard variant="elevated" elevation={2} style={styles.headerCard}>
+          <View style={styles.headerContent}>
             <View style={styles.profileHeader}>
               {user.picture ? (
-                <Avatar.Image size={100} source={{ uri: user.picture }} />
+                <Avatar.Image size={90} source={{ uri: user.picture }} />
               ) : (
                 <Avatar.Text 
-                  size={100} 
+                  size={90} 
                   label={(user.name?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}
-                  backgroundColor={isDark ? '#444' : '#2E86DE'}
-                  color="#fff"
+                  backgroundColor={brandColors.primary}
+                  color={colors.textInverse}
                 />
               )}
               
               <View style={styles.profileInfo}>
-                <ThemedText type="title" style={styles.userName}>
+                <ThemedText type="subtitle" style={[styles.userName, { color: colors.text }]}>
                   {user.name || 'Anonymous User'}
                 </ThemedText>
-                <ThemedText style={styles.userEmail}>
+                <ThemedText style={[styles.userEmail, { color: colors.textSecondary }]}>
                   {user.email}
                 </ThemedText>
-                <ThemedText style={styles.joinDate}>
+                <ThemedText variant="bodySmall" style={[styles.joinDate, { color: colors.textMuted }]}>
                   Member since {joinDate}
                 </ThemedText>
                 
                 {isOwnProfile && (
-                  <Chip icon="account" style={styles.ownProfileChip}>
+                  <Chip 
+                    icon="account" 
+                    style={[
+                      styles.ownProfileChip,
+                      { backgroundColor: `${brandColors.info}20` }
+                    ]}
+                    textStyle={{ color: brandColors.info }}
+                  >
                     This is you
                   </Chip>
                 )}
@@ -312,115 +331,144 @@ export default function UserProfileScreen() {
             {/* Action Buttons */}
             {!isOwnProfile && (
               <View style={styles.actionButtons}>
-                <Button 
+                <ThemedButton 
                   {...getConnectButtonProps()}
                   onPress={handleConnect}
+                  style={[styles.connectButton, getConnectButtonProps().style]}
+                  labelStyle={getConnectButtonProps().labelStyle}
                 />
                 
-                <Button 
-                  mode="outlined" 
+                <ThemedButton 
+                  variant="outlined"
                   onPress={handleSendMessage}
                   style={styles.messageButton}
                   icon="message"
                 >
                   Message
-                </Button>
+                </ThemedButton>
               </View>
             )}
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
         
         {/* Profile Stats */}
-        <Card style={styles.statsCard}>
-          <Card.Title title="Profile Stats" />
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={1} style={styles.statsCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+              Profile Stats
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <ThemedText style={styles.statNumber}>
+                <ThemedText style={[styles.statNumber, { color: brandColors.primary }]}>
                   {userPets.length}
                 </ThemedText>
-                <ThemedText style={styles.statLabel}>Pets</ThemedText>
+                <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                  Pets
+                </ThemedText>
               </View>
               
-              <Divider style={styles.statDivider} />
+              <Divider style={[styles.statDivider, { backgroundColor: colors.border }]} />
               
               <View style={styles.statItem}>
-                <ThemedText style={styles.statNumber}>0</ThemedText>
-                <ThemedText style={styles.statLabel}>Connections</ThemedText>
+                <ThemedText style={[styles.statNumber, { color: brandColors.primary }]}>
+                  0
+                </ThemedText>
+                <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                  Connections
+                </ThemedText>
               </View>
               
-              <Divider style={styles.statDivider} />
+              <Divider style={[styles.statDivider, { backgroundColor: colors.border }]} />
               
               <View style={styles.statItem}>
-                <ThemedText style={styles.statNumber}>0</ThemedText>
-                <ThemedText style={styles.statLabel}>Posts</ThemedText>
+                <ThemedText style={[styles.statNumber, { color: brandColors.primary }]}>
+                  0
+                </ThemedText>
+                <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                  Posts
+                </ThemedText>
               </View>
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
         
         {/* User's Pets Section */}
-        <List.Accordion
-          title={`${user.name?.split(' ')[0] || 'User'}'s Pets`}
-          expanded={showPets}
-          onPress={togglePetsView}
-          style={styles.petsAccordion}
-          titleStyle={styles.accordionTitle}
-          left={props => <List.Icon {...props} icon="paw" />}
-        >
-          {petsLoading ? (
-            <View style={styles.petsLoadingContainer}>
-              <ActivityIndicator size="small" color="#0a7ea4" />
-              <ThemedText style={styles.petsLoadingText}>Loading pets...</ThemedText>
-            </View>
-          ) : userPets.length > 0 ? (
-            userPets.map((pet) => (
-              <Card key={pet.id} style={styles.petCard}>
-                <Card.Content style={styles.petCardContent}>
-                  <View style={styles.petInfo}>
-                    {pet.image_url ? (
-                      <Avatar.Image size={50} source={{ uri: pet.image_url }} />
-                    ) : (
-                      <Avatar.Icon 
-                        size={50} 
-                        icon="paw"
-                        backgroundColor={isDark ? '#555' : '#e0e0e0'}
-                        color={isDark ? '#fff' : '#666'}
-                      />
-                    )}
-                    
-                    <View style={styles.petDetails}>
-                      <ThemedText style={styles.petName}>{pet.name}</ThemedText>
-                      <ThemedText style={styles.petSpecies}>{pet.species}</ThemedText>
-                      {pet.age && (
-                        <ThemedText style={styles.petAge}>Age: {pet.age}</ThemedText>
+        <ThemedCard variant="elevated" elevation={1} style={styles.petsCard}>
+          <List.Accordion
+            title={`${user.name?.split(' ')[0] || 'User'}'s Pets`}
+            expanded={showPets}
+            onPress={togglePetsView}
+            left={props => <List.Icon {...props} icon="paw" color={colors.textSecondary} />}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+          >
+            {petsLoading ? (
+              <View style={styles.petsLoadingContainer}>
+                <ActivityIndicator size="small" color={activityIndicatorColors.primary} />
+                <ThemedText style={[styles.petsLoadingText, { color: colors.textSecondary }]}>
+                  Loading pets...
+                </ThemedText>
+              </View>
+            ) : userPets.length > 0 ? (
+              userPets.map((pet) => (
+                <ThemedCard key={pet.id} variant="flat" style={[styles.petCard, { backgroundColor: colors.backgroundSecondary }]}>
+                  <View style={styles.petCardContent}>
+                    <View style={styles.petInfo}>
+                      {pet.image_url ? (
+                        <Avatar.Image size={48} source={{ uri: pet.image_url }} />
+                      ) : (
+                        <Avatar.Icon 
+                          size={48} 
+                          icon="paw"
+                          backgroundColor={avatarColors.background}
+                          color={avatarColors.text}
+                        />
                       )}
+                      
+                      <View style={styles.petDetails}>
+                        <ThemedText type="defaultSemiBold" style={[styles.petName, { color: colors.text }]}>
+                          {pet.name}
+                        </ThemedText>
+                        <ThemedText style={[styles.petSpecies, { color: colors.textSecondary }]}>
+                          {pet.species}
+                        </ThemedText>
+                        {pet.age && (
+                          <ThemedText variant="bodySmall" style={[styles.petAge, { color: colors.textMuted }]}>
+                            Age: {pet.age}
+                          </ThemedText>
+                        )}
+                      </View>
                     </View>
                   </View>
-                </Card.Content>
-              </Card>
-            ))
-          ) : (
-            <View style={styles.noPetsContainer}>
-              <ThemedText style={styles.noPetsText}>
-                {isOwnProfile ? 'You haven\'t added any pets yet.' : `${user.name?.split(' ')[0] || 'This user'} hasn't shared any pets.`}
-              </ThemedText>
-            </View>
-          )}
-        </List.Accordion>
+                </ThemedCard>
+              ))
+            ) : (
+              <View style={styles.noPetsContainer}>
+                <ThemedText style={[styles.noPetsText, { color: colors.textSecondary }]}>
+                  {isOwnProfile ? 'You haven\'t added any pets yet.' : `${user.name?.split(' ')[0] || 'This user'} hasn't shared any pets.`}
+                </ThemedText>
+              </View>
+            )}
+          </List.Accordion>
+        </ThemedCard>
         
-        {/* About Section (Future expansion) */}
-        <Card style={styles.aboutCard}>
-          <Card.Title title="About" />
-          <Card.Content>
-            <ThemedText style={styles.aboutText}>
+        {/* About Section */}
+        <ThemedCard variant="elevated" elevation={1} style={styles.aboutCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+              About
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
+            <ThemedText style={[styles.aboutText, { color: colors.textSecondary }]}>
               {isOwnProfile 
                 ? 'This is your profile as seen by other users.'
                 : `${user.name?.split(' ')[0] || 'This user'} joined FarmFit to connect with fellow pet lovers and manage their pets.`
               }
             </ThemedText>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
       </ScrollView>
     </ThemedView>
   );
@@ -431,32 +479,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 32,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 16,
+    fontSize: 16,
   },
   errorTitle: {
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 8,
+    textAlign: 'center',
   },
   errorText: {
     textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 16,
+    opacity: 0.8,
+    marginBottom: 20,
+    lineHeight: 22,
   },
   backButton: {
     marginTop: 8,
+    minWidth: 120,
   },
   headerCard: {
     margin: 16,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   headerContent: {
     padding: 20,
@@ -470,43 +522,56 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 4,
     textAlign: 'center',
   },
   userEmail: {
     fontSize: 16,
-    opacity: 0.7,
     marginBottom: 4,
     textAlign: 'center',
+    opacity: 0.8,
   },
   joinDate: {
     fontSize: 14,
-    opacity: 0.5,
     marginBottom: 12,
     textAlign: 'center',
+    opacity: 0.6,
   },
   ownProfileChip: {
-    backgroundColor: '#e3f2fd',
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: 12,
   },
   connectButton: {
     flex: 1,
-    backgroundColor: '#2E86DE',
+    paddingVertical: 8,
   },
   messageButton: {
     flex: 1,
-    borderColor: '#2E86DE',
+    paddingVertical: 8,
   },
   statsCard: {
     margin: 16,
-    marginTop: 0,
-    marginBottom: 8,
+    marginVertical: 6,
+  },
+  cardTitleContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  cardContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -520,23 +585,19 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2E86DE',
   },
   statLabel: {
     fontSize: 14,
-    opacity: 0.7,
     marginTop: 4,
+    opacity: 0.8,
   },
   statDivider: {
     width: 1,
     height: 40,
   },
-  petsAccordion: {
+  petsCard: {
     margin: 16,
-    marginTop: 0,
-    marginBottom: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
+    marginVertical: 6,
   },
   accordionTitle: {
     fontWeight: '500',
@@ -549,12 +610,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   petsLoadingText: {
-    marginLeft: 10,
+    marginLeft: 12,
   },
   petCard: {
     marginHorizontal: 16,
     marginBottom: 8,
-    backgroundColor: '#f8f9fa',
   },
   petCardContent: {
     padding: 12,
@@ -569,32 +629,32 @@ const styles = StyleSheet.create({
   },
   petName: {
     fontSize: 16,
-    fontWeight: '600',
     marginBottom: 2,
   },
   petSpecies: {
     fontSize: 14,
-    opacity: 0.7,
     marginBottom: 2,
+    opacity: 0.8,
   },
   petAge: {
     fontSize: 12,
-    opacity: 0.5,
+    opacity: 0.6,
   },
   noPetsContainer: {
     padding: 20,
     alignItems: 'center',
   },
   noPetsText: {
-    opacity: 0.6,
+    opacity: 0.7,
     textAlign: 'center',
+    lineHeight: 20,
   },
   aboutCard: {
     margin: 16,
-    marginTop: 0,
+    marginVertical: 6,
   },
   aboutText: {
-    lineHeight: 20,
+    lineHeight: 22,
     opacity: 0.8,
   },
 });

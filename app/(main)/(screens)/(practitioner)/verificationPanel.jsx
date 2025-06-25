@@ -2,27 +2,37 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, FlatList, Alert, RefreshControl } from 'react-native';
 import { 
-  Card, 
   Text, 
   Avatar, 
-  Button,
   Chip,
   Divider,
-  List,
   Badge,
   ActivityIndicator
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { 
+  useActivityIndicatorColors, 
+  useChipColors, 
+  useBadgeColors,
+  useCardColors 
+} from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { useRoleProtection } from '@/hooks/useRoleProtection';
 import { getPendingApplications } from '@/services/supabase';
+import { BrandColors } from '@/constants/Colors';
 
 export default function VerificationPanelScreen() {
-  const colorScheme = useColorScheme();
+  const { colors, brandColors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const chipColors = useChipColors();
+  const badgeColors = useBadgeColors();
+  const cardColors = useCardColors();
   const { user, hasRole } = useAuth();
-  const isDark = colorScheme === 'dark';
 
   // Protect route - only admins can access
   const { hasAccess, loading: roleLoading } = useRoleProtection('admin', '/');
@@ -95,49 +105,65 @@ export default function VerificationPanelScreen() {
   };
 
   const renderApplicationCard = ({ item }) => (
-    <Card 
+    <ThemedCard 
+      variant="elevated"
+      elevation={2}
       style={styles.applicationCard}
       onPress={() => router.push(`/reviewApplication?profileId=${item.id}`)}
     >
-      <Card.Content>
+      <View style={styles.cardContent}>
         <View style={styles.applicationHeader}>
           <View style={styles.applicantInfo}>
             {item.profile_photo_url ? (
               <Avatar.Image 
-                size={60} 
+                size={64} 
                 source={{ uri: item.profile_photo_url }} 
               />
             ) : (
               <Avatar.Text 
-                size={60} 
+                size={64} 
                 label={item.full_name?.charAt(0)?.toUpperCase() || 'A'} 
-                backgroundColor="#27AE60"
+                backgroundColor={brandColors.primary}
               />
             )}
             
             <View style={styles.applicantDetails}>
-              <Text variant="titleMedium" style={styles.applicantName}>
+              <Text variant="titleMedium" style={[styles.applicantName, { color: colors.text }]}>
                 {item.full_name}
               </Text>
-              <Text variant="bodyMedium" style={styles.designation}>
+              <Text variant="bodyMedium" style={[styles.designation, { color: brandColors.primary }]}>
                 {item.designation}
               </Text>
-              <Text variant="bodySmall" style={styles.location}>
+              <Text variant="bodySmall" style={[styles.location, { color: colors.textSecondary }]}>
                 📍 {item.sub_district}, {item.district}
               </Text>
               
               <View style={styles.applicationMeta}>
                 <Chip 
                   mode="outlined" 
-                  style={styles.timeChip}
-                  compact
+                  style={[
+                    styles.metaChip,
+                    { 
+                      backgroundColor: chipColors.background,
+                      borderColor: chipColors.border,
+                    }
+                  ]}
+                  textStyle={[styles.chipText, { color: chipColors.text }]}
+                  compact={false}
                 >
                   {getTimeAgo(item.created_at)}
                 </Chip>
                 <Chip 
                   mode="outlined" 
-                  style={styles.bvcChip}
-                  compact
+                  style={[
+                    styles.metaChip,
+                    { 
+                      backgroundColor: chipColors.background,
+                      borderColor: chipColors.border,
+                    }
+                  ]}
+                  textStyle={[styles.chipText, { color: chipColors.text }]}
+                  compact={false}
                 >
                   BVC: {item.bvc_registration_number}
                 </Chip>
@@ -146,46 +172,53 @@ export default function VerificationPanelScreen() {
           </View>
           
           <View style={styles.statusContainer}>
-            <Badge style={styles.pendingBadge}>
+            <Badge 
+              style={[
+                styles.pendingBadge,
+                { backgroundColor: brandColors.warning }
+              ]}
+            >
               Pending
             </Badge>
           </View>
         </View>
         
-        <Divider style={styles.cardDivider} />
+        <Divider style={[styles.cardDivider, { backgroundColor: colors.border }]} />
         
-        <Text variant="bodySmall" style={styles.expertise}>
-          <Text style={styles.expertiseLabel}>Expertise: </Text>
+        <ThemedText variant="bodySmall" style={styles.expertise}>
+          <ThemedText style={styles.expertiseLabel}>Expertise: </ThemedText>
           {item.areas_of_expertise}
-        </Text>
+        </ThemedText>
         
         {item.verification_documents && item.verification_documents.length > 0 && (
-          <Text variant="bodySmall" style={styles.university}>
-            <Text style={styles.universityLabel}>University: </Text>
+          <ThemedText variant="bodySmall" style={styles.university}>
+            <ThemedText style={styles.universityLabel}>University: </ThemedText>
             {item.verification_documents[0].university_name}
-          </Text>
+          </ThemedText>
         )}
         
         <View style={styles.quickActions}>
-          <Button
-            mode="contained"
-            style={styles.reviewButton}
+          <ThemedButton
+            variant="primary"
+            style={[styles.reviewButton, { backgroundColor: BrandColors.admin }]}
             icon="eye"
             onPress={() => router.push(`/reviewApplication?profileId=${item.id}`)}
           >
-            Review
-          </Button>
+            Review Application
+          </ThemedButton>
         </View>
-      </Card.Content>
-    </Card>
+      </View>
+    </ThemedCard>
   );
 
   if (roleLoading || !hasAccess) {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#E74C3C" />
-          <Text style={styles.loadingText}>Checking permissions...</Text>
+          <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Checking permissions...
+          </ThemedText>
         </View>
       </ThemedView>
     );
@@ -194,46 +227,73 @@ export default function VerificationPanelScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Stats Header */}
-      <Card style={styles.statsCard}>
-        <Card.Content>
-          <Text variant="titleLarge" style={styles.statsTitle}>
+      <ThemedCard 
+        variant="elevated" 
+        elevation={3} 
+        style={[styles.statsCard, { backgroundColor: BrandColors.admin }]}
+      >
+        <View style={styles.statsContent}>
+          <ThemedText 
+            type="title" 
+            style={[styles.statsTitle, { color: colors.textInverse }]}
+          >
             Verification Dashboard
-          </Text>
+          </ThemedText>
           
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
+              <Text 
+                variant="headlineMedium" 
+                style={[styles.statNumber, { color: colors.textInverse }]}
+              >
                 {stats.pending}
               </Text>
-              <Text variant="bodySmall" style={styles.statLabel}>
+              <Text 
+                variant="bodySmall" 
+                style={[styles.statLabel, { color: colors.textInverse }]}
+              >
                 Pending
               </Text>
             </View>
             <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
+              <Text 
+                variant="headlineMedium" 
+                style={[styles.statNumber, { color: colors.textInverse }]}
+              >
                 {stats.today}
               </Text>
-              <Text variant="bodySmall" style={styles.statLabel}>
+              <Text 
+                variant="bodySmall" 
+                style={[styles.statLabel, { color: colors.textInverse }]}
+              >
                 Today
               </Text>
             </View>
             <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
+              <Text 
+                variant="headlineMedium" 
+                style={[styles.statNumber, { color: colors.textInverse }]}
+              >
                 {stats.thisWeek}
               </Text>
-              <Text variant="bodySmall" style={styles.statLabel}>
+              <Text 
+                variant="bodySmall" 
+                style={[styles.statLabel, { color: colors.textInverse }]}
+              >
                 This Week
               </Text>
             </View>
           </View>
-        </Card.Content>
-      </Card>
+        </View>
+      </ThemedCard>
 
       {/* Applications List */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#E74C3C" />
-          <Text style={styles.loadingText}>Loading applications...</Text>
+          <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading applications...
+          </ThemedText>
         </View>
       ) : (
         <FlatList
@@ -243,27 +303,35 @@ export default function VerificationPanelScreen() {
           style={styles.applicationsList}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              colors={[brandColors.primary]}
+              tintColor={brandColors.primary}
+            />
           }
           ListEmptyComponent={
-            <Card style={styles.emptyCard}>
-              <Card.Content style={styles.emptyContent}>
-                <Text variant="titleMedium" style={styles.emptyTitle}>
+            <ThemedCard variant="elevated" elevation={1} style={styles.emptyCard}>
+              <View style={styles.emptyContent}>
+                <ThemedText type="subtitle" style={styles.emptyTitle}>
                   No Pending Applications
-                </Text>
-                <Text variant="bodyMedium" style={styles.emptyText}>
+                </ThemedText>
+                <ThemedText 
+                  variant="bodyMedium" 
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
                   All practitioner applications have been reviewed
-                </Text>
-                <Button
-                  mode="contained"
+                </ThemedText>
+                <ThemedButton
+                  variant="primary"
                   onPress={onRefresh}
                   style={styles.refreshButton}
                   icon="refresh"
                 >
                   Refresh
-                </Button>
-              </Card.Content>
-            </Card>
+                </ThemedButton>
+              </View>
+            </ThemedCard>
           }
         />
       )}
@@ -279,6 +347,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 32,
   },
   loadingText: {
     marginTop: 16,
@@ -287,14 +356,15 @@ const styles = StyleSheet.create({
   statsCard: {
     margin: 16,
     marginBottom: 8,
-    elevation: 3,
-    backgroundColor: '#E74C3C',
+  },
+  statsContent: {
+    padding: 20,
   },
   statsTitle: {
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 16,
-    color: 'white',
+    marginBottom: 20,
+    fontSize: 24,
   },
   statsRow: {
     flexDirection: 'row',
@@ -302,15 +372,17 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
   },
   statNumber: {
     fontWeight: 'bold',
-    color: 'white',
+    fontSize: 28,
   },
   statLabel: {
-    color: 'white',
     opacity: 0.9,
     marginTop: 4,
+    fontSize: 14,
+    fontWeight: '500',
   },
   applicationsList: {
     flex: 1,
@@ -318,7 +390,9 @@ const styles = StyleSheet.create({
   },
   applicationCard: {
     marginBottom: 12,
-    elevation: 2,
+  },
+  cardContent: {
+    padding: 16,
   },
   applicationHeader: {
     flexDirection: 'row',
@@ -335,72 +409,85 @@ const styles = StyleSheet.create({
   },
   applicantName: {
     fontWeight: 'bold',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   designation: {
-    color: '#27AE60',
-    marginBottom: 2,
+    marginBottom: 4,
+    fontWeight: '500',
   },
   location: {
-    opacity: 0.7,
-    marginBottom: 8,
+    marginBottom: 12,
+    opacity: 0.8,
   },
   applicationMeta: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
-  timeChip: {
-    height: 24,
+  metaChip: {
+    height: 32, // Increased height for better content fit
+    marginVertical: 2,
   },
-  bvcChip: {
-    height: 24,
+  chipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16, // Better line height for readability
   },
   statusContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
   pendingBadge: {
-    backgroundColor: '#F39C12',
-    color: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    minHeight: 32
   },
   cardDivider: {
-    marginVertical: 12,
+    marginVertical: 16,
   },
   expertise: {
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   expertiseLabel: {
-    fontWeight: '500',
+    fontWeight: '600',
   },
   university: {
-    marginBottom: 12,
+    marginBottom: 16,
+    lineHeight: 20,
   },
   universityLabel: {
-    fontWeight: '500',
+    fontWeight: '600',
   },
   quickActions: {
     alignItems: 'flex-end',
+    marginTop: 8,
   },
   reviewButton: {
-    backgroundColor: '#E74C3C',
+    minWidth: 140,
   },
   emptyCard: {
     margin: 32,
-    elevation: 1,
   },
   emptyContent: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
   },
   emptyTitle: {
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   emptyText: {
     textAlign: 'center',
     marginBottom: 24,
     opacity: 0.7,
+    lineHeight: 22,
   },
   refreshButton: {
     marginTop: 8,
+    minWidth: 120,
   },
 });

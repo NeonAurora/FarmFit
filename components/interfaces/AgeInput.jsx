@@ -1,4 +1,3 @@
-
 // components/interfaces/AgeInput.jsx
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -6,7 +5,10 @@ import { Text } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useInputColors } from '@/hooks/useThemeColor';
+import { BrandColors } from '@/constants/Colors';
 
 export default function AgeInput({ 
   value = '', 
@@ -14,8 +16,8 @@ export default function AgeInput({
   maxYears = 20,
   style 
 }) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark } = useTheme();
+  const inputColors = useInputColors();
   
   const [years, setYears] = useState(0);
   const [months, setMonths] = useState(0);
@@ -65,86 +67,100 @@ export default function AgeInput({
     updateAge(years, newMonths);
   }, [years, updateAge]);
   
-  // Theme colors
-  const colors = {
-    primary: '#7B68EE',
-    track: isDark ? '#3C3C3E' : '#E5E5EA',
-    thumb: '#7B68EE',
-    text: isDark ? '#FFFFFF' : '#000000',
-    label: isDark ? '#8E8E93' : '#6D6D70',
-    background: isDark ? '#1C1C1E' : '#F2F2F7',
-    cardBackground: isDark ? '#2C2C2E' : '#FFFFFF',
-  };
-  
   return (
     <ThemedView style={[styles.container, style]}>
       {/* Years Slider */}
-      <View style={[styles.sliderCard, { backgroundColor: colors.cardBackground }]}>
-        <View style={styles.sliderHeader}>
-          <ThemedText style={[styles.label, { color: colors.label }]}>
-            Years
-          </ThemedText>
-          <View style={[styles.valueIndicator, { backgroundColor: colors.primary }]}>
-            <Text style={styles.valueText}>{years}</Text>
+      <ThemedCard variant="elevated" style={styles.sliderCard}>
+        <View style={styles.cardContent}>
+          <View style={styles.sliderHeader}>
+            <ThemedText style={styles.label}>Years</ThemedText>
+            <View style={[
+              styles.valueIndicator, 
+              { backgroundColor: BrandColors.primary }
+            ]}>
+              <Text style={styles.valueText}>{years}</Text>
+            </View>
+          </View>
+          
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={maxYears}
+            value={years}
+            onValueChange={handleYearsChange}
+            step={1}
+            minimumTrackTintColor={BrandColors.primary}
+            maximumTrackTintColor={colors.border}
+            thumbStyle={[
+              styles.thumbStyle, 
+              { backgroundColor: BrandColors.primary }
+            ]}
+            trackStyle={styles.trackStyle}
+          />
+          
+          <View style={styles.scaleContainer}>
+            <ThemedText style={[styles.scaleText, { color: colors.textSecondary }]}>
+              0
+            </ThemedText>
+            <ThemedText style={[styles.scaleText, { color: colors.textSecondary }]}>
+              {maxYears}
+            </ThemedText>
           </View>
         </View>
-        
-        <Slider
-          style={styles.slider}
-          minimumValue={0}
-          maximumValue={maxYears}
-          value={years}
-          onValueChange={handleYearsChange}
-          step={1}
-          minimumTrackTintColor={colors.primary}
-          maximumTrackTintColor={colors.track}
-          thumbStyle={[styles.thumbStyle, { backgroundColor: colors.thumb }]}
-          trackStyle={styles.trackStyle}
-        />
-        
-        <View style={styles.scaleContainer}>
-          <ThemedText style={[styles.scaleText, { color: colors.label }]}>0</ThemedText>
-          <ThemedText style={[styles.scaleText, { color: colors.label }]}>{maxYears}</ThemedText>
-        </View>
-      </View>
+      </ThemedCard>
       
       {/* Months Slider */}
-      <View style={[styles.sliderCard, { backgroundColor: colors.cardBackground }]}>
-        <View style={styles.sliderHeader}>
-          <ThemedText style={[styles.label, { color: colors.label }]}>
-            Months
-          </ThemedText>
-          <View style={[styles.valueIndicator, { backgroundColor: colors.primary }]}>
-            <Text style={styles.valueText}>{months}</Text>
+      <ThemedCard variant="elevated" style={styles.sliderCard}>
+        <View style={styles.cardContent}>
+          <View style={styles.sliderHeader}>
+            <ThemedText style={styles.label}>Months</ThemedText>
+            <View style={[
+              styles.valueIndicator, 
+              { backgroundColor: BrandColors.primary }
+            ]}>
+              <Text style={styles.valueText}>{months}</Text>
+            </View>
+          </View>
+          
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={11}
+            value={months}
+            onValueChange={handleMonthsChange}
+            step={1}
+            minimumTrackTintColor={BrandColors.primary}
+            maximumTrackTintColor={colors.border}
+            thumbStyle={[
+              styles.thumbStyle, 
+              { backgroundColor: BrandColors.primary }
+            ]}
+            trackStyle={styles.trackStyle}
+          />
+          
+          <View style={styles.scaleContainer}>
+            <ThemedText style={[styles.scaleText, { color: colors.textSecondary }]}>
+              0
+            </ThemedText>
+            <ThemedText style={[styles.scaleText, { color: colors.textSecondary }]}>
+              11
+            </ThemedText>
           </View>
         </View>
-        
-        <Slider
-          style={styles.slider}
-          minimumValue={0}
-          maximumValue={11}
-          value={months}
-          onValueChange={handleMonthsChange}
-          step={1}
-          minimumTrackTintColor={colors.primary}
-          maximumTrackTintColor={colors.track}
-          thumbStyle={[styles.thumbStyle, { backgroundColor: colors.thumb }]}
-          trackStyle={styles.trackStyle}
-        />
-        
-        <View style={styles.scaleContainer}>
-          <ThemedText style={[styles.scaleText, { color: colors.label }]}>0</ThemedText>
-          <ThemedText style={[styles.scaleText, { color: colors.label }]}>11</ThemedText>
-        </View>
-      </View>
+      </ThemedCard>
       
       {/* Age Display */}
       {(years > 0 || months > 0) && (
-        <View style={[styles.ageDisplay, { backgroundColor: colors.primary }]}>
-          <ThemedText style={[styles.ageText, { color: '#FFFFFF' }]}>
-            {formatAgeString(years, months)}
-          </ThemedText>
-        </View>
+        <ThemedCard variant="elevated" style={styles.ageDisplayCard}>
+          <View style={[
+            styles.ageDisplay, 
+            { backgroundColor: BrandColors.primary }
+          ]}>
+            <ThemedText style={styles.ageText}>
+              {formatAgeString(years, months)}
+            </ThemedText>
+          </View>
+        </ThemedCard>
       )}
     </ThemedView>
   );
@@ -152,40 +168,35 @@ export default function AgeInput({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 16,
+    gap: 16,
   },
   sliderCard: {
-    marginBottom: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
+  },
+  cardContent: {
+    padding: 20,
   },
   sliderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   valueIndicator: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    minWidth: 40,
+    borderRadius: 20,
+    minWidth: 36,
     alignItems: 'center',
   },
   valueText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   slider: {
     width: '100%',
@@ -193,40 +204,40 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   thumbStyle: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   trackStyle: {
-    height: 4,
+    height: 3,
     borderRadius: 2,
   },
   scaleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 8,
   },
   scaleText: {
     fontSize: 12,
+    fontWeight: '400',
+  },
+  ageDisplayCard: {
+    elevation: 1,
   },
   ageDisplay: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    margin: 4,
   },
   ageText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

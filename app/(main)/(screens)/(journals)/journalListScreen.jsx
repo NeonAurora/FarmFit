@@ -1,9 +1,7 @@
 // app/(main)/(screens)/journalListScreen.jsx
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, View, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { FlatList, StyleSheet, View, TouchableOpacity, RefreshControl } from 'react-native';
 import { 
-  Card, 
-  Text, 
   Avatar, 
   ActivityIndicator, 
   FAB, 
@@ -14,9 +12,13 @@ import {
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useActivityIndicatorColors, useFabColors } from '@/hooks/useThemeColor';
+import { BrandColors } from '@/constants/Colors';
 import { router } from 'expo-router';
 import { useJournals } from '@/hooks/useJournals';
+import { useFocusEffect } from '@react-navigation/native';
 
 const MOOD_EMOJIS = {
   happy: '😊',
@@ -26,25 +28,36 @@ const MOOD_EMOJIS = {
   tired: '😴'
 };
 
-const MOOD_COLORS = {
-  happy: '#4CAF50',
-  worried: '#FF9800',
-  proud: '#9C27B0',
-  sad: '#2196F3',
-  tired: '#607D8B'
-};
-
 export default function JournalListScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const fabColors = useFabColors();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMood, setSelectedMood] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Use the hook with filters
   const { journals, loading, error, refetch } = useJournals({
     mood: selectedMood || undefined
   });
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const refreshData = async () => {
+        try {
+          await refetch();
+        } catch (error) {
+          // If refresh fails (no internet), the hook will show cached data
+          console.log('Refresh failed, showing cached data:', error.message);
+        }
+      };
+      
+      refreshData();
+    }, [refetch])
+  );
   
   const handleAddJournal = () => {
     router.push("/addJournalScreen");
@@ -55,6 +68,17 @@ export default function JournalListScreen() {
       pathname: '/journalViewScreen',
       params: { journalId }
     });
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } catch (error) {
+      console.log('Pull refresh failed, keeping cached data:', error.message);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
   
   const getFilteredJournals = () => {
@@ -69,11 +93,11 @@ export default function JournalListScreen() {
 
   const moodButtons = [
     { value: '', label: 'All' },
-    { value: 'happy', label: '😊' },
-    { value: 'worried', label: '😟' },
-    { value: 'proud', label: '😤' },
-    { value: 'sad', label: '😢' },
-    { value: 'tired', label: '😴' }
+    { value: 'happy', label: 'Happy' },
+    { value: 'worried', label: 'Worried' },
+    { value: 'proud', label: 'Proud' },
+    { value: 'sad', label: 'Sad' },
+    { value: 'tired', label: 'Tired' }
   ];
   
   const renderJournalCard = ({ item }) => {
@@ -84,140 +108,251 @@ export default function JournalListScreen() {
     });
 
     return (
-      <TouchableOpacity onPress={() => handleJournalPress(item.id)}>
-        <Card style={[styles.journalCard, isDark && styles.journalCardDark]}>
-          <Card.Content style={styles.cardContent}>
-            {/* Header with mood and date */}
+      <TouchableOpacity 
+        onPress={() => handleJournalPress(item.id)}
+        activeOpacity={0.7}
+        style={styles.cardTouchable}
+      >
+        <ThemedCard variant="elevated" style={styles.journalCard}>
+          <View style={styles.cardContent}>
+            {/* Header with date and mood */}
             <View style={styles.cardHeader}>
-              <View style={styles.moodDateContainer}>
+              <ThemedText style={[styles.dateText, { color: colors.textSecondary }]}>
+                {journalDate}
+              </ThemedText>
+              
+              <View style={styles.headerRight}>
                 {item.mood && (
                   <Chip 
-                    icon={() => <Text>{MOOD_EMOJIS[item.mood]}</Text>}
-                    style={[styles.moodChip, { backgroundColor: MOOD_COLORS[item.mood] + '20' }]}
-                    textStyle={styles.moodChipText}
+                    compact
+                    style={[styles.moodChip, { backgroundColor: BrandColors.primary + '15' }]}
+                    textStyle={[styles.chipText, { color: BrandColors.primary }]}
                   >
-                    {item.mood}
+                    {MOOD_EMOJIS[item.mood]} {item.mood}
                   </Chip>
                 )}
-                <Text style={styles.dateText}>{journalDate}</Text>
+                
+                {item.pet && (
+                  <View style={styles.petInfo}>
+                    {item.pet.image_url ? (
+                      <Avatar.Image size={24} source={{ uri: item.pet.image_url }} />
+                    ) : (
+                      <Avatar.Icon 
+                        size={24} 
+                        icon="account-circle" 
+                        style={{ backgroundColor: colors.surface }}
+                        color={colors.textSecondary}
+                      />
+                    )}
+                    <ThemedText style={[styles.petName, { color: colors.textSecondary }]}>
+                      {item.pet.name}
+                    </ThemedText>
+                  </View>
+                )}
               </View>
-              {item.pet && (
-                <View style={styles.petInfo}>
-                  {item.pet.image_url ? (
-                    <Avatar.Image size={30} source={{ uri: item.pet.image_url }} />
-                  ) : (
-                    <Avatar.Icon size={30} icon="paw" backgroundColor="#e0e0e0" />
-                  )}
-                  <Text style={styles.petName}>{item.pet.name}</Text>
-                </View>
-              )}
             </View>
 
-            {/* Title and content preview */}
+            {/* Title and content */}
             <ThemedText style={styles.journalTitle}>{item.title}</ThemedText>
-            <ThemedText style={styles.journalPreview} numberOfLines={2}>
+            <ThemedText 
+              style={[styles.journalPreview, { color: colors.textSecondary }]} 
+              numberOfLines={2}
+            >
               {item.content}
             </ThemedText>
 
-            {/* Tags */}
-            {item.tags && item.tags.length > 0 && (
-              <View style={styles.tagsContainer}>
-                {item.tags.slice(0, 3).map((tag, index) => (
-                  <Chip key={index} style={styles.tagChip} textStyle={styles.tagText}>
-                    #{tag}
-                  </Chip>
-                ))}
-                {item.tags.length > 3 && (
-                  <Text style={styles.moreTagsText}>+{item.tags.length - 3} more</Text>
+            {/* Footer with metadata */}
+            <View style={styles.cardFooter}>
+              <View style={styles.metadataRow}>
+                {/* Tags */}
+                {item.tags && item.tags.length > 0 && (
+                  <View style={styles.tagsContainer}>
+                    {item.tags.slice(0, 2).map((tag, index) => (
+                      <Chip 
+                        key={index} 
+                        compact
+                        style={[styles.tagChip, { backgroundColor: colors.surface }]}
+                        textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                      >
+                        #{tag}
+                      </Chip>
+                    ))}
+                    {item.tags.length > 2 && (
+                      <ThemedText style={[styles.moreTagsText, { color: colors.textSecondary }]}>
+                        +{item.tags.length - 2}
+                      </ThemedText>
+                    )}
+                  </View>
                 )}
               </View>
-            )}
 
-            {/* Footer with photos indicator and weather */}
-            <View style={styles.cardFooter}>
-              {item.photo_urls && item.photo_urls.length > 0 && (
-                <Chip icon="camera" style={styles.photoChip} textStyle={styles.photoChipText}>
-                  {item.photo_urls.length} photo{item.photo_urls.length > 1 ? 's' : ''}
-                </Chip>
-              )}
-              {item.weather && (
-                <Text style={styles.weatherText}>🌤️ {item.weather}</Text>
-              )}
+              <View style={styles.indicatorsRow}>
+                {/* Photos indicator */}
+                {item.photo_urls && item.photo_urls.length > 0 && (
+                  <Chip 
+                    compact
+                    icon="image"
+                    style={[styles.indicatorChip, { backgroundColor: colors.surface }]}
+                    textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                  >
+                    {item.photo_urls.length}
+                  </Chip>
+                )}
+                
+                {/* Weather */}
+                {item.weather && (
+                  <ThemedText style={[styles.weatherText, { color: colors.textSecondary }]}>
+                    {item.weather}
+                  </ThemedText>
+                )}
+              </View>
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
       </TouchableOpacity>
     );
   };
+
+  const renderSearchHeader = () => (
+    <View style={styles.searchContainer}>
+      <Searchbar
+        placeholder="Search journals"
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={[styles.searchBar, { backgroundColor: colors.surface }]}
+        inputStyle={{ 
+          color: colors.text,
+          textAlignVertical: 'center',
+          includeFontPadding: false,
+          paddingBottom: 12,
+        }}
+        iconColor={colors.textSecondary}
+        placeholderTextColor={colors.textSecondary}
+        elevation={0}
+      />
+      
+      <IconButton
+        icon="tune"
+        size={22}
+        onPress={() => setShowFilters(!showFilters)}
+        style={[
+          styles.filterButton, 
+          { backgroundColor: showFilters ? BrandColors.primary + '15' : colors.surface }
+        ]}
+        iconColor={showFilters ? BrandColors.primary : colors.text}
+      />
+    </View>
+  );
+
+  if (error) {
+    return (
+      <ThemedView style={styles.container}>
+        {renderSearchHeader()}
+        <View style={styles.centerState}>
+          <IconButton
+            icon="alert-circle"
+            size={40}
+            iconColor={colors.error}
+          />
+          <ThemedText style={styles.stateTitle}>Connection Error</ThemedText>
+          <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
+            {error}
+          </ThemedText>
+          <IconButton
+            icon="refresh"
+            size={28}
+            onPress={refetch}
+            style={[styles.stateAction, { backgroundColor: colors.surface }]}
+            iconColor={colors.text}
+          />
+        </View>
+      </ThemedView>
+    );
+  }
+
+  if (loading) {
+    return (
+      <ThemedView style={styles.container}>
+        {renderSearchHeader()}
+        <View style={styles.centerState}>
+          <ActivityIndicator 
+            size="large" 
+            color={activityIndicatorColors.primary}
+          />
+          <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
+            Loading journals...
+          </ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
+
+  if (journals.length === 0) {
+    return (
+      <ThemedView style={styles.container}>
+        {renderSearchHeader()}
+        <View style={styles.centerState}>
+          <IconButton
+            icon="book-open-outline"
+            size={48}
+            iconColor={colors.textSecondary}
+          />
+          <ThemedText style={styles.stateTitle}>No journals yet</ThemedText>
+          <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
+            Start documenting your journey
+          </ThemedText>
+        </View>
+        
+        <FAB
+          icon="plus"
+          style={[styles.fab, { backgroundColor: fabColors.background }]}
+          color={fabColors.text}
+          onPress={handleAddJournal}
+        />
+      </ThemedView>
+    );
+  }
   
   return (
     <ThemedView style={styles.container}>
-      {/* Search and Filter Header */}
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Search journals..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchBar}
-        />
-        <IconButton
-          icon="tune"
-          size={24}
-          onPress={() => setShowFilters(!showFilters)}
-          style={styles.filterButton}
-          iconColor={showFilters ? '#0a7ea4' : undefined}
-        />
-      </View>
-
-      {/* Mood Filter */}
-      {showFilters && (
-        <View style={styles.filtersContainer}>
-          <SegmentedButtons
-            value={selectedMood}
-            onValueChange={setSelectedMood}
-            buttons={moodButtons}
-            style={styles.moodButtons}
+      <FlatList
+        data={getFilteredJournals()}
+        renderItem={renderJournalCard}
+        keyExtractor={item => item.id}
+        ListHeaderComponent={() => (
+          <View>
+            {renderSearchHeader()}
+            
+            {/* Mood Filter */}
+            {showFilters && (
+              <View style={styles.filtersContainer}>
+                <SegmentedButtons
+                  value={selectedMood}
+                  onValueChange={setSelectedMood}
+                  buttons={moodButtons}
+                  style={styles.moodButtons}
+                />
+              </View>
+            )}
+          </View>
+        )}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[BrandColors.primary]}
+            tintColor={BrandColors.primary}
+            progressBackgroundColor={colors.surface}
           />
-        </View>
-      )}
-      
-      {error ? (
-        <View style={styles.errorContainer}>
-          <ThemedText type="title">Error</ThemedText>
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
-          <IconButton
-            icon="refresh"
-            size={32}
-            onPress={refetch}
-            style={styles.errorRefreshButton}
-          />
-        </View>
-      ) : loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0a7ea4" />
-          <ThemedText style={styles.loadingText}>Loading your journals...</ThemedText>
-        </View>
-      ) : journals.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Avatar.Icon size={80} icon="book-open-variant" backgroundColor="#e0e0e0" />
-          <ThemedText type="title">No Journals Yet</ThemedText>
-          <ThemedText style={styles.emptyText}>
-            Start documenting your pet care journey
-          </ThemedText>
-        </View>
-      ) : (
-        <FlatList
-          data={getFilteredJournals()}
-          renderItem={renderJournalCard}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+        }
+      />
       
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: fabColors.background }]}
+        color={fabColors.text}
         onPress={handleAddJournal}
       />
     </ThemedView>
@@ -231,66 +366,61 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 16,
-    marginBottom: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 12,
+    gap: 8,
   },
   searchBar: {
     flex: 1,
-    elevation: 4,
+    borderRadius: 8,
+    height: 44,
   },
   filterButton: {
-    marginLeft: 8,
+    borderRadius: 8,
+    width: 44,
+    height: 44,
+    margin: 0,
   },
   filtersContainer: {
-    padding: 16,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   moodButtons: {
-    marginBottom: 8,
+    height: 40,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 80,
+    paddingHorizontal: 16,
+    paddingBottom: 88,
   },
-  loadingContainer: {
+  centerState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
   },
-  loadingText: {
-    marginTop: 10,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    marginTop: 10,
+  stateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 12,
+    marginBottom: 6,
     textAlign: 'center',
-    opacity: 0.7,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    marginTop: 10,
+  stateMessage: {
+    fontSize: 14,
     textAlign: 'center',
-    color: '#E74C3C',
+    lineHeight: 20,
+    marginBottom: 16,
   },
-  errorRefreshButton: {
-    marginTop: 16,
+  stateAction: {
+    borderRadius: 8,
+    width: 44,
+    height: 44,
+  },
+  cardTouchable: {
+    marginBottom: 12,
   },
   journalCard: {
-    marginBottom: 12,
-    elevation: 2,
-  },
-  journalCardDark: {
-    backgroundColor: '#333',
+    elevation: 1,
   },
   cardContent: {
     padding: 16,
@@ -299,86 +429,85 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  moodDateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  moodChip: {
-    marginRight: 8,
-    height: 30,
-  },
-  moodChipText: {
-    fontSize: 12,
-    textTransform: 'capitalize',
+    marginBottom: 8,
   },
   dateText: {
     fontSize: 12,
-    opacity: 0.6,
+    fontWeight: '500',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  moodChip: {
+    minHeight: 28,
+    paddingVertical: 2,
+    marginBottom: 0,
   },
   petInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   petName: {
-    fontSize: 12,
-    marginLeft: 4,
-    opacity: 0.7,
+    fontSize: 11,
+    fontWeight: '500',
   },
   journalTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   journalPreview: {
     fontSize: 14,
-    opacity: 0.8,
     lineHeight: 20,
     marginBottom: 12,
   },
+  cardFooter: {
+    gap: 8,
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   tagsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 4,
   },
   tagChip: {
-    marginRight: 6,
-    marginBottom: 4,
-    height: 24,
-    backgroundColor: '#e3f2fd',
+    minHeight: 24, 
+    paddingVertical: 1,
   },
-  tagText: {
+  chipText: {
     fontSize: 10,
+    fontWeight: '500',
+    lineHeight: 14, // Explicit line height for better control
+    textAlignVertical: 'center', // Android-specific centering
+    includeFontPadding: false, // Remove Android font padding
   },
   moreTagsText: {
     fontSize: 10,
-    opacity: 0.6,
-    marginLeft: 4,
+    fontWeight: '500',
   },
-  cardFooter: {
+  indicatorsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  photoChip: {
-    height: 24,
-    backgroundColor: '#f3e5f5',
-  },
-  photoChipText: {
-    fontSize: 10,
+  indicatorChip: {
+    minHeight: 24, // Instead of fixed height: 20  
+    paddingVertical: 1,
   },
   weatherText: {
-    fontSize: 12,
-    opacity: 0.6,
+    fontSize: 11,
+    fontWeight: '500',
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#0a7ea4',
   },
 });

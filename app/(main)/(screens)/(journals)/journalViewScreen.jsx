@@ -11,10 +11,12 @@ import {
   Divider
 } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native'; // ← Add this import
+import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useActivityIndicatorColors } from '@/hooks/useThemeColor';
+import { BrandColors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { getJournalById, deleteJournalData } from '@/services/supabase/journalService';
 import { deleteImage } from '@/services/supabase';
@@ -27,25 +29,16 @@ const MOOD_EMOJIS = {
   tired: '😴'
 };
 
-const MOOD_COLORS = {
-  happy: '#4CAF50',
-  worried: '#FF9800',
-  proud: '#9C27B0',
-  sad: '#2196F3',
-  tired: '#607D8B'
-};
-
 export default function JournalViewScreen() {
   const { journalId } = useLocalSearchParams();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
   const { user } = useAuth();
   
   const [journal, setJournal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // ✅ Add useFocusEffect to refresh when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       if (journalId && user?.sub) {
@@ -128,7 +121,7 @@ export default function JournalViewScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
+        <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
         <ThemedText style={styles.loadingText}>Loading journal...</ThemedText>
       </ThemedView>
     );
@@ -137,7 +130,12 @@ export default function JournalViewScreen() {
   if (error || !journal) {
     return (
       <ThemedView style={styles.errorContainer}>
-        <Avatar.Icon size={80} icon="book-off" backgroundColor="#e0e0e0" />
+        <Avatar.Icon 
+          size={80} 
+          icon="book-open-outline" 
+          style={{ backgroundColor: colors.surface }}
+          color={colors.textSecondary}
+        />
         <ThemedText type="title" style={styles.errorTitle}>
           {error || 'Journal Not Found'}
         </ThemedText>
@@ -180,28 +178,38 @@ export default function JournalViewScreen() {
             <ThemedText type="title" style={styles.journalTitle}>
               {journal.title}
             </ThemedText>
-            <ThemedText style={styles.journalDate}>{journalDate}</ThemedText>
+            <ThemedText style={[styles.journalDate, { color: colors.textSecondary }]}>
+              {journalDate}
+            </ThemedText>
             
             {/* Metadata Row */}
             <View style={styles.metadataRow}>
               {journal.mood && (
                 <Chip 
                   icon={() => <Text>{MOOD_EMOJIS[journal.mood]}</Text>}
-                  style={[styles.moodChip, { backgroundColor: MOOD_COLORS[journal.mood] + '20' }]}
-                  textStyle={styles.moodChipText}
+                  style={[styles.moodChip, { backgroundColor: BrandColors.primary + '20' }]}
+                  textStyle={[styles.moodChipText, { color: BrandColors.primary }]}
                 >
                   {journal.mood}
                 </Chip>
               )}
               
               {journal.is_private && (
-                <Chip icon="lock" style={styles.privateChip}>
+                <Chip 
+                  icon="lock" 
+                  style={[styles.privateChip, { backgroundColor: colors.surface }]}
+                  textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                >
                   Private
                 </Chip>
               )}
               
               {journal.weather && (
-                <Chip icon="weather-cloudy" style={styles.weatherChip}>
+                <Chip 
+                  icon="weather-cloudy" 
+                  style={[styles.weatherChip, { backgroundColor: colors.surface }]}
+                  textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                >
                   {journal.weather}
                 </Chip>
               )}
@@ -209,16 +217,21 @@ export default function JournalViewScreen() {
 
             {/* Pet Info */}
             {journal.pet && (
-              <View style={styles.petContainer}>
+              <View style={[styles.petContainer, { backgroundColor: colors.surface }]}>
                 {journal.pet.image_url ? (
                   <Avatar.Image size={40} source={{ uri: journal.pet.image_url }} />
                 ) : (
-                  <Avatar.Icon size={40} icon="paw" backgroundColor="#e0e0e0" />
+                  <Avatar.Icon 
+                    size={40} 
+                    icon="account-circle" 
+                    style={{ backgroundColor: colors.surface }}
+                    color={colors.textSecondary}
+                  />
                 )}
                 <View style={styles.petInfo}>
-                  <Text style={styles.petLabel}>About</Text>
-                  <Text style={styles.petName}>{journal.pet.name}</Text>
-                  <Text style={styles.petSpecies}>{journal.pet.species}</Text>
+                  <Text style={[styles.petLabel, { color: colors.textSecondary }]}>About</Text>
+                  <Text style={[styles.petName, { color: colors.text }]}>{journal.pet.name}</Text>
+                  <Text style={[styles.petSpecies, { color: colors.textSecondary }]}>{journal.pet.species}</Text>
                 </View>
               </View>
             )}
@@ -258,7 +271,11 @@ export default function JournalViewScreen() {
             <Card.Content>
               <View style={styles.tagsContainer}>
                 {journal.tags.map((tag, index) => (
-                  <Chip key={index} style={styles.tagChip}>
+                  <Chip 
+                    key={index} 
+                    style={[styles.tagChip, { backgroundColor: colors.surface }]}
+                    textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                  >
                     #{tag}
                   </Chip>
                 ))}
@@ -274,15 +291,15 @@ export default function JournalViewScreen() {
             <Card.Content>
               {journal.location && (
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Location:</Text>
-                  <Text style={styles.infoValue}>{journal.location}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.text }]}>Location:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textSecondary }]}>{journal.location}</Text>
                 </View>
               )}
               
               {journal.ai_insight && (
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>AI Insight:</Text>
-                  <Text style={styles.infoValue}>{journal.ai_insight}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.text }]}>AI Insight:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textSecondary }]}>{journal.ai_insight}</Text>
                 </View>
               )}
             </Card.Content>
@@ -290,13 +307,13 @@ export default function JournalViewScreen() {
         )}
 
         {/* Meta Information */}
-        <Card style={styles.metaCard}>
+        <Card style={[styles.metaCard, { backgroundColor: colors.surface }]}>
           <Card.Content>
-            <Text style={styles.metaText}>
+            <Text style={[styles.metaText, { color: colors.textSecondary }]}>
               Created on {createdDate}
             </Text>
             {journal.updated_at !== journal.created_at && (
-              <Text style={styles.metaText}>
+              <Text style={[styles.metaText, { color: colors.textSecondary }]}>
                 Last updated on {new Date(journal.updated_at).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'short', 
@@ -314,16 +331,17 @@ export default function JournalViewScreen() {
           <Button 
             mode="contained" 
             onPress={handleEdit}
-            style={styles.editButton}
+            style={[styles.editButton, { backgroundColor: BrandColors.primary }]}
             icon="pencil"
           >
             Edit
           </Button>
           
           <Button 
-            mode="contained" 
+            mode="outlined" 
             onPress={handleDelete}
             style={styles.deleteButton}
+            labelStyle={{ color: colors.error }}
             icon="delete"
           >
             Delete
@@ -334,7 +352,6 @@ export default function JournalViewScreen() {
   );
 }
 
-// ... rest of the styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -382,7 +399,6 @@ const styles = StyleSheet.create({
   },
   journalDate: {
     fontSize: 16,
-    opacity: 0.7,
     marginBottom: 16,
   },
   metadataRow: {
@@ -393,21 +409,28 @@ const styles = StyleSheet.create({
   },
   moodChip: {
     height: 32,
+    justifyContent: 'center',
   },
   moodChipText: {
     fontSize: 12,
     textTransform: 'capitalize',
+    textAlignVertical: 'center',
   },
   privateChip: {
-    backgroundColor: '#ffebee',
+    height: 32,
+    justifyContent: 'center',
   },
   weatherChip: {
-    backgroundColor: '#e3f2fd',
+    height: 32,
+    justifyContent: 'center',
+  },
+  chipText: {
+    fontSize: 12,
+    textAlignVertical: 'center',
   },
   petContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
     padding: 12,
     borderRadius: 8,
   },
@@ -416,7 +439,6 @@ const styles = StyleSheet.create({
   },
   petLabel: {
     fontSize: 12,
-    opacity: 0.6,
     textTransform: 'uppercase',
   },
   petName: {
@@ -425,7 +447,6 @@ const styles = StyleSheet.create({
   },
   petSpecies: {
     fontSize: 14,
-    opacity: 0.7,
   },
   contentCard: {
     marginBottom: 16,
@@ -456,7 +477,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tagChip: {
-    backgroundColor: '#e3f2fd',
+    height: 28,
+    justifyContent: 'center',
   },
   additionalCard: {
     marginBottom: 16,
@@ -473,11 +495,9 @@ const styles = StyleSheet.create({
   },
   metaCard: {
     marginBottom: 24,
-    backgroundColor: '#f8f9fa',
   },
   metaText: {
     fontSize: 12,
-    opacity: 0.6,
     marginBottom: 2,
   },
   actionButtons: {
@@ -487,10 +507,8 @@ const styles = StyleSheet.create({
   },
   editButton: {
     flex: 1,
-    backgroundColor: '#2E86DE',
   },
   deleteButton: {
     flex: 1,
-    backgroundColor: '#E74C3C',
   },
 });

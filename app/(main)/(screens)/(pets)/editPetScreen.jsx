@@ -1,19 +1,22 @@
 // app/(main)/(screens)/editPetScreen.jsx
 import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
-import { TextInput, Button, Text, Divider, List } from 'react-native-paper';
-import { uploadImage, deleteImage } from '@/services/supabase';
-import { updatePetData } from '@/services/supabase';
+import { TextInput, Button, List } from 'react-native-paper';
+import { uploadImage, deleteImage, updatePetData } from '@/services/supabase';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useActivityIndicatorColors } from '@/hooks/useThemeColor';
 import ImagePicker from '@/components/interfaces/ImagePicker';
+import AgeInput from '@/components/interfaces/AgeInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePet } from '@/hooks/usePet';
 import { useLocalSearchParams, router } from 'expo-router';
 
 export default function EditPetScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
   const { user } = useAuth();
   const { petId } = useLocalSearchParams();
   
@@ -29,15 +32,15 @@ export default function EditPetScreen() {
   const [healthStatus, setHealthStatus] = useState('');
   const [petImage, setPetImage] = useState(null);
   
-  // Expandable section
-  const [detailsExpanded, setDetailsExpanded] = useState(true);
-  
   // Pet-specific fields
   const [petType, setPetType] = useState('');
   const [behavioralNotes, setBehavioralNotes] = useState('');
   const [trainingProgress, setTrainingProgress] = useState('');
   const [dietaryPreferences, setDietaryPreferences] = useState('');
   const [groomingNeeds, setGroomingNeeds] = useState('');
+  
+  // Expandable section
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   
   // UI states
   const [isUploading, setIsUploading] = useState(false);
@@ -73,7 +76,7 @@ export default function EditPetScreen() {
   
   const handleUpdatePet = async () => {
     if (!petName || !species) {
-      alert("Please provide at least a name and species for your pet.");
+      Alert.alert("Validation Error", "Please provide at least a name and species for your pet.");
       return;
     }
     
@@ -136,151 +139,187 @@ export default function EditPetScreen() {
   
   if (petLoading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
-        <Text style={styles.loadingText}>Loading pet data...</Text>
+      <ThemedView style={styles.container}>
+        <View style={styles.centerState}>
+          <ActivityIndicator 
+            size="large" 
+            color={activityIndicatorColors.primary}
+          />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading pet data...
+          </ThemedText>
+        </View>
       </ThemedView>
     );
   }
   
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Edit Pet</Text>
-        
-        {/* Basic Pet Information */}
-        <Text style={styles.sectionLabel}>Basic Information</Text>
-        
-        <TextInput
-          label="Pet Name"
-          value={petName}
-          onChangeText={setPetName}
-          style={styles.input}
-          mode="outlined"
-        />
-        
-        <TextInput
-          label="Species/Breed"
-          value={species}
-          onChangeText={setSpecies}
-          style={styles.input}
-          mode="outlined"
-          placeholder="e.g., Golden Retriever, Persian Cat"
-        />
-        
-        <TextInput
-          label="Age"
-          value={age}
-          onChangeText={setAge}
-          style={styles.input}
-          mode="outlined"
-          placeholder="e.g., 2 years, 6 months"
-        />
-        
-        <TextInput
-          label="Sex"
-          value={sex}
-          onChangeText={setSex}
-          style={styles.input}
-          mode="outlined"
-          placeholder="Male, Female, Unknown"
-        />
-        
-        <TextInput
-          label="Date Acquired (YYYY-MM-DD)"
-          value={dateAcquired}
-          onChangeText={setDateAcquired}
-          style={styles.input}
-          mode="outlined"
-          placeholder="2024-01-15"
-        />
-        
-        <TextInput
-          label="Health Status"
-          value={healthStatus}
-          onChangeText={setHealthStatus}
-          style={styles.input}
-          mode="outlined"
-          placeholder="Healthy, Under treatment, etc."
-        />
-        
-        <Text style={styles.imageLabel}>Pet Photo</Text>
-        <ImagePicker
-          mode="pet"
-          images={petImage}
-          onImagesSelected={setPetImage}
-          isUploading={isUploading}
-        />
-        
-        <Divider style={styles.divider} />
-        
-        {/* Pet Details Section */}
-        <List.Accordion
-          title="Additional Details"
-          expanded={detailsExpanded}
-          onPress={() => setDetailsExpanded(!detailsExpanded)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-          left={props => <List.Icon {...props} icon="paw" />}
-        >
-          <View style={styles.accordionContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Basic Information Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <View style={styles.cardContent}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Basic Information
+            </ThemedText>
+            
             <TextInput
-              label="Pet Type"
-              value={petType}
-              onChangeText={setPetType}
+              label="Name"
+              value={petName}
+              onChangeText={setPetName}
               style={styles.input}
               mode="outlined"
-              placeholder="e.g., Companion, Working, Therapy, Guard"
+              outlineStyle={styles.inputOutline}
             />
             
             <TextInput
-              label="Behavioral Notes"
-              value={behavioralNotes}
-              onChangeText={setBehavioralNotes}
+              label="Species/Breed"
+              value={species}
+              onChangeText={setSpecies}
               style={styles.input}
               mode="outlined"
-              multiline
-              numberOfLines={3}
-              placeholder="Describe temperament, habits, special behaviors..."
+              outlineStyle={styles.inputOutline}
+              placeholder="e.g., Golden Retriever, Persian Cat"
             />
             
-            <TextInput
-              label="Training Progress"
-              value={trainingProgress}
-              onChangeText={setTrainingProgress}
-              style={styles.input}
-              mode="outlined"
-              multiline
-              numberOfLines={2}
-              placeholder="House trained, commands known, training goals..."
+            <ThemedText style={styles.inputLabel}>Age</ThemedText>
+            <AgeInput
+              value={age}
+              onAgeChange={(ageString) => setAge(ageString)}
+              maxYears={25}
+              style={[
+                styles.ageInputContainer,
+                { backgroundColor: colors.surface }
+              ]}
             />
             
-            <TextInput
-              label="Dietary Preferences"
-              value={dietaryPreferences}
-              onChangeText={setDietaryPreferences}
-              style={styles.input}
-              mode="outlined"
-              placeholder="Food brand, allergies, feeding schedule..."
-            />
+            <View style={styles.rowInputs}>
+              <TextInput
+                label="Sex"
+                value={sex}
+                onChangeText={setSex}
+                style={[styles.input, styles.halfInput]}
+                mode="outlined"
+                outlineStyle={styles.inputOutline}
+                placeholder="Male/Female"
+              />
+              
+              <TextInput
+                label="Health Status"
+                value={healthStatus}
+                onChangeText={setHealthStatus}
+                style={[styles.input, styles.halfInput]}
+                mode="outlined"
+                outlineStyle={styles.inputOutline}
+                placeholder="Healthy"
+              />
+            </View>
             
             <TextInput
-              label="Grooming Needs"
-              value={groomingNeeds}
-              onChangeText={setGroomingNeeds}
+              label="Date Acquired"
+              value={dateAcquired}
+              onChangeText={setDateAcquired}
               style={styles.input}
               mode="outlined"
-              placeholder="Brushing frequency, nail trimming, bathing..."
+              outlineStyle={styles.inputOutline}
+              placeholder="YYYY-MM-DD"
             />
           </View>
-        </List.Accordion>
+        </ThemedCard>
         
+        {/* Photo Upload Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <View style={styles.cardContent}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Photo
+            </ThemedText>
+            <ImagePicker
+              mode="pet"
+              images={petImage}
+              onImagesSelected={setPetImage}
+              isUploading={isUploading}
+            />
+          </View>
+        </ThemedCard>
+        
+        {/* Additional Details Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <List.Accordion
+            title="Additional Details"
+            expanded={detailsExpanded}
+            onPress={() => setDetailsExpanded(!detailsExpanded)}
+            style={styles.accordion}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+            left={props => <List.Icon {...props} icon="chevron-down" />}
+          >
+            <View style={styles.accordionContent}>
+              <TextInput
+                label="Type"
+                value={petType}
+                onChangeText={setPetType}
+                style={styles.input}
+                mode="outlined"
+                outlineStyle={styles.inputOutline}
+                placeholder="Companion, Working, Therapy"
+              />
+              
+              <TextInput
+                label="Behavioral Notes"
+                value={behavioralNotes}
+                onChangeText={setBehavioralNotes}
+                style={styles.input}
+                mode="outlined"
+                outlineStyle={styles.inputOutline}
+                multiline
+                numberOfLines={3}
+                placeholder="Temperament, habits, behaviors..."
+              />
+              
+              <TextInput
+                label="Training"
+                value={trainingProgress}
+                onChangeText={setTrainingProgress}
+                style={styles.input}
+                mode="outlined"
+                outlineStyle={styles.inputOutline}
+                multiline
+                numberOfLines={2}
+                placeholder="Commands known, training goals..."
+              />
+              
+              <TextInput
+                label="Diet"
+                value={dietaryPreferences}
+                onChangeText={setDietaryPreferences}
+                style={styles.input}
+                mode="outlined"
+                outlineStyle={styles.inputOutline}
+                placeholder="Food brand, allergies, schedule..."
+              />
+              
+              <TextInput
+                label="Grooming"
+                value={groomingNeeds}
+                onChangeText={setGroomingNeeds}
+                style={styles.input}
+                mode="outlined"
+                outlineStyle={styles.inputOutline}
+                placeholder="Brushing, bathing, nail care..."
+              />
+            </View>
+          </List.Accordion>
+        </ThemedCard>
+        
+        {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <Button 
             mode="outlined" 
             onPress={() => router.back()}
             style={styles.cancelButton}
-            labelStyle={styles.cancelButtonText}
+            labelStyle={[styles.buttonLabel, { color: colors.text }]}
           >
             Cancel
           </Button>
@@ -289,6 +328,7 @@ export default function EditPetScreen() {
             mode="contained" 
             onPress={handleUpdatePet}
             style={styles.saveButton}
+            labelStyle={styles.buttonLabel}
             disabled={isSaving || isUploading}
             loading={isSaving}
           >
@@ -305,71 +345,91 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-  },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: 24,
   },
-  sectionLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-    marginTop: 8,
+  card: {
+    marginBottom: 20,
+    elevation: 1,
+  },
+  cardContent: {
+    padding: 20,
+  },
+  sectionTitle: {
+    marginBottom: 20,
+    color: '#666',
   },
   input: {
     marginBottom: 16,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
-  divider: {
-    marginVertical: 20,
-    height: 1,
+  inputOutline: {
+    borderRadius: 12,
   },
-  imageLabel: {
+  inputLabel: {
     fontSize: 16,
-    marginBottom: 8,
     fontWeight: '500',
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  ageInputContainer: {
+    borderRadius: 12,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  halfInput: {
+    flex: 1,
   },
   accordion: {
-    marginBottom: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
   },
   accordionTitle: {
     fontWeight: '500',
+    fontSize: 18,
   },
   accordionContent: {
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 16,
     marginTop: 24,
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 8,
-    marginLeft: 8,
+    paddingVertical: 4,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderColor: '#999',
+    paddingVertical: 4,
   },
-  cancelButtonText: {
-    color: '#999',
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  centerState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 16,
   },
 });

@@ -2,13 +2,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FlatList, StyleSheet, View, TouchableOpacity, Modal, Animated, Dimensions } from 'react-native';
 import { 
-  Card, 
   Text, 
-  Avatar, 
   ActivityIndicator, 
   Searchbar, 
   Chip,
-  Button,
   IconButton,
   Divider,
   RadioButton,
@@ -18,7 +15,16 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { 
+  useChipColors, 
+  useInputColors, 
+  useActivityIndicatorColors, 
+  useCardColors,
+  useButtonColors 
+} from '@/hooks/useThemeColor';
 import { searchPractitioners, getRecentPractitioners } from '@/services/supabase';
 import PractitionerCard from '@/components/practitioners/PractitionerCard';
 
@@ -26,8 +32,12 @@ const { width: screenWidth } = Dimensions.get('window');
 
 export default function FindPractitionersScreen() {
   const lastFetchTime = useRef(0);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, brandColors, isDark } = useTheme();
+  const chipColors = useChipColors();
+  const inputColors = useInputColors();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const cardColors = useCardColors();
+  const buttonColors = useButtonColors();
   
   const [practitioners, setPractitioners] = useState([]);
   const [filteredPractitioners, setFilteredPractitioners] = useState([]);
@@ -48,7 +58,7 @@ export default function FindPractitionersScreen() {
   
   // Search bar animation state
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const searchBarWidth = useRef(new Animated.Value(screenWidth - 32 - 144)).current; // Updated for 4 buttons
+  const searchBarWidth = useRef(new Animated.Value(screenWidth - 32 - 144)).current; // Updated for 3 buttons
   const buttonOpacity = useRef(new Animated.Value(1)).current;
   const buttonTranslateX = useRef(new Animated.Value(0)).current;
   
@@ -263,7 +273,6 @@ export default function FindPractitionersScreen() {
   };
   
   // Render practitioner card based on view mode
-  // Replace the entire renderPractitionerCard function with:
   const renderPractitionerCard = ({ item }) => (
     <PractitionerCard 
       practitioner={item}
@@ -281,18 +290,22 @@ export default function FindPractitionersScreen() {
   // Empty state
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <ThemedText style={styles.emptyTitle}>
+      <ThemedText type="subtitle" style={styles.emptyTitle}>
         {searchQuery || selectedDistrict || selectedExpertise ? 'No practitioners found' : 'No practitioners available'}
       </ThemedText>
-      <ThemedText style={styles.emptyText}>
+      <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
         {searchQuery || selectedDistrict || selectedExpertise ? 
           "Try adjusting your search filters" 
           : "No verified practitioners available at the moment"}
       </ThemedText>
       {(searchQuery || selectedDistrict || selectedExpertise) && (
-        <Button mode="outlined" onPress={clearFilters} style={styles.clearButton}>
+        <ThemedButton 
+          variant="outlined" 
+          onPress={clearFilters} 
+          style={styles.clearButton}
+        >
           Clear Filters
-        </Button>
+        </ThemedButton>
       )}
     </View>
   );
@@ -305,11 +318,13 @@ export default function FindPractitionersScreen() {
         onDismiss={() => setShowSortModal(false)}
         contentContainerStyle={[
           styles.sortModal, 
-          isDark && styles.sortModalDark
+          { backgroundColor: cardColors.background }
         ]}
       >
         <View style={styles.sortModalContent}>
-          <ThemedText style={styles.sortModalTitle}>Sort Practitioners By</ThemedText>
+          <ThemedText type="subtitle" style={styles.sortModalTitle}>
+            Sort Practitioners By
+          </ThemedText>
           
           <RadioButton.Group
             onValueChange={handleSortSelection}
@@ -325,11 +340,14 @@ export default function FindPractitionersScreen() {
                   <IconButton
                     icon={option.icon}
                     size={20}
-                    iconColor={sortBy === option.value ? '#27AE60' : '#666'}
+                    iconColor={sortBy === option.value ? brandColors.primary : colors.textSecondary}
                   />
                   <ThemedText style={[
                     styles.sortOptionText,
-                    sortBy === option.value && styles.sortOptionTextSelected
+                    sortBy === option.value && { 
+                      fontWeight: 'bold',
+                      color: brandColors.primary 
+                    }
                   ]}>
                     {option.label}
                   </ThemedText>
@@ -339,13 +357,13 @@ export default function FindPractitionersScreen() {
             ))}
           </RadioButton.Group>
           
-          <Button
-            mode="outlined"
+          <ThemedButton
+            variant="outlined"
             onPress={() => setShowSortModal(false)}
             style={styles.sortModalCloseButton}
           >
             Close
-          </Button>
+          </ThemedButton>
         </View>
       </Modal>
     </Portal>
@@ -354,7 +372,7 @@ export default function FindPractitionersScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Fixed Search Header */}
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
         <Animated.View
           style={[
             styles.searchBarContainer,
@@ -370,10 +388,20 @@ export default function FindPractitionersScreen() {
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
             onClearIconPress={handleSearchClear}
-            style={styles.searchBar}
+            style={[
+              styles.searchBar, 
+              { 
+                backgroundColor: colors.backgroundSecondary, // Different from container background for visibility
+                elevation: 4,
+              }
+            ]}
+            inputStyle={{ color: colors.text }}
+            iconColor={colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
           />
         </Animated.View>
         
+        {/* Button Container */}
         <Animated.View 
           style={[
             styles.buttonsContainer,
@@ -388,10 +416,10 @@ export default function FindPractitionersScreen() {
           <Animated.View style={{ transform: [{ scale: viewModeAnimation }] }}>
             <IconButton
               icon={getCurrentViewMode().icon}
-              size={24}
+              size={20}
               onPress={cycleViewMode}
               style={styles.actionButton}
-              iconColor="#27AE60"
+              iconColor={brandColors.primary}
             />
           </Animated.View>
           
@@ -400,21 +428,21 @@ export default function FindPractitionersScreen() {
             size={24}
             onPress={() => setShowFilters(!showFilters)}
             style={styles.actionButton}
-            iconColor={showFilters ? '#27AE60' : undefined}
+            iconColor={showFilters ? brandColors.primary : colors.textSecondary}
           />
           <IconButton
             icon="sort"
             size={24}
             onPress={() => setShowSortModal(true)}
             style={styles.actionButton}
-            iconColor={sortBy !== 'default' ? '#27AE60' : undefined}
+            iconColor={sortBy !== 'default' ? brandColors.primary : colors.textSecondary}
           />
         </Animated.View>
       </View>
       
       {/* View Mode Indicator */}
-      <View style={styles.viewModeIndicator}>
-        <Text variant="bodySmall" style={styles.viewModeText}>
+      <View style={[styles.viewModeIndicator, { backgroundColor: colors.background }]}>
+        <Text variant="bodySmall" style={[styles.viewModeText, { color: colors.textSecondary }]}>
           {getCurrentViewMode().label} ({filteredPractitioners.length} practitioners)
         </Text>
       </View>
@@ -424,7 +452,8 @@ export default function FindPractitionersScreen() {
         <View style={styles.activeSortContainer}>
           <Chip
             icon="sort"
-            style={styles.activeSortChip}
+            style={[styles.activeSortChip, { backgroundColor: chipColors.selected }]}
+            textStyle={{ color: chipColors.selectedText }}
             onClose={() => setSortBy('default')}
           >
             Sorted by: {getCurrentSortLabel()}
@@ -434,56 +463,76 @@ export default function FindPractitionersScreen() {
       
       {/* Filters */}
       {showFilters && (
-        <View style={styles.filtersContainer}>
-          <ThemedText style={styles.filterLabel}>Filter by District:</ThemedText>
-          <FlatList
-            data={districts}
-            horizontal
-            renderItem={({ item }) => (
-              <Chip
-                selected={selectedDistrict === item}
-                onPress={() => setSelectedDistrict(selectedDistrict === item ? '' : item)}
-                style={styles.districtChip}
+        <ThemedCard variant="flat" style={styles.filtersCard}>
+          <View style={styles.filtersContainer}>
+            <ThemedText type="defaultSemiBold" style={styles.filterLabel}>
+              Filter by District:
+            </ThemedText>
+            <FlatList
+              data={districts}
+              horizontal
+              renderItem={({ item }) => (
+                <Chip
+                  selected={selectedDistrict === item}
+                  onPress={() => setSelectedDistrict(selectedDistrict === item ? '' : item)}
+                  style={[
+                    styles.districtChip,
+                    selectedDistrict === item && { backgroundColor: chipColors.selected }
+                  ]}
+                  textStyle={selectedDistrict === item ? { color: chipColors.selectedText } : { color: chipColors.text }}
+                >
+                  {item}
+                </Chip>
+              )}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.districtChipsContainer}
+            />
+            
+            <ThemedText type="defaultSemiBold" style={styles.filterLabel}>
+              Filter by Expertise:
+            </ThemedText>
+            <FlatList
+              data={expertiseAreas}
+              horizontal
+              renderItem={({ item }) => (
+                <Chip
+                  selected={selectedExpertise === item}
+                  onPress={() => setSelectedExpertise(selectedExpertise === item ? '' : item)}
+                  style={[
+                    styles.districtChip,
+                    selectedExpertise === item && { backgroundColor: chipColors.selected }
+                  ]}
+                  textStyle={selectedExpertise === item ? { color: chipColors.selectedText } : { color: chipColors.text }}
+                >
+                  {item}
+                </Chip>
+              )}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.districtChipsContainer}
+            />
+            
+            {(searchQuery || selectedDistrict || selectedExpertise) && (
+              <ThemedButton 
+                variant="outlined" 
+                onPress={clearFilters} 
+                style={styles.clearFiltersButton}
               >
-                {item}
-              </Chip>
+                Clear All Filters
+              </ThemedButton>
             )}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.districtChipsContainer}
-          />
-          
-          <ThemedText style={styles.filterLabel}>Filter by Expertise:</ThemedText>
-          <FlatList
-            data={expertiseAreas}
-            horizontal
-            renderItem={({ item }) => (
-              <Chip
-                selected={selectedExpertise === item}
-                onPress={() => setSelectedExpertise(selectedExpertise === item ? '' : item)}
-                style={styles.districtChip}
-              >
-                {item}
-              </Chip>
-            )}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.districtChipsContainer}
-          />
-          
-          {(searchQuery || selectedDistrict || selectedExpertise) && (
-            <Button mode="text" onPress={clearFilters} style={styles.clearFiltersButton}>
-              Clear All Filters
-            </Button>
-          )}
-        </View>
+          </View>
+        </ThemedCard>
       )}
       
-      <Divider />
+      <Divider style={{ backgroundColor: colors.border }} />
       
       {/* Results */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#27AE60" />
-          <ThemedText style={styles.loadingText}>Loading practitioners...</ThemedText>
+          <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading practitioners...
+          </ThemedText>
         </View>
       ) : (
         <FlatList
@@ -496,6 +545,7 @@ export default function FindPractitionersScreen() {
           onRefresh={() => fetchPractitioners(true)}
           numColumns={getNumColumns()}
           key={viewMode} // Force re-render when view mode changes
+          showsVerticalScrollIndicator={false}
         />
       )}
       
@@ -515,6 +565,14 @@ const styles = StyleSheet.create({
     margin: 16,
     marginBottom: 0,
     height: 56,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginRight: 10,
   },
   searchBarContainer: {
     // Width controlled by animation
@@ -522,9 +580,14 @@ const styles = StyleSheet.create({
     paddingRight: 0,
     paddingLeft: 0,
     marginLeft: -5,
+    marginRight: 0,
   },
   searchBar: {
-    elevation: 4,
+    elevation: 0, // Remove individual elevation since container has it
+    shadowOpacity: 0,
+    marginTop: 10,
+    marginLeft: -5,
+    marginRight: 0,
   },
   buttonsContainer: {
     flexDirection: 'row',
@@ -540,12 +603,10 @@ const styles = StyleSheet.create({
   viewModeIndicator: {
     paddingHorizontal: 16,
     paddingVertical: 4,
-    backgroundColor: '#f8f9fa',
   },
   viewModeText: {
     textAlign: 'center',
     fontWeight: '500',
-    color: '#666',
   },
   activeSortContainer: {
     paddingHorizontal: 16,
@@ -553,15 +614,15 @@ const styles = StyleSheet.create({
   },
   activeSortChip: {
     alignSelf: 'flex-start',
-    backgroundColor: '#f8f9fa',
+  },
+  filtersCard: {
+    margin: 16,
+    marginBottom: 0,
   },
   filtersContainer: {
     padding: 16,
-    backgroundColor: '#f8f9fa',
   },
   filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
     marginBottom: 8,
     marginTop: 8,
   },
@@ -580,7 +641,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   
-  // Full view styles
+  // Full view styles - MAINTAINED FROM ORIGINAL
   practitionerCard: {
     marginBottom: 12,
     elevation: 2,
@@ -603,7 +664,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   designation: {
-    color: '#27AE60',
     marginBottom: 2,
   },
   location: {
@@ -631,7 +691,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   placeholderContainer: {
-    backgroundColor: '#f0f0f0',
     padding: 8,
     borderRadius: 6,
   },
@@ -641,7 +700,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
-  // Compact view styles
+  // Compact view styles - MAINTAINED FROM ORIGINAL
   compactCard: {
     marginBottom: 8,
     elevation: 1,
@@ -658,7 +717,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  // Grid view styles
+  // Grid view styles - MAINTAINED FROM ORIGINAL
   gridItemContainer: {
     flex: 1,
     margin: 6,
@@ -678,7 +737,6 @@ const styles = StyleSheet.create({
   },
   gridDesignation: {
     textAlign: 'center',
-    color: '#27AE60',
     marginBottom: 4,
   },
   gridLocation: {
@@ -693,7 +751,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // Other styles (loading, empty, modal)
+  // Other styles (loading, empty, modal) - MAINTAINED FROM ORIGINAL
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -711,8 +769,6 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -726,22 +782,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   sortModal: {
-    backgroundColor: 'white',
     margin: 20,
     borderRadius: 12,
     elevation: 8,
-  },
-  sortModalDark: {
-    backgroundColor: '#333',
   },
   sortModalContent: {
     padding: 20,
   },
   sortModalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
     textAlign: 'center',
+    marginBottom: 16,
   },
   sortOption: {
     flexDirection: 'row',
@@ -757,10 +807,6 @@ const styles = StyleSheet.create({
   sortOptionText: {
     marginLeft: 8,
     fontSize: 16,
-  },
-  sortOptionTextSelected: {
-    fontWeight: 'bold',
-    color: '#27AE60',
   },
   sortModalCloseButton: {
     marginTop: 16,

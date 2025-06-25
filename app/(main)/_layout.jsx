@@ -277,6 +277,10 @@ export default function RootLayout() {
             name="(screens)/(practitioner)" 
             options={{ headerShown: false }} 
           />
+          <Drawer.Screen 
+            name="(screens)/(utils)" 
+            options={{ headerShown: false }} 
+          />
         </Drawer>
         <StatusBar style="auto" />
       </PaperProvider>

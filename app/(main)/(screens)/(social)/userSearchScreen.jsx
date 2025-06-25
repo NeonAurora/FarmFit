@@ -2,25 +2,34 @@
 import React, { useState, useCallback } from 'react';
 import { FlatList, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { 
-  Card, 
   Text, 
   Avatar, 
   ActivityIndicator, 
   Searchbar,
-  Button,
   Divider
 } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { 
+  useActivityIndicatorColors, 
+  useInputColors,
+  useAvatarColors,
+  useCardColors 
+} from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { searchUsers } from '@/services/supabase';
 import { router } from 'expo-router';
 
 export default function UserSearchScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, brandColors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const inputColors = useInputColors();
+  const avatarColors = useAvatarColors();
+  const cardColors = useCardColors();
   const { user } = useAuth();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,48 +81,57 @@ export default function UserSearchScreen() {
     
     return (
       <TouchableOpacity onPress={() => handleUserPress(item)}>
-        <Card style={[styles.userCard, isDark && styles.userCardDark]}>
-          <Card.Content style={styles.cardContent}>
+        <ThemedCard variant="elevated" elevation={1} style={styles.userCard}>
+          <View style={styles.cardContent}>
             {/* Left side - Avatar */}
             <View style={styles.avatarContainer}>
               {item.picture ? (
-                <Avatar.Image size={60} source={{ uri: item.picture }} />
+                <Avatar.Image size={56} source={{ uri: item.picture }} />
               ) : (
                 <Avatar.Text 
-                  size={60} 
+                  size={56} 
                   label={(item.name?.charAt(0) || item.email?.charAt(0) || 'U').toUpperCase()}
-                  backgroundColor={isDark ? '#444' : '#e0e0e0'}
-                  color={isDark ? '#fff' : '#666'}
+                  backgroundColor={avatarColors.background}
+                  color={avatarColors.text}
                 />
               )}
             </View>
             
             {/* Right side - User Info */}
             <View style={styles.userInfo}>
-              <ThemedText style={styles.userName}>
+              <ThemedText 
+                type="defaultSemiBold" 
+                style={[styles.userName, { color: colors.text }]}
+              >
                 {item.name || 'Anonymous User'}
               </ThemedText>
-              <ThemedText style={styles.userEmail}>
+              <ThemedText 
+                variant="bodyMedium" 
+                style={[styles.userEmail, { color: colors.textSecondary }]}
+              >
                 {item.email}
               </ThemedText>
-              <ThemedText style={styles.joinDate}>
+              <ThemedText 
+                variant="bodySmall" 
+                style={[styles.joinDate, { color: colors.textMuted }]}
+              >
                 Joined {joinDate}
               </ThemedText>
             </View>
             
             {/* Action button */}
             <View style={styles.actionContainer}>
-              <Button 
-                mode="outlined" 
-                compact
+              <ThemedButton 
+                variant="outlined" 
                 onPress={() => handleUserPress(item)}
                 style={styles.connectButton}
+                compact
               >
-                View
-              </Button>
+                View Profile
+              </ThemedButton>
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
       </TouchableOpacity>
     );
   };
@@ -122,8 +140,10 @@ export default function UserSearchScreen() {
     if (loading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#0a7ea4" />
-          <ThemedText style={styles.loadingText}>Searching users...</ThemedText>
+          <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Searching users...
+          </ThemedText>
         </View>
       );
     }
@@ -131,11 +151,16 @@ export default function UserSearchScreen() {
     if (!hasSearched) {
       return (
         <View style={styles.centerContainer}>
-          <Avatar.Icon size={80} icon="account-search" backgroundColor="#e0e0e0" />
-          <ThemedText type="title" style={styles.emptyTitle}>
+          <Avatar.Icon 
+            size={80} 
+            icon="account-search" 
+            backgroundColor={colors.backgroundSecondary}
+            color={colors.textSecondary}
+          />
+          <ThemedText type="subtitle" style={styles.emptyTitle}>
             Search for Users
           </ThemedText>
-          <ThemedText style={styles.emptyText}>
+          <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
             Enter a name or email to find other FarmFit users
           </ThemedText>
         </View>
@@ -145,13 +170,25 @@ export default function UserSearchScreen() {
     if (users.length === 0 && hasSearched) {
       return (
         <View style={styles.centerContainer}>
-          <Avatar.Icon size={80} icon="account-off" backgroundColor="#e0e0e0" />
-          <ThemedText type="title" style={styles.emptyTitle}>
+          <Avatar.Icon 
+            size={80} 
+            icon="account-off" 
+            backgroundColor={colors.backgroundSecondary}
+            color={colors.textSecondary}
+          />
+          <ThemedText type="subtitle" style={styles.emptyTitle}>
             No Users Found
           </ThemedText>
-          <ThemedText style={styles.emptyText}>
+          <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
             No users match your search "{searchQuery}"
           </ThemedText>
+          <ThemedButton
+            variant="outlined"
+            onPress={() => setSearchQuery('')}
+            style={styles.tryAgainButton}
+          >
+            Clear Search
+          </ThemedButton>
         </View>
       );
     }
@@ -168,23 +205,37 @@ export default function UserSearchScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Search Header */}
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
         <Searchbar
           placeholder="Search by name or email..."
           onChangeText={setSearchQuery}
           value={searchQuery}
-          style={styles.searchBar}
+          style={[
+            styles.searchBar, 
+            { 
+              backgroundColor: colors.background,
+              elevation: 2,
+            }
+          ]}
+          inputStyle={{ color: colors.text }}
+          iconColor={colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
           autoCapitalize="none"
           autoCorrect={false}
         />
         {searchQuery.length > 0 && (
-          <Button mode="text" onPress={clearSearch} style={styles.clearButton}>
+          <ThemedButton 
+            variant="outlined" 
+            onPress={clearSearch} 
+            style={styles.clearButton}
+            compact
+          >
             Clear
-          </Button>
+          </ThemedButton>
         )}
       </View>
       
-      <Divider />
+      <Divider style={{ backgroundColor: colors.border }} />
       
       {/* Results */}
       <FlatList
@@ -198,8 +249,8 @@ export default function UserSearchScreen() {
       
       {/* Results count */}
       {hasSearched && users.length > 0 && (
-        <View style={styles.resultsFooter}>
-          <ThemedText style={styles.resultsCount}>
+        <View style={[styles.resultsFooter, { backgroundColor: colors.backgroundSecondary }]}>
+          <ThemedText style={[styles.resultsCount, { color: colors.textMuted }]}>
             Found {users.length} user{users.length !== 1 ? 's' : ''}
           </ThemedText>
         </View>
@@ -215,15 +266,21 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 16,
-    marginBottom: 0,
+    padding: 16,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   searchBar: {
     flex: 1,
-    elevation: 4,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   clearButton: {
-    marginLeft: 8,
+    marginLeft: 12,
+    minWidth: 80,
   },
   listContent: {
     padding: 16,
@@ -233,25 +290,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
+    minHeight: 300,
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 16,
+    fontSize: 16,
   },
   emptyTitle: {
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptyText: {
     textAlign: 'center',
-    opacity: 0.7,
+    opacity: 0.8,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  tryAgainButton: {
+    marginTop: 8,
+    minWidth: 120,
   },
   userCard: {
-    marginBottom: 12,
-    elevation: 2,
-  },
-  userCardDark: {
-    backgroundColor: '#333',
+    marginBottom: 8,
   },
   cardContent: {
     flexDirection: 'row',
@@ -266,31 +328,31 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontWeight: '600',
     marginBottom: 2,
   },
   userEmail: {
     fontSize: 14,
-    opacity: 0.7,
     marginBottom: 2,
+    opacity: 0.8,
   },
   joinDate: {
     fontSize: 12,
-    opacity: 0.5,
+    opacity: 0.6,
   },
   actionContainer: {
-    marginLeft: 8,
+    marginLeft: 12,
   },
   connectButton: {
-    borderColor: '#0a7ea4',
+    minWidth: 100,
   },
   resultsFooter: {
-    padding: 16,
-    paddingTop: 8,
+    padding: 12,
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
   },
   resultsCount: {
     fontSize: 12,
-    opacity: 0.6,
+    fontWeight: '500',
   },
 });

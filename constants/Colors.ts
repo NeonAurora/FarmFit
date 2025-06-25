@@ -42,6 +42,8 @@ export const BrandColors = {
   warning: '#ff9800',
   error: '#f44336',
   info: '#2196f3',
+  native: "#141218",
+  admin: "#E74C3C",
 
   // Special colors for features
   debug: '#ff6b35',

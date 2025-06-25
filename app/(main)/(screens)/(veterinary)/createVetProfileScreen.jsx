@@ -3,25 +3,30 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View, Alert } from 'react-native';
 import { 
   TextInput, 
-  Button, 
   Text, 
   Divider, 
   List, 
-  Card,
-  IconButton,
-  Chip
+  IconButton
 } from 'react-native-paper';
 import { uploadImage } from '@/services/supabase';
 import { saveVeterinaryClinicData } from '@/services/supabase';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { 
+  useInputColors,
+  useCardColors 
+} from '@/hooks/useThemeColor';
 import ImagePicker from '@/components/interfaces/ImagePicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 
 export default function CreateVetProfileScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, brandColors, isDark } = useTheme();
+  const inputColors = useInputColors();
+  const cardColors = useCardColors();
   const { user } = useAuth();
   
   // Basic clinic information
@@ -234,309 +239,405 @@ export default function CreateVetProfileScreen() {
   
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Create Veterinary Clinic Profile</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
+          Create Veterinary Clinic Profile
+        </ThemedText>
         
         {/* Cover Photo Section */}
-        <Text style={styles.sectionLabel}>📸 Cover Photo of the Clinic</Text>
-        <ImagePicker
-          mode="cover"
-          images={coverPhoto}
-          onImagesSelected={setCoverPhoto}
-          isUploading={isUploading}
-          placeholder="Tap to add clinic cover photo"
-        />
-        
-        <Divider style={styles.divider} />
+        <ThemedCard variant="elevated" elevation={1} style={styles.photoCard}>
+          <View style={styles.cardContent}>
+            <ThemedText type="defaultSemiBold" style={[styles.sectionLabel, { color: colors.text }]}>
+              📸 Clinic Cover Photo
+            </ThemedText>
+            <ImagePicker
+              mode="cover"
+              images={coverPhoto}
+              onImagesSelected={setCoverPhoto}
+              isUploading={isUploading}
+              placeholder="Tap to add clinic cover photo"
+            />
+          </View>
+        </ThemedCard>
         
         {/* Basic Information */}
-        <List.Accordion
-          title="🏥 Clinic Information"
-          expanded={basicInfoExpanded}
-          onPress={() => setBasicInfoExpanded(!basicInfoExpanded)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-        >
-          <View style={styles.accordionContent}>
-            <TextInput
-              label="Clinic Name *"
-              value={clinicName}
-              onChangeText={setClinicName}
-              style={styles.input}
-              mode="outlined"
-            />
-            
-            <Text style={styles.subSectionLabel}>Clinic Address</Text>
-            <TextInput
-              label="Full Address *"
-              value={fullAddress}
-              onChangeText={setFullAddress}
-              style={styles.input}
-              mode="outlined"
-              multiline
-              numberOfLines={2}
-            />
-            
-            <TextInput
-              label="Sub-district/City/Thana"
-              value={subDistrict}
-              onChangeText={setSubDistrict}
-              style={styles.input}
-              mode="outlined"
-            />
-            
-            <TextInput
-              label="District"
-              value={district}
-              onChangeText={setDistrict}
-              style={styles.input}
-              mode="outlined"
-            />
-            
-            <TextInput
-              label="Google Map Link (or Coordinates)"
-              value={googleMapLink}
-              onChangeText={setGoogleMapLink}
-              style={styles.input}
-              mode="outlined"
-              placeholder="https://maps.google.com/..."
-            />
-            
-            <TextInput
-              label="Primary Contact Number *"
-              value={primaryContact}
-              onChangeText={setPrimaryContact}
-              style={styles.input}
-              mode="outlined"
-              keyboardType="phone-pad"
-            />
-          </View>
-        </List.Accordion>
+        <ThemedCard variant="elevated" elevation={1} style={styles.sectionCard}>
+          <List.Accordion
+            title="🏥 Clinic Information"
+            expanded={basicInfoExpanded}
+            onPress={() => setBasicInfoExpanded(!basicInfoExpanded)}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+          >
+            <View style={styles.accordionContent}>
+              <TextInput
+                label="Clinic Name *"
+                value={clinicName}
+                onChangeText={setClinicName}
+                style={styles.input}
+                mode="outlined"
+                outlineColor={inputColors.border}
+                activeOutlineColor={inputColors.borderFocused}
+                textColor={inputColors.text}
+                placeholderTextColor={inputColors.placeholder}
+              />
+              
+              <ThemedText type="defaultSemiBold" style={[styles.subSectionLabel, { color: colors.text }]}>
+                Clinic Address
+              </ThemedText>
+              <TextInput
+                label="Full Address *"
+                value={fullAddress}
+                onChangeText={setFullAddress}
+                style={styles.input}
+                mode="outlined"
+                multiline
+                numberOfLines={2}
+                outlineColor={inputColors.border}
+                activeOutlineColor={inputColors.borderFocused}
+                textColor={inputColors.text}
+                placeholderTextColor={inputColors.placeholder}
+              />
+              
+              <TextInput
+                label="Sub-district/City/Thana"
+                value={subDistrict}
+                onChangeText={setSubDistrict}
+                style={styles.input}
+                mode="outlined"
+                outlineColor={inputColors.border}
+                activeOutlineColor={inputColors.borderFocused}
+                textColor={inputColors.text}
+                placeholderTextColor={inputColors.placeholder}
+              />
+              
+              <TextInput
+                label="District"
+                value={district}
+                onChangeText={setDistrict}
+                style={styles.input}
+                mode="outlined"
+                outlineColor={inputColors.border}
+                activeOutlineColor={inputColors.borderFocused}
+                textColor={inputColors.text}
+                placeholderTextColor={inputColors.placeholder}
+              />
+              
+              <TextInput
+                label="Google Map Link (or Coordinates)"
+                value={googleMapLink}
+                onChangeText={setGoogleMapLink}
+                style={styles.input}
+                mode="outlined"
+                placeholder="https://maps.google.com/..."
+                outlineColor={inputColors.border}
+                activeOutlineColor={inputColors.borderFocused}
+                textColor={inputColors.text}
+                placeholderTextColor={inputColors.placeholder}
+              />
+              
+              <TextInput
+                label="Primary Contact Number *"
+                value={primaryContact}
+                onChangeText={setPrimaryContact}
+                style={styles.input}
+                mode="outlined"
+                keyboardType="phone-pad"
+                outlineColor={inputColors.border}
+                activeOutlineColor={inputColors.borderFocused}
+                textColor={inputColors.text}
+                placeholderTextColor={inputColors.placeholder}
+              />
+            </View>
+          </List.Accordion>
+        </ThemedCard>
         
         {/* Visiting Time */}
-        <List.Accordion
-          title="🕒 Visiting Time"
-          expanded={visitingTimeExpanded}
-          onPress={() => setVisitingTimeExpanded(!visitingTimeExpanded)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-        >
-          <View style={styles.accordionContent}>
-            <Text style={styles.subSectionLabel}>Saturday to Thursday</Text>
-            <View style={styles.timeRow}>
-              <TextInput
-                label="From"
-                value={satToThuFrom}
-                onChangeText={setSatToThuFrom}
-                style={[styles.input, styles.timeInput]}
-                mode="outlined"
-              />
-              <TextInput
-                label="To"
-                value={satToThuTo}
-                onChangeText={setSatToThuTo}
-                style={[styles.input, styles.timeInput]}
-                mode="outlined"
-              />
+        <ThemedCard variant="elevated" elevation={1} style={styles.sectionCard}>
+          <List.Accordion
+            title="🕒 Visiting Time"
+            expanded={visitingTimeExpanded}
+            onPress={() => setVisitingTimeExpanded(!visitingTimeExpanded)}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+          >
+            <View style={styles.accordionContent}>
+              <ThemedText type="defaultSemiBold" style={[styles.subSectionLabel, { color: colors.text }]}>
+                Saturday to Thursday
+              </ThemedText>
+              <View style={styles.timeRow}>
+                <TextInput
+                  label="From"
+                  value={satToThuFrom}
+                  onChangeText={setSatToThuFrom}
+                  style={[styles.input, styles.timeInput]}
+                  mode="outlined"
+                  outlineColor={inputColors.border}
+                  activeOutlineColor={inputColors.borderFocused}
+                  textColor={inputColors.text}
+                />
+                <TextInput
+                  label="To"
+                  value={satToThuTo}
+                  onChangeText={setSatToThuTo}
+                  style={[styles.input, styles.timeInput]}
+                  mode="outlined"
+                  outlineColor={inputColors.border}
+                  activeOutlineColor={inputColors.borderFocused}
+                  textColor={inputColors.text}
+                />
+              </View>
+              
+              <ThemedText type="defaultSemiBold" style={[styles.subSectionLabel, { color: colors.text }]}>
+                Friday
+              </ThemedText>
+              <View style={styles.timeRow}>
+                <TextInput
+                  label="From"
+                  value={fridayFrom}
+                  onChangeText={setFridayFrom}
+                  style={[styles.input, styles.timeInput]}
+                  mode="outlined"
+                  outlineColor={inputColors.border}
+                  activeOutlineColor={inputColors.borderFocused}
+                  textColor={inputColors.text}
+                />
+                <TextInput
+                  label="To"
+                  value={fridayTo}
+                  onChangeText={setFridayTo}
+                  style={[styles.input, styles.timeInput]}
+                  mode="outlined"
+                  outlineColor={inputColors.border}
+                  activeOutlineColor={inputColors.borderFocused}
+                  textColor={inputColors.text}
+                />
+              </View>
             </View>
-            
-            <Text style={styles.subSectionLabel}>Friday</Text>
-            <View style={styles.timeRow}>
-              <TextInput
-                label="From"
-                value={fridayFrom}
-                onChangeText={setFridayFrom}
-                style={[styles.input, styles.timeInput]}
-                mode="outlined"
-              />
-              <TextInput
-                label="To"
-                value={fridayTo}
-                onChangeText={setFridayTo}
-                style={[styles.input, styles.timeInput]}
-                mode="outlined"
-              />
-            </View>
-          </View>
-        </List.Accordion>
+          </List.Accordion>
+        </ThemedCard>
         
         {/* Doctors List */}
-        <List.Accordion
-          title="👩‍⚕️ Doctors List"
-          expanded={doctorsExpanded}
-          onPress={() => setDoctorsExpanded(!doctorsExpanded)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-        >
-          <View style={styles.accordionContent}>
-            {doctors.map((doctor, index) => (
-              <Card key={doctor.id} style={styles.doctorCard}>
-                <Card.Content>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>Doctor {index + 1}</Text>
-                    {doctors.length > 1 && (
-                      <IconButton
-                        icon="delete"
-                        size={20}
-                        iconColor="#E74C3C"
-                        onPress={() => removeDoctor(doctor.id)}
-                      />
-                    )}
+        <ThemedCard variant="elevated" elevation={1} style={styles.sectionCard}>
+          <List.Accordion
+            title="👩‍⚕️ Doctors List"
+            expanded={doctorsExpanded}
+            onPress={() => setDoctorsExpanded(!doctorsExpanded)}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+          >
+            <View style={styles.accordionContent}>
+              {doctors.map((doctor, index) => (
+                <ThemedCard 
+                  key={doctor.id} 
+                  variant="flat" 
+                  style={[styles.itemCard, { backgroundColor: colors.backgroundSecondary }]}
+                >
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardHeader}>
+                      <ThemedText type="defaultSemiBold" style={[styles.cardTitle, { color: colors.text }]}>
+                        Doctor {index + 1}
+                      </ThemedText>
+                      {doctors.length > 1 && (
+                        <IconButton
+                          icon="delete"
+                          size={20}
+                          iconColor={brandColors.error}
+                          onPress={() => removeDoctor(doctor.id)}
+                        />
+                      )}
+                    </View>
+                    
+                    <ThemedText type="defaultSemiBold" style={[styles.imageLabel, { color: colors.text }]}>
+                      Photo
+                    </ThemedText>
+                    <ImagePicker
+                      mode="single"
+                      images={doctor.photo}
+                      onImagesSelected={(photoUri) => {
+                        setDoctors(prev => 
+                          prev.map(doc => 
+                            doc.id === doctor.id 
+                              ? { ...doc, photo: photoUri }
+                              : doc
+                          )
+                        );
+                      }}
+                      isUploading={isUploading}
+                      placeholder="Tap to add doctor photo"
+                    />
+                    
+                    <TextInput
+                      label="Full Name *"
+                      value={doctor.fullName}
+                      onChangeText={(value) => updateDoctor(doctor.id, 'fullName', value)}
+                      style={styles.input}
+                      mode="outlined"
+                      outlineColor={inputColors.border}
+                      activeOutlineColor={inputColors.borderFocused}
+                      textColor={inputColors.text}
+                      placeholderTextColor={inputColors.placeholder}
+                    />
+                    
+                    <TextInput
+                      label="Degree(s)"
+                      value={doctor.degrees}
+                      onChangeText={(value) => updateDoctor(doctor.id, 'degrees', value)}
+                      style={styles.input}
+                      mode="outlined"
+                      placeholder="DVM, PhD, etc."
+                      outlineColor={inputColors.border}
+                      activeOutlineColor={inputColors.borderFocused}
+                      textColor={inputColors.text}
+                      placeholderTextColor={inputColors.placeholder}
+                    />
+                    
+                    <TextInput
+                      label="Phone Number"
+                      value={doctor.phoneNumber}
+                      onChangeText={(value) => updateDoctor(doctor.id, 'phoneNumber', value)}
+                      style={styles.input}
+                      mode="outlined"
+                      keyboardType="phone-pad"
+                      outlineColor={inputColors.border}
+                      activeOutlineColor={inputColors.borderFocused}
+                      textColor={inputColors.text}
+                      placeholderTextColor={inputColors.placeholder}
+                    />
                   </View>
-                  
-                  <Text style={styles.imageLabel}>Photo</Text>
-                  <ImagePicker
-                    mode="single"
-                    images={doctor.photo}
-                    onImagesSelected={(photoUri) => {
-                      setDoctors(prev => 
-                        prev.map(doc => 
-                          doc.id === doctor.id 
-                            ? { ...doc, photo: photoUri }
-                            : doc
-                        )
-                      );
-                    }}
-                    isUploading={isUploading}
-                    placeholder="Tap to add doctor photo"
-                  />
-                  
-                  <TextInput
-                    label="Full Name *"
-                    value={doctor.fullName}
-                    onChangeText={(value) => updateDoctor(doctor.id, 'fullName', value)}
-                    style={styles.input}
-                    mode="outlined"
-                  />
-                  
-                  <TextInput
-                    label="Degree(s)"
-                    value={doctor.degrees}
-                    onChangeText={(value) => updateDoctor(doctor.id, 'degrees', value)}
-                    style={styles.input}
-                    mode="outlined"
-                    placeholder="DVM, PhD, etc."
-                  />
-                  
-                  <TextInput
-                    label="Phone Number"
-                    value={doctor.phoneNumber}
-                    onChangeText={(value) => updateDoctor(doctor.id, 'phoneNumber', value)}
-                    style={styles.input}
-                    mode="outlined"
-                    keyboardType="phone-pad"
-                  />
-                </Card.Content>
-              </Card>
-            ))}
-            
-            <Button
-              mode="outlined"
-              onPress={addDoctor}
-              style={styles.addButton}
-              icon="plus"
-            >
-              Add Another Doctor
-            </Button>
-          </View>
-        </List.Accordion>
+                </ThemedCard>
+              ))}
+              
+              <ThemedButton
+                variant="outlined"
+                onPress={addDoctor}
+                style={styles.addButton}
+                icon="plus"
+              >
+                Add Another Doctor
+              </ThemedButton>
+            </View>
+          </List.Accordion>
+        </ThemedCard>
         
         {/* Services Offered */}
-        <List.Accordion
-          title="💊 Services Offered"
-          expanded={servicesExpanded}
-          onPress={() => setServicesExpanded(!servicesExpanded)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-        >
-          <View style={styles.accordionContent}>
-            {services.map((service, index) => (
-              <Card key={service.id} style={styles.serviceCard}>
-                <Card.Content>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>Service {index + 1}</Text>
-                    {services.length > 1 && (
-                      <IconButton
-                        icon="delete"
-                        size={20}
-                        iconColor="#E74C3C"
-                        onPress={() => removeService(service.id)}
-                      />
-                    )}
+        <ThemedCard variant="elevated" elevation={1} style={styles.sectionCard}>
+          <List.Accordion
+            title="💊 Services Offered"
+            expanded={servicesExpanded}
+            onPress={() => setServicesExpanded(!servicesExpanded)}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+          >
+            <View style={styles.accordionContent}>
+              {services.map((service, index) => (
+                <ThemedCard 
+                  key={service.id} 
+                  variant="flat" 
+                  style={[styles.itemCard, { backgroundColor: colors.backgroundSecondary }]}
+                >
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardHeader}>
+                      <ThemedText type="defaultSemiBold" style={[styles.cardTitle, { color: colors.text }]}>
+                        Service {index + 1}
+                      </ThemedText>
+                      {services.length > 1 && (
+                        <IconButton
+                          icon="delete"
+                          size={20}
+                          iconColor={brandColors.error}
+                          onPress={() => removeService(service.id)}
+                        />
+                      )}
+                    </View>
+                    
+                    <TextInput
+                      label="Service Name *"
+                      value={service.serviceName}
+                      onChangeText={(value) => updateService(service.id, 'serviceName', value)}
+                      style={styles.input}
+                      mode="outlined"
+                      placeholder="e.g., Spaying, Vaccination, Check-up"
+                      outlineColor={inputColors.border}
+                      activeOutlineColor={inputColors.borderFocused}
+                      textColor={inputColors.text}
+                      placeholderTextColor={inputColors.placeholder}
+                    />
+                    
+                    <TextInput
+                      label="Fee (BDT)"
+                      value={service.fee}
+                      onChangeText={(value) => updateService(service.id, 'fee', value)}
+                      style={styles.input}
+                      mode="outlined"
+                      keyboardType="numeric"
+                      placeholder="e.g., 1500"
+                      outlineColor={inputColors.border}
+                      activeOutlineColor={inputColors.borderFocused}
+                      textColor={inputColors.text}
+                      placeholderTextColor={inputColors.placeholder}
+                    />
                   </View>
-                  
-                  <TextInput
-                    label="Service Name *"
-                    value={service.serviceName}
-                    onChangeText={(value) => updateService(service.id, 'serviceName', value)}
-                    style={styles.input}
-                    mode="outlined"
-                    placeholder="e.g., Spaying, Vaccination, Check-up"
-                  />
-                  
-                  <TextInput
-                    label="Fee (BDT)"
-                    value={service.fee}
-                    onChangeText={(value) => updateService(service.id, 'fee', value)}
-                    style={styles.input}
-                    mode="outlined"
-                    keyboardType="numeric"
-                    placeholder="e.g., 1500"
-                  />
-                </Card.Content>
-              </Card>
-            ))}
-            
-            <Button
-              mode="outlined"
-              onPress={addService}
-              style={styles.addButton}
-              icon="plus"
-            >
-              Add Another Service
-            </Button>
-          </View>
-        </List.Accordion>
+                </ThemedCard>
+              ))}
+              
+              <ThemedButton
+                variant="outlined"
+                onPress={addService}
+                style={styles.addButton}
+                icon="plus"
+              >
+                Add Another Service
+              </ThemedButton>
+            </View>
+          </List.Accordion>
+        </ThemedCard>
         
         {/* Notices */}
-        <List.Accordion
-          title="📢 Notices (Optional)"
-          expanded={noticesExpanded}
-          onPress={() => setNoticesExpanded(!noticesExpanded)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-        >
-          <View style={styles.accordionContent}>
-            <TextInput
-              label="Special notices or announcements"
-              value={notices}
-              onChangeText={setNotices}
-              style={styles.input}
-              mode="outlined"
-              multiline
-              numberOfLines={4}
-              placeholder="e.g., World Veterinary Day discount, emergency contact info, special timings..."
-            />
-          </View>
-        </List.Accordion>
+        <ThemedCard variant="elevated" elevation={1} style={styles.sectionCard}>
+          <List.Accordion
+            title="📢 Notices (Optional)"
+            expanded={noticesExpanded}
+            onPress={() => setNoticesExpanded(!noticesExpanded)}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+          >
+            <View style={styles.accordionContent}>
+              <TextInput
+                label="Special notices or announcements"
+                value={notices}
+                onChangeText={setNotices}
+                style={styles.input}
+                mode="outlined"
+                multiline
+                numberOfLines={4}
+                placeholder="e.g., World Veterinary Day discount, emergency contact info, special timings..."
+                outlineColor={inputColors.border}
+                activeOutlineColor={inputColors.borderFocused}
+                textColor={inputColors.text}
+                placeholderTextColor={inputColors.placeholder}
+              />
+            </View>
+          </List.Accordion>
+        </ThemedCard>
         
         {/* Submit Button */}
-        <View style={styles.submitContainer}>
-          <Button 
-            mode="contained" 
-            onPress={handleSubmitProfile}
-            style={styles.submitButton}
-            disabled={isSaving || isUploading}
-            loading={isSaving}
-            icon="check"
-          >
-            Submit Profile for Review
-          </Button>
-          
-          <Text style={styles.disclaimerText}>
-            * Required fields. Your profile will be reviewed and approved within 24-48 hours.
-          </Text>
-        </View>
+        <ThemedCard variant="elevated" elevation={2} style={styles.submitCard}>
+          <View style={styles.submitContainer}>
+            <ThemedButton 
+              variant="primary"
+              onPress={handleSubmitProfile}
+              style={styles.submitButton}
+              disabled={isSaving || isUploading}
+              loading={isSaving}
+              icon="check"
+            >
+              Submit Profile for Review
+            </ThemedButton>
+            
+            <ThemedText 
+              variant="bodySmall" 
+              style={[styles.disclaimerText, { color: colors.textMuted }]}
+            >
+              * Required fields. Your profile will be reviewed and approved within 24-48 hours.
+            </ThemedText>
+          </View>
+        </ThemedCard>
       </ScrollView>
     </ThemedView>
   );
@@ -548,43 +649,42 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 32,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: 20,
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  photoCard: {
+    marginBottom: 12,
+  },
+  sectionCard: {
+    marginBottom: 8,
+  },
+  cardContent: {
+    padding: 16,
   },
   sectionLabel: {
+    marginBottom: 12,
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 12,
-    marginTop: 8,
   },
   subSectionLabel: {
     fontSize: 16,
     fontWeight: '500',
     marginBottom: 8,
-    marginTop: 12,
+    marginTop: 8,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 12,
     backgroundColor: "transparent",
-  },
-  divider: {
-    marginVertical: 20,
-    height: 1,
   },
   imageLabel: {
     fontSize: 14,
     marginBottom: 8,
     fontWeight: '500',
-  },
-  accordion: {
-    marginBottom: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
   },
   accordionTitle: {
     fontWeight: '500',
@@ -592,23 +692,17 @@ const styles = StyleSheet.create({
   },
   accordionContent: {
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 16,
   },
   timeRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
   },
   timeInput: {
     flex: 1,
-    marginHorizontal: 4,
   },
-  doctorCard: {
-    marginBottom: 16,
-    backgroundColor: '#f8f9fa',
-  },
-  serviceCard: {
-    marginBottom: 16,
-    backgroundColor: '#f8f9fa',
+  itemCard: {
+    marginBottom: 12,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -622,22 +716,25 @@ const styles = StyleSheet.create({
   },
   addButton: {
     marginTop: 8,
-    borderColor: '#0a7ea4',
+  },
+  submitCard: {
+    marginTop: 16,
   },
   submitContainer: {
-    marginTop: 24,
+    padding: 20,
     alignItems: 'center',
   },
   submitButton: {
     paddingVertical: 8,
     paddingHorizontal: 32,
-    backgroundColor: '#2E86DE',
+    minWidth: 200,
   },
   disclaimerText: {
     fontSize: 12,
     textAlign: 'center',
     marginTop: 12,
-    opacity: 0.7,
+    opacity: 0.8,
     fontStyle: 'italic',
+    lineHeight: 18,
   },
 });

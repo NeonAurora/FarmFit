@@ -1,12 +1,9 @@
-
 // app/(main)/(screens)/(practitioner)/reviewApplication.jsx
 import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, Alert, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { 
-  Card, 
   Text, 
   Avatar, 
-  Button,
   TextInput,
   Divider,
   List,
@@ -15,7 +12,16 @@ import {
   Portal
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { 
+  useActivityIndicatorColors, 
+  useChipColors, 
+  useInputColors,
+  useCardColors 
+} from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useRoleProtection } from '@/hooks/useRoleProtection';
@@ -28,10 +34,13 @@ import {
 const { width } = Dimensions.get('window');
 
 export default function ReviewApplicationScreen() {
-  const colorScheme = useColorScheme();
+  const { colors, brandColors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const chipColors = useChipColors();
+  const inputColors = useInputColors();
+  const cardColors = useCardColors();
   const { user } = useAuth();
   const { profileId } = useLocalSearchParams();
-  const isDark = colorScheme === 'dark';
 
   // Protect route - only admins can access
   const { hasAccess, loading: roleLoading } = useRoleProtection('admin', '/');
@@ -151,10 +160,10 @@ export default function ReviewApplicationScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#E74C3C" />
-          <Text style={styles.loadingText}>
+          <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
             {roleLoading ? 'Checking permissions...' : 'Loading application...'}
-          </Text>
+          </ThemedText>
         </View>
       </ThemedView>
     );
@@ -164,10 +173,12 @@ export default function ReviewApplicationScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Application not found</Text>
-          <Button mode="contained" onPress={() => router.back()}>
+          <ThemedText style={[styles.errorText, { color: brandColors.error }]}>
+            Application not found
+          </ThemedText>
+          <ThemedButton variant="primary" onPress={() => router.back()}>
             Go Back
-          </Button>
+          </ThemedButton>
         </View>
       </ThemedView>
     );
@@ -180,8 +191,8 @@ export default function ReviewApplicationScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         
         {/* Application Header */}
-        <Card style={styles.headerCard}>
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={3} style={styles.headerCard}>
+          <View style={styles.headerContent}>
             <View style={styles.applicantHeader}>
               {application.profile_photo_url ? (
                 <Avatar.Image 
@@ -192,31 +203,40 @@ export default function ReviewApplicationScreen() {
                 <Avatar.Text 
                   size={80} 
                   label={application.full_name?.charAt(0)?.toUpperCase() || 'A'} 
-                  backgroundColor="#27AE60"
+                  backgroundColor={brandColors.primary}
                 />
               )}
               
               <View style={styles.applicantInfo}>
-                <Text variant="headlineSmall" style={styles.applicantName}>
+                <Text variant="headlineSmall" style={[styles.applicantName, { color: colors.text }]}>
                   {application.full_name}
                 </Text>
-                <Text variant="titleMedium" style={styles.designation}>
+                <Text variant="titleMedium" style={[styles.designation, { color: brandColors.primary }]}>
                   {application.designation}
                 </Text>
-                <Text variant="bodyMedium" style={styles.degrees}>
+                <Text variant="bodyMedium" style={[styles.degrees, { color: colors.textSecondary }]}>
                   {application.degrees_certificates}
                 </Text>
                 
                 <Chip 
                   mode="elevated" 
-                  style={styles.statusChip}
+                  style={[
+                    styles.statusChip,
+                    { 
+                      backgroundColor: `${brandColors.warning}20`,
+                    }
+                  ]}
+                  textStyle={{ color: brandColors.warning }}
                 >
                   📋 Under Review
                 </Chip>
               </View>
             </View>
             
-            <Text variant="bodySmall" style={styles.submissionDate}>
+            <ThemedText 
+              variant="bodySmall" 
+              style={[styles.submissionDate, { color: colors.textSecondary }]}
+            >
               Submitted: {new Date(application.created_at).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -224,130 +244,177 @@ export default function ReviewApplicationScreen() {
                 hour: '2-digit',
                 minute: '2-digit'
               })}
-            </Text>
-          </Card.Content>
-        </Card>
+            </ThemedText>
+          </View>
+        </ThemedCard>
 
         {/* Professional Details */}
-        <Card style={styles.infoCard}>
-          <Card.Title title="Professional Information" />
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={1} style={styles.infoCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Professional Information
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <List.Item
               title="BVC Registration Number"
               description={application.bvc_registration_number}
-              left={(props) => <List.Icon {...props} icon="certificate" />}
+              left={(props) => <List.Icon {...props} icon="certificate" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
-            <Divider />
+            <Divider style={{ backgroundColor: colors.border }} />
             <List.Item
               title="Areas of Expertise"
               description={application.areas_of_expertise}
-              left={(props) => <List.Icon {...props} icon="medical-bag" />}
+              left={(props) => <List.Icon {...props} icon="medical-bag" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
         {/* Location & Contact */}
-        <Card style={styles.infoCard}>
-          <Card.Title title="Location & Contact" />
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={1} style={styles.infoCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Location & Contact
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <List.Item
               title="Chamber Address"
               description={application.chamber_address}
-              left={(props) => <List.Icon {...props} icon="map-marker" />}
+              left={(props) => <List.Icon {...props} icon="map-marker" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
-            <Divider />
+            <Divider style={{ backgroundColor: colors.border }} />
             <List.Item
               title="Location"
               description={`${application.sub_district}, ${application.district}`}
-              left={(props) => <List.Icon {...props} icon="map" />}
+              left={(props) => <List.Icon {...props} icon="map" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
-            <Divider />
+            <Divider style={{ backgroundColor: colors.border }} />
             <List.Item
               title="Contact Number"
               description={application.contact_info}
-              left={(props) => <List.Icon {...props} icon="phone" />}
+              left={(props) => <List.Icon {...props} icon="phone" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
             {application.whatsapp_number && (
               <>
-                <Divider />
+                <Divider style={{ backgroundColor: colors.border }} />
                 <List.Item
                   title="WhatsApp"
                   description={application.whatsapp_number}
-                  left={(props) => <List.Icon {...props} icon="whatsapp" />}
+                  left={(props) => <List.Icon {...props} icon="whatsapp" color={colors.textSecondary} />}
+                  titleStyle={{ color: colors.text }}
+                  descriptionStyle={{ color: colors.textSecondary }}
                 />
               </>
             )}
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
         {/* Educational Background */}
         {verificationDoc && (
-          <Card style={styles.infoCard}>
-            <Card.Title title="Educational Background" />
-            <Card.Content>
+          <ThemedCard variant="elevated" elevation={1} style={styles.infoCard}>
+            <View style={styles.cardTitleContainer}>
+              <ThemedText type="subtitle" style={styles.cardTitle}>
+                Educational Background
+              </ThemedText>
+            </View>
+            <View style={styles.cardContent}>
               <List.Item
                 title="University"
                 description={verificationDoc.university_name}
-                left={(props) => <List.Icon {...props} icon="school" />}
+                left={(props) => <List.Icon {...props} icon="school" color={colors.textSecondary} />}
+                titleStyle={{ color: colors.text }}
+                descriptionStyle={{ color: colors.textSecondary }}
               />
-              <Divider />
+              <Divider style={{ backgroundColor: colors.border }} />
               <List.Item
                 title="Graduation Session"
                 description={verificationDoc.graduation_session}
-                left={(props) => <List.Icon {...props} icon="calendar-account" />}
+                left={(props) => <List.Icon {...props} icon="calendar-account" color={colors.textSecondary} />}
+                titleStyle={{ color: colors.text }}
+                descriptionStyle={{ color: colors.textSecondary }}
               />
-            </Card.Content>
-          </Card>
+            </View>
+          </ThemedCard>
         )}
 
         {/* Verification Documents */}
         {verificationDoc && (
-          <Card style={styles.documentsCard}>
-            <Card.Title title="🔒 Verification Documents" titleStyle={styles.documentsTitle} />
-            <Card.Content>
-              <Text variant="bodySmall" style={styles.documentsNote}>
-                These documents are for verification purposes only and will not be public.
-              </Text>
+          <ThemedCard variant="elevated" elevation={2} style={[styles.documentsCard, { backgroundColor: colors.backgroundSecondary }]}>
+            <View style={styles.cardTitleContainer}>
+              <ThemedText type="subtitle" style={[styles.documentsTitle, { color: brandColors.info }]}>
+                🔒 Verification Documents
+              </ThemedText>
+            </View>
+            <View style={styles.cardContent}>
+              <View style={[styles.documentsNote, { backgroundColor: colors.backgroundTertiary }]}>
+                <ThemedText 
+                  variant="bodySmall" 
+                  style={[styles.documentsNoteText, { color: colors.textSecondary }]}
+                >
+                  These documents are for verification purposes only and will not be public.
+                </ThemedText>
+              </View>
               
               {verificationDoc.degree_certificate_url && (
                 <View style={styles.documentItem}>
-                  <Text variant="titleSmall" style={styles.documentLabel}>
+                  <ThemedText 
+                    type="defaultSemiBold" 
+                    style={[styles.documentLabel, { color: colors.text }]}
+                  >
                     Degree Certificate
-                  </Text>
-                  <Button
-                    mode="outlined"
+                  </ThemedText>
+                  <ThemedButton
+                    variant="outlined"
                     onPress={() => openImageModal(verificationDoc.degree_certificate_url)}
                     style={styles.viewDocButton}
                     icon="file-document"
                   >
                     View Document
-                  </Button>
+                  </ThemedButton>
                 </View>
               )}
               
               {verificationDoc.registration_certificate_url && (
                 <View style={styles.documentItem}>
-                  <Text variant="titleSmall" style={styles.documentLabel}>
+                  <ThemedText 
+                    type="defaultSemiBold" 
+                    style={[styles.documentLabel, { color: colors.text }]}
+                  >
                     BVC Registration Certificate
-                  </Text>
-                  <Button
-                    mode="outlined"
+                  </ThemedText>
+                  <ThemedButton
+                    variant="outlined"
                     onPress={() => openImageModal(verificationDoc.registration_certificate_url)}
                     style={styles.viewDocButton}
                     icon="file-document"
                   >
                     View Document
-                  </Button>
+                  </ThemedButton>
                 </View>
               )}
-            </Card.Content>
-          </Card>
+            </View>
+          </ThemedCard>
         )}
 
         {/* Approval Notes */}
-        <Card style={styles.infoCard}>
-          <Card.Title title="Admin Notes (Optional)" />
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={1} style={styles.infoCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Admin Notes (Optional)
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <TextInput
               label="Notes for approval"
               value={approvalNotes}
@@ -357,38 +424,42 @@ export default function ReviewApplicationScreen() {
               multiline
               numberOfLines={3}
               placeholder="Add any notes about this application..."
+              outlineColor={inputColors.border}
+              activeOutlineColor={inputColors.borderFocused}
+              textColor={inputColors.text}
+              placeholderTextColor={inputColors.placeholder}
             />
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
         {/* Action Buttons */}
-        <Card style={styles.actionsCard}>
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={2} style={styles.actionsCard}>
+          <View style={styles.actionsContent}>
             <View style={styles.actionButtons}>
-              <Button
-                mode="contained"
+              <ThemedButton
                 onPress={handleApprove}
-                style={styles.approveButton}
+                style={[styles.approveButton, { backgroundColor: brandColors.success }]}
+                labelStyle={{ color: colors.textInverse }}
                 disabled={processing}
                 loading={processing}
                 icon="check-circle"
               >
-                Approve
-              </Button>
+                Approve Application
+              </ThemedButton>
               
-              <Button
-                mode="outlined"
+              <ThemedButton
+                variant="outlined"
                 onPress={() => setShowRejectModal(true)}
-                style={styles.rejectButton}
+                style={[styles.rejectButton, { borderColor: brandColors.error }]}
+                labelStyle={{ color: brandColors.error }}
                 disabled={processing}
                 icon="close-circle"
-                textColor="#E74C3C"
               >
-                Reject
-              </Button>
+                Reject Application
+              </ThemedButton>
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
       </ScrollView>
 
@@ -407,13 +478,13 @@ export default function ReviewApplicationScreen() {
                 resizeMode="contain"
               />
             )}
-            <Button
-              mode="contained"
+            <ThemedButton
+              variant="primary"
               onPress={() => setShowImageModal(false)}
               style={styles.closeImageButton}
             >
               Close
-            </Button>
+            </ThemedButton>
           </View>
         </Modal>
       </Portal>
@@ -425,12 +496,19 @@ export default function ReviewApplicationScreen() {
           onDismiss={() => setShowRejectModal(false)}
           contentContainerStyle={styles.rejectModal}
         >
-          <Card>
-            <Card.Title title="Reject Application" />
-            <Card.Content>
-              <Text variant="bodyMedium" style={styles.rejectModalText}>
+          <ThemedCard>
+            <View style={styles.cardTitleContainer}>
+              <ThemedText type="subtitle" style={[styles.cardTitle, { color: brandColors.error }]}>
+                Reject Application
+              </ThemedText>
+            </View>
+            <View style={styles.cardContent}>
+              <ThemedText 
+                variant="bodyMedium" 
+                style={[styles.rejectModalText, { color: colors.text }]}
+              >
                 Please provide a reason for rejecting this application:
-              </Text>
+              </ThemedText>
               
               <TextInput
                 label="Rejection Reason *"
@@ -441,31 +519,34 @@ export default function ReviewApplicationScreen() {
                 multiline
                 numberOfLines={4}
                 placeholder="Explain why this application is being rejected..."
+                outlineColor={inputColors.border}
+                activeOutlineColor={brandColors.error}
+                textColor={inputColors.text}
+                placeholderTextColor={inputColors.placeholder}
               />
               
               <View style={styles.rejectModalActions}>
-                <Button
-                  mode="outlined"
+                <ThemedButton
+                  variant="outlined"
                   onPress={() => setShowRejectModal(false)}
                   style={styles.cancelRejectButton}
                   disabled={processing}
                 >
                   Cancel
-                </Button>
+                </ThemedButton>
                 
-                <Button
-                  mode="contained"
+                <ThemedButton
                   onPress={handleReject}
-                  style={styles.confirmRejectButton}
+                  style={[styles.confirmRejectButton, { backgroundColor: brandColors.error }]}
+                  labelStyle={{ color: colors.textInverse }}
                   disabled={processing}
                   loading={processing}
-                  buttonColor="#E74C3C"
                 >
                   Reject Application
-                </Button>
+                </ThemedButton>
               </View>
-            </Card.Content>
-          </Card>
+            </View>
+          </ThemedCard>
         </Modal>
       </Portal>
     </ThemedView>
@@ -484,6 +565,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 32,
   },
   loadingText: {
     marginTop: 16,
@@ -499,16 +581,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 24,
-    color: '#E74C3C',
   },
   headerCard: {
     marginBottom: 16,
-    elevation: 3,
+  },
+  headerContent: {
+    padding: 20,
   },
   applicantHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   applicantInfo: {
     marginLeft: 20,
@@ -519,48 +602,59 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   designation: {
-    color: '#27AE60',
     marginBottom: 4,
+    fontWeight: '500',
   },
   degrees: {
-    opacity: 0.7,
-    marginBottom: 8,
+    opacity: 0.8,
+    marginBottom: 12,
   },
   statusChip: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFF3E0',
   },
   submissionDate: {
     textAlign: 'center',
-    opacity: 0.6,
+    opacity: 0.7,
     fontStyle: 'italic',
   },
   infoCard: {
     marginBottom: 16,
-    elevation: 1,
+  },
+  cardTitleContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  cardContent: {
+    paddingBottom: 8,
   },
   documentsCard: {
     marginBottom: 16,
-    elevation: 2,
-    backgroundColor: '#FFF8F5',
   },
   documentsTitle: {
-    color: '#E74C3C',
+    fontSize: 18,
+    fontWeight: '600',
   },
   documentsNote: {
-    backgroundColor: '#FFF3E0',
-    padding: 12,
+    padding: 16,
     borderRadius: 8,
     marginBottom: 16,
+  },
+  documentsNoteText: {
     textAlign: 'center',
     fontStyle: 'italic',
+    lineHeight: 20,
   },
   documentItem: {
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingHorizontal: 16,
   },
   documentLabel: {
     marginBottom: 8,
-    fontWeight: '500',
   },
   viewDocButton: {
     alignSelf: 'flex-start',
@@ -570,23 +664,23 @@ const styles = StyleSheet.create({
   },
   actionsCard: {
     marginBottom: 32,
-    elevation: 2,
+  },
+  actionsContent: {
+    padding: 20,
   },
   actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   approveButton: {
-    flex: 1,
-    backgroundColor: '#27AE60',
+    paddingVertical: 8,
   },
   rejectButton: {
-    flex: 1,
+    paddingVertical: 8,
   },
   imageModal: {
     backgroundColor: 'rgba(0,0,0,0.9)',
     margin: 20,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 20,
   },
   imageContainer: {
@@ -596,17 +690,19 @@ const styles = StyleSheet.create({
     width: width - 80,
     height: width - 80,
     marginBottom: 20,
+    borderRadius: 8,
   },
   closeImageButton: {
     marginTop: 16,
+    minWidth: 120,
   },
   rejectModal: {
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
     margin: 20,
-    borderRadius: 8,
   },
   rejectModalText: {
     marginBottom: 16,
+    lineHeight: 22,
   },
   rejectionInput: {
     marginBottom: 20,

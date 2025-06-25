@@ -1,30 +1,32 @@
 // app/(main)/(screens)/petProfileScreen.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
-import { Text, Button, Divider, Card, Avatar, List } from 'react-native-paper';
+import { ScrollView, StyleSheet, View, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { Button, Avatar, List, Chip, IconButton } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useActivityIndicatorColors } from '@/hooks/useThemeColor';
+import { BrandColors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
-import { deleteImage } from '@/services/supabase';
-import { deletePetData } from '@/services/supabase';
+import { deleteImage, deletePetData } from '@/services/supabase';
 import { usePet } from '@/hooks/usePet';
 import { useFocusEffect } from '@react-navigation/native';
 
 export default function PetProfileScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
   const { user } = useAuth();
   
   // Get pet ID from route params
   const { petId } = route.params;
   
   // State for accordion expansion
-  const [expandedDetails, setExpandedDetails] = useState(true);
+  const [expandedDetails, setExpandedDetails] = useState(false);
   
   // Use the custom hook for real-time pet data
   const { pet, loading, error, refetch } = usePet(petId);
@@ -53,8 +55,8 @@ export default function PetProfileScreen() {
   
   const handleDeletePet = async () => {
     Alert.alert(
-      'Confirm Deletion',
-      `Are you sure you want to delete ${pet?.name}?`,
+      'Delete Pet',
+      `Are you sure you want to delete ${pet?.name}? This action cannot be undone.`,
       [
         {
           text: 'Cancel',
@@ -92,9 +94,16 @@ export default function PetProfileScreen() {
   // Loading state
   if (loading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
-        <ThemedText style={styles.loadingText}>Loading pet profile...</ThemedText>
+      <ThemedView style={styles.container}>
+        <View style={styles.centerState}>
+          <ActivityIndicator 
+            size="large" 
+            color={activityIndicatorColors.primary}
+          />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading pet profile...
+          </ThemedText>
+        </View>
       </ThemedView>
     );
   }
@@ -102,130 +111,212 @@ export default function PetProfileScreen() {
   // Pet not found
   if (!pet) {
     return (
-      <ThemedView style={styles.errorContainer}>
-        <ThemedText type="title">Pet Not Found</ThemedText>
-        <Button mode="contained" onPress={() => router.back()} style={styles.button}>
-          Go Back
-        </Button>
+      <ThemedView style={styles.container}>
+        <View style={styles.centerState}>
+          <IconButton
+            icon="alert-circle"
+            size={48}
+            iconColor={colors.error}
+          />
+          <ThemedText type="subtitle" style={styles.centerTitle}>
+            Pet Not Found
+          </ThemedText>
+          <ThemedText style={[styles.centerMessage, { color: colors.textSecondary }]}>
+            This pet may have been deleted or moved
+          </ThemedText>
+          <Button 
+            mode="contained" 
+            onPress={() => router.back()}
+            style={styles.centerAction}
+          >
+            Go Back
+          </Button>
+        </View>
       </ThemedView>
     );
   }
   
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header with image and name */}
-        <Card style={styles.headerCard}>
-          {pet.image_url ? (
-            <Card.Cover source={{ uri: pet.image_url }} style={styles.petImage} />
-          ) : (
-            <View style={[styles.imagePlaceholder, isDark && styles.imagePlaceholderDark]}>
-              <Avatar.Icon 
-                size={80} 
-                icon="paw"
-                color={isDark ? '#eee' : '#666'} 
-                style={styles.placeholderIcon}
-              />
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Pet Header Card */}
+        <ThemedCard variant="elevated" style={styles.headerCard}>
+          <View style={styles.headerContent}>
+            {/* Pet Image */}
+            <View style={styles.imageContainer}>
+              {pet.image_url ? (
+                <TouchableOpacity 
+                  style={styles.imageWrapper}
+                  activeOpacity={0.9}
+                >
+                  <Avatar.Image 
+                    size={120} 
+                    source={{ uri: pet.image_url }}
+                    style={styles.petImage}
+                  />
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.imagePlaceholder, { backgroundColor: colors.surface }]}>
+                  <Avatar.Icon 
+                    size={80} 
+                    icon="account-circle"
+                    color={colors.textSecondary}
+                    style={{ backgroundColor: 'transparent' }}
+                  />
+                </View>
+              )}
             </View>
-          )}
-          
-          <Card.Content style={styles.headerContent}>
-            <ThemedText type="title" style={styles.petName}>{pet.name}</ThemedText>
-            <ThemedText style={styles.petSpecies}>{pet.species}</ThemedText>
-            {/* Show pet type if available */}
-            {pet.pet_type && (
-              <View style={styles.petTypeBadge}>
-                <ThemedText style={styles.petTypeText}>
-                  {pet.pet_type}
-                </ThemedText>
+            
+            {/* Pet Info */}
+            <View style={styles.petHeaderInfo}>
+              <ThemedText type="title" style={styles.petName}>
+                {pet.name}
+              </ThemedText>
+              <ThemedText style={[styles.petSpecies, { color: colors.textSecondary }]}>
+                {pet.species}
+              </ThemedText>
+              
+              {/* Tags Row */}
+              <View style={styles.tagsRow}>
+                {pet.age && (
+                  <Chip 
+                    compact
+                    style={[styles.infoChip, { backgroundColor: colors.surface }]}
+                    textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                  >
+                    {pet.age}
+                  </Chip>
+                )}
+                
+                {pet.sex && (
+                  <Chip 
+                    compact
+                    style={[styles.infoChip, { backgroundColor: colors.surface }]}
+                    textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                  >
+                    {pet.sex}
+                  </Chip>
+                )}
+                
+                {pet.pet_type && (
+                  <Chip 
+                    compact
+                    style={[
+                      styles.typeChip, 
+                      { backgroundColor: BrandColors.primary + '15' }
+                    ]}
+                    textStyle={[styles.chipText, { color: BrandColors.primary }]}
+                  >
+                    {pet.pet_type}
+                  </Chip>
+                )}
               </View>
-            )}
-          </Card.Content>
-        </Card>
+            </View>
+          </View>
+        </ThemedCard>
         
-        {/* Basic Information */}
-        <Card style={styles.infoCard}>
-          <Card.Title title="Basic Information" />
-          <Card.Content>
-            <View style={styles.infoRow}>
-              <ThemedText style={styles.infoLabel}>Age:</ThemedText>
-              <ThemedText style={styles.infoValue}>{pet.age || 'Not specified'}</ThemedText>
-            </View>
+        {/* Basic Information Card */}
+        <ThemedCard variant="elevated" style={styles.infoCard}>
+          <View style={styles.cardContent}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Basic Information
+            </ThemedText>
             
-            <View style={styles.infoRow}>
-              <ThemedText style={styles.infoLabel}>Sex:</ThemedText>
-              <ThemedText style={styles.infoValue}>{pet.sex || 'Not specified'}</ThemedText>
+            <View style={styles.infoGrid}>
+              <View style={styles.infoItem}>
+                <ThemedText style={styles.infoLabel}>Date Acquired</ThemedText>
+                <ThemedText style={[styles.infoValue, { color: colors.textSecondary }]}>
+                  {pet.date_acquired || 'Not specified'}
+                </ThemedText>
+              </View>
+              
+              <View style={styles.infoItem}>
+                <ThemedText style={styles.infoLabel}>Health Status</ThemedText>
+                <ThemedText style={[styles.infoValue, { color: colors.textSecondary }]}>
+                  {pet.health_status || 'Not specified'}
+                </ThemedText>
+              </View>
             </View>
-            
-            <View style={styles.infoRow}>
-              <ThemedText style={styles.infoLabel}>Date Acquired:</ThemedText>
-              <ThemedText style={styles.infoValue}>{pet.date_acquired || 'Not specified'}</ThemedText>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <ThemedText style={styles.infoLabel}>Health Status:</ThemedText>
-              <ThemedText style={styles.infoValue}>{pet.health_status || 'Not specified'}</ThemedText>
-            </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
         
-        {/* Pet Details Section */}
-        <List.Accordion
-          title="Additional Details"
-          expanded={expandedDetails}
-          onPress={() => setExpandedDetails(!expandedDetails)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-          left={props => <List.Icon {...props} icon="paw" />}
-        >
-          <Card style={styles.accordionCard}>
-            <Card.Content>
-              <View style={styles.infoSection}>
-                <ThemedText style={styles.infoLabel}>Behavioral Notes:</ThemedText>
-                <ThemedText style={styles.infoValue}>
-                  {pet.behavioral_notes || 'Not specified'}
-                </ThemedText>
-              </View>
+        {/* Additional Details Card */}
+        <ThemedCard variant="elevated" style={styles.infoCard}>
+          <List.Accordion
+            title="Additional Details"
+            expanded={expandedDetails}
+            onPress={() => setExpandedDetails(!expandedDetails)}
+            style={styles.accordion}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+            left={props => <List.Icon {...props} icon="chevron-down" />}
+          >
+            <View style={styles.accordionContent}>
+              {pet.behavioral_notes && (
+                <View style={styles.detailItem}>
+                  <ThemedText style={styles.detailLabel}>Behavioral Notes</ThemedText>
+                  <ThemedText style={[styles.detailValue, { color: colors.textSecondary }]}>
+                    {pet.behavioral_notes}
+                  </ThemedText>
+                </View>
+              )}
               
-              <View style={styles.infoSection}>
-                <ThemedText style={styles.infoLabel}>Training Progress:</ThemedText>
-                <ThemedText style={styles.infoValue}>
-                  {pet.training_progress || 'Not specified'}
-                </ThemedText>
-              </View>
+              {pet.training_progress && (
+                <View style={styles.detailItem}>
+                  <ThemedText style={styles.detailLabel}>Training Progress</ThemedText>
+                  <ThemedText style={[styles.detailValue, { color: colors.textSecondary }]}>
+                    {pet.training_progress}
+                  </ThemedText>
+                </View>
+              )}
               
-              <View style={styles.infoSection}>
-                <ThemedText style={styles.infoLabel}>Dietary Preferences:</ThemedText>
-                <ThemedText style={styles.infoValue}>
-                  {pet.dietary_preferences || 'Not specified'}
-                </ThemedText>
-              </View>
+              {pet.dietary_preferences && (
+                <View style={styles.detailItem}>
+                  <ThemedText style={styles.detailLabel}>Dietary Preferences</ThemedText>
+                  <ThemedText style={[styles.detailValue, { color: colors.textSecondary }]}>
+                    {pet.dietary_preferences}
+                  </ThemedText>
+                </View>
+              )}
               
-              <View style={styles.infoSection}>
-                <ThemedText style={styles.infoLabel}>Grooming Needs:</ThemedText>
-                <ThemedText style={styles.infoValue}>
-                  {pet.grooming_needs || 'Not specified'}
+              {pet.grooming_needs && (
+                <View style={styles.detailItem}>
+                  <ThemedText style={styles.detailLabel}>Grooming Needs</ThemedText>
+                  <ThemedText style={[styles.detailValue, { color: colors.textSecondary }]}>
+                    {pet.grooming_needs}
+                  </ThemedText>
+                </View>
+              )}
+              
+              {!pet.behavioral_notes && !pet.training_progress && 
+               !pet.dietary_preferences && !pet.grooming_needs && (
+                <ThemedText style={[styles.noDetails, { color: colors.textSecondary }]}>
+                  No additional details available
                 </ThemedText>
-              </View>
-            </Card.Content>
-          </Card>
-        </List.Accordion>
+              )}
+            </View>
+          </List.Accordion>
+        </ThemedCard>
         
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <Button 
             mode="contained" 
             onPress={handleEditPet} 
-            style={[styles.button, styles.editButton]}
+            style={styles.editButton}
+            labelStyle={styles.buttonLabel}
             icon="pencil"
           >
             Edit
           </Button>
           
           <Button 
-            mode="contained" 
+            mode="outlined" 
             onPress={handleDeletePet} 
-            style={[styles.button, styles.deleteButton]}
+            style={styles.deleteButton}
+            labelStyle={[styles.buttonLabel, { color: colors.error }]}
             icon="delete"
           >
             Delete
@@ -241,114 +332,157 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
   },
-  loadingContainer: {
+  centerState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  centerTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  centerMessage: {
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  centerAction: {
+    paddingHorizontal: 24,
   },
   loadingText: {
-    marginTop: 10,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    textAlign: 'center',
+    marginTop: 16,
   },
   headerCard: {
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  petImage: {
-    height: 200,
-  },
-  imagePlaceholder: {
-    height: 200,
-    backgroundColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imagePlaceholderDark: {
-    backgroundColor: '#333',
-  },
-  placeholderIcon: {
-    backgroundColor: 'transparent',
+    marginBottom: 20,
+    elevation: 2,
   },
   headerContent: {
-    padding: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  imageContainer: {
+    marginBottom: 20,
+  },
+  imageWrapper: {
+    borderRadius: 60,
+    elevation: 2,
+  },
+  petImage: {
+    elevation: 2,
+  },
+  imagePlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 1,
+  },
+  petHeaderInfo: {
+    alignItems: 'center',
   },
   petName: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 4,
   },
   petSpecies: {
     fontSize: 16,
-    opacity: 0.7,
-    marginBottom: 10,
+    textAlign: 'center',
+    marginBottom: 16,
   },
-  petTypeBadge: {
-    backgroundColor: '#0a7ea4',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
   },
-  petTypeText: {
-    color: 'white',
+  infoChip: {
+    height: 28,
+  },
+  typeChip: {
+    height: 28,
+  },
+  chipText: {
+    fontSize: 12,
     fontWeight: '500',
   },
   infoCard: {
+    marginBottom: 20,
+    elevation: 1,
+  },
+  cardContent: {
+    padding: 20,
+  },
+  sectionTitle: {
     marginBottom: 16,
+    color: '#666',
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  infoGrid: {
+    gap: 16,
   },
-  infoSection: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  infoItem: {
+    gap: 4,
   },
   infoLabel: {
+    fontSize: 14,
     fontWeight: '500',
-    flex: 1,
   },
   infoValue: {
-    flex: 2,
+    fontSize: 14,
+    lineHeight: 20,
   },
   accordion: {
-    marginBottom: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
   },
   accordionTitle: {
     fontWeight: '500',
+    fontSize: 18,
   },
-  accordionCard: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
+  accordionContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  detailItem: {
     marginBottom: 16,
+    gap: 4,
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  noDetails: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingVertical: 16,
   },
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  button: {
-    flex: 1,
-    marginHorizontal: 8,
+    gap: 16,
+    marginTop: 8,
   },
   editButton: {
-    backgroundColor: '#2E86DE',
+    flex: 1,
+    paddingVertical: 4,
   },
   deleteButton: {
-    backgroundColor: '#E74C3C',
+    flex: 1,
+    paddingVertical: 4,
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

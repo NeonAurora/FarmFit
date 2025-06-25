@@ -1,9 +1,7 @@
 // app/(main)/(screens)/(veterinary)/vetSearchScreen.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { FlatList, StyleSheet, View, TouchableOpacity, Modal, Animated, Dimensions } from 'react-native';
+import { FlatList, StyleSheet, View, Pressable, Modal, Animated, Dimensions } from 'react-native';
 import { 
-  Card, 
-  Text, 
   Avatar, 
   ActivityIndicator, 
   Searchbar, 
@@ -12,13 +10,20 @@ import {
   IconButton,
   Divider,
   RadioButton,
-  Portal
+  Portal,
+  Surface,
+  FAB,
+  ProgressBar,
+  Text
 } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useCardColors, useChipColors, useActivityIndicatorColors } from '@/hooks/useThemeColor';
 import { getVeterinaryClinics } from '@/services/supabase';
 import { getClinicRatingSummary } from '@/services/supabase/ratingService';
 import { StarRating } from '@/components/veterinary/StarRating';
@@ -27,8 +32,10 @@ const { width: screenWidth } = Dimensions.get('window');
 
 export default function VetSearchScreen() {
   const lastFetchTime = useRef(0);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark, brandColors } = useTheme();
+  const cardColors = useCardColors();
+  const chipColors = useChipColors();
+  const activityIndicatorColors = useActivityIndicatorColors();
   
   const [clinics, setClinics] = useState([]);
   const [filteredClinics, setFilteredClinics] = useState([]);
@@ -38,16 +45,25 @@ export default function VetSearchScreen() {
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [clinicRatings, setClinicRatings] = useState({});
-  
-  // Sort-related state
   const [showSortModal, setShowSortModal] = useState(false);
   const [sortBy, setSortBy] = useState('default');
   
+  // View mode cycling state
+  const [viewMode, setViewMode] = useState('full'); // 'full' | 'compact' | 'grid'
+  const viewModeAnimation = useRef(new Animated.Value(1)).current;
+  
   // Search bar animation state
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const searchBarWidth = useRef(new Animated.Value(screenWidth - 32 - 96)).current; // Initial width (screen - margins - buttons)
+  const searchBarWidth = useRef(new Animated.Value(screenWidth - 32 - 144)).current; // For 3 buttons
   const buttonOpacity = useRef(new Animated.Value(1)).current;
   const buttonTranslateX = useRef(new Animated.Value(0)).current;
+  
+  // View mode definitions
+  const viewModes = [
+    { mode: 'full', icon: 'view-agenda', label: 'Full View' },
+    { mode: 'compact', icon: 'view-list', label: 'Compact View' },
+    { mode: 'grid', icon: 'view-grid', label: 'Grid View' }
+  ];
   
   // Sort options
   const sortOptions = [
@@ -64,47 +80,79 @@ export default function VetSearchScreen() {
     'Rangpur', 'Mymensingh', 'Comilla', 'Gazipur', 'Narayanganj'
   ];
   
-  // Animation functions
-  const expandSearchBar = () => {
+  // Get current view mode info
+  const getCurrentViewMode = () => {
+    return viewModes.find(vm => vm.mode === viewMode) || viewModes[0];
+  };
+
+  // Cycle to next view mode
+  const cycleViewMode = () => {
+    const currentIndex = viewModes.findIndex(vm => vm.mode === viewMode);
+    const nextIndex = (currentIndex + 1) % viewModes.length;
+    const nextMode = viewModes[nextIndex].mode;
+    
+    // Animate button press
+    Animated.sequence([
+      Animated.timing(viewModeAnimation, {
+        toValue: 0.7,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(viewModeAnimation, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    setViewMode(nextMode);
+  };
+
+  // Search animation handlers
+  const handleSearchFocus = () => {
     setIsSearchFocused(true);
     Animated.parallel([
       Animated.timing(searchBarWidth, {
-        toValue: screenWidth - 32, // Full width minus margins
-        duration: 300,
-        useNativeDriver: false, // Width animation requires false
+        toValue: screenWidth - 32,
+        duration: 200,
+        useNativeDriver: false,
       }),
       Animated.timing(buttonOpacity, {
         toValue: 0,
-        duration: 200,
-        useNativeDriver: true, // Opacity can use native driver
+        duration: 150,
+        useNativeDriver: true,
       }),
       Animated.timing(buttonTranslateX, {
-        toValue: 100,
-        duration: 300,
-        useNativeDriver: true, // Transform can use native driver
+        toValue: 150,
+        duration: 200,
+        useNativeDriver: true,
       }),
     ]).start();
   };
-  
-  const shrinkSearchBar = () => {
+
+  const handleSearchBlur = () => {
     setIsSearchFocused(false);
     Animated.parallel([
       Animated.timing(searchBarWidth, {
-        toValue: screenWidth - 32 - 96, // Original width
-        duration: 300,
-        useNativeDriver: false, // Width animation requires false
+        toValue: screenWidth - 32 - 144,
+        duration: 200,
+        useNativeDriver: false,
       }),
       Animated.timing(buttonOpacity, {
         toValue: 1,
         duration: 200,
-        useNativeDriver: true, // Opacity can use native driver
+        useNativeDriver: true,
       }),
       Animated.timing(buttonTranslateX, {
         toValue: 0,
-        duration: 300,
-        useNativeDriver: true, // Transform can use native driver
+        duration: 200,
+        useNativeDriver: true,
       }),
     ]).start();
+  };
+
+  const handleSearchClear = () => {
+    setSearchQuery('');
   };
   
   useFocusEffect(
@@ -131,8 +179,6 @@ export default function VetSearchScreen() {
     try {
       const data = await getVeterinaryClinics();
       setClinics(data);
-      
-      // Fetch ratings for all clinics
       await fetchClinicRatings(data);
     } catch (error) {
       console.error('Error fetching clinics:', error);
@@ -167,7 +213,6 @@ export default function VetSearchScreen() {
   const filterAndSortClinics = () => {
     let filtered = clinics;
     
-    // Apply filters first
     if (searchQuery) {
       filtered = filtered.filter(clinic => 
         clinic.clinic_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -186,7 +231,6 @@ export default function VetSearchScreen() {
       );
     }
     
-    // Apply sorting
     const sorted = applySorting(filtered);
     setFilteredClinics(sorted);
   };
@@ -259,73 +303,202 @@ export default function VetSearchScreen() {
       params: { clinicId }
     });
   };
-  
-  // Search bar event handlers
-  const handleSearchFocus = () => {
-    expandSearchBar();
-  };
-  
-  const handleSearchBlur = () => {
-    // Only shrink if there's no search query
-    if (!searchQuery.trim()) {
-      shrinkSearchBar();
-    }
-  };
-  
-  const handleSearchClear = () => {
-    setSearchQuery('');
-    shrinkSearchBar();
+
+  // Get number of columns for FlatList
+  const getNumColumns = () => {
+    return viewMode === 'grid' ? 2 : 1;
   };
   
   const renderClinicCard = ({ item }) => {
-    const displayServices = item.services?.slice(0, 3) || [];
-    const hasMoreServices = item.services?.length > 3;
+    const displayServices = item.services?.slice(0, 2) || [];
+    const hasMoreServices = item.services?.length > 2;
     const rating = clinicRatings[item.id] || { average_rating: 0, total_ratings: 0 };
     
-    return (
-      <TouchableOpacity onPress={() => handleClinicPress(item.id)}>
-        <Card style={[styles.clinicCard, isDark && styles.clinicCardDark]}>
-          {/* Cover Photo */}
-          {item.cover_photo_url ? (
-            <Card.Cover 
-              source={{ uri: item.cover_photo_url }} 
-              style={styles.coverPhoto}
-            />
-          ) : (
-            <View style={[styles.placeholderCover, isDark && styles.placeholderCoverDark]}>
-              <Avatar.Icon 
-                size={60} 
-                icon="hospital-building"
-                backgroundColor="transparent"
-                color={isDark ? '#fff' : '#666'}
-              />
+    // Grid View
+    if (viewMode === 'grid') {
+      return (
+        <View style={styles.gridItemContainer}>
+          <Pressable onPress={() => handleClinicPress(item.id)}>
+            <ThemedCard style={styles.gridCard} variant="elevated">
+              <View style={styles.gridCardContent}>
+                {/* Clinic Image */}
+                {item.cover_photo_url ? (
+                  <Avatar.Image 
+                    size={64}
+                    source={{ uri: item.cover_photo_url }}
+                    style={{ borderRadius: 8 }}
+                  />
+                ) : (
+                  <Avatar.Icon 
+                    size={64} 
+                    icon="hospital-building"
+                    backgroundColor={colors.primary + '20'}
+                    color={colors.primary}
+                  />
+                )}
+                
+                <ThemedText style={styles.gridName}>{item.clinic_name}</ThemedText>
+                <ThemedText style={styles.gridLocation}>
+                  {item.sub_district ? `${item.sub_district}, ` : ''}{item.district}
+                </ThemedText>
+                
+                {/* Rating */}
+                <View style={styles.gridRating}>
+                  {rating.total_ratings > 0 ? (
+                    <>
+                      <StarRating 
+                        rating={rating.average_rating} 
+                        readonly={true} 
+                        size={12}
+                      />
+                      <ThemedText style={styles.gridRatingText}>
+                        {rating.average_rating.toFixed(1)} ({rating.total_ratings})
+                      </ThemedText>
+                    </>
+                  ) : (
+                    <ThemedText style={styles.gridNoRating}>No reviews</ThemedText>
+                  )}
+                </View>
+              </View>
+            </ThemedCard>
+          </Pressable>
+        </View>
+      );
+    }
+    
+    // Compact View
+    if (viewMode === 'compact') {
+      return (
+        <Pressable onPress={() => handleClinicPress(item.id)}>
+          <ThemedCard style={styles.compactCard} variant="elevated">
+            <View style={styles.compactContent}>
+              <View style={styles.compactHeader}>
+                {/* Small Image */}
+                {item.cover_photo_url ? (
+                  <Avatar.Image 
+                    size={40}
+                    source={{ uri: item.cover_photo_url }}
+                    style={{ borderRadius: 6 }}
+                  />
+                ) : (
+                  <Avatar.Icon 
+                    size={40} 
+                    icon="hospital-building"
+                    backgroundColor={colors.primary + '20'}
+                    color={colors.primary}
+                  />
+                )}
+                
+                {/* Clinic Info */}
+                <View style={styles.compactInfo}>
+                  <ThemedText style={styles.compactName}>{item.clinic_name}</ThemedText>
+                  <ThemedText style={styles.compactLocation}>
+                    {item.sub_district ? `${item.sub_district}, ` : ''}{item.district}
+                  </ThemedText>
+                </View>
+                
+                {/* Rating */}
+                <View style={styles.compactRating}>
+                  {rating.total_ratings > 0 ? (
+                    <>
+                      <View style={styles.compactRatingRow}>
+                        <StarRating 
+                          rating={rating.average_rating} 
+                          readonly={true} 
+                          size={12}
+                        />
+                        <ThemedText style={styles.compactRatingText}>
+                          {rating.average_rating.toFixed(1)}
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.compactReviews}>
+                        {rating.total_ratings} reviews
+                      </ThemedText>
+                    </>
+                  ) : (
+                    <ThemedText style={styles.compactNoRating}>No reviews</ThemedText>
+                  )}
+                </View>
+              </View>
             </View>
-          )}
-          
-          <Card.Content style={styles.cardContent}>
-            {/* Header Row with Clinic Name and Rating */}
-            <View style={styles.headerRow}>
+          </ThemedCard>
+        </Pressable>
+      );
+    }
+    
+    // Full View (Default)
+    return (
+      <Pressable onPress={() => handleClinicPress(item.id)}>
+        <ThemedCard style={styles.clinicCard} variant="elevated">
+          <View style={styles.cardContent}>
+            {/* Header with Image and Info */}
+            <View style={styles.headerSection}>
+              {/* Clinic Image - Compact */}
+              <View style={styles.imageContainer}>
+                {item.cover_photo_url ? (
+                  <Surface style={styles.clinicImage}>
+                    <Avatar.Image 
+                      size={56}
+                      source={{ uri: item.cover_photo_url }}
+                      style={{ borderRadius: 8 }}
+                      backgroundColor="transparent"
+                    />
+                  </Surface>
+                ) : (
+                  <Surface style={[styles.clinicImage, { backgroundColor: colors.backgroundSecondary }]}>
+                    <Avatar.Icon 
+                      size={48} 
+                      icon="hospital-building"
+                      backgroundColor="transparent"
+                      color={colors.primary}
+                    />
+                  </Surface>
+                )}
+              </View>
+              
+              {/* Clinic Info */}
               <View style={styles.clinicInfo}>
                 <ThemedText style={styles.clinicName}>{item.clinic_name}</ThemedText>
-                <ThemedText style={styles.location}>
-                  📍 {item.sub_district ? `${item.sub_district}, ` : ''}{item.district}
-                </ThemedText>
+                
+                <View style={styles.locationRow}>
+                  <IconButton 
+                    icon="map-marker" 
+                    size={14} 
+                    iconColor={colors.textSecondary}
+                    style={styles.locationIcon}
+                  />
+                  <ThemedText style={styles.location}>
+                    {item.sub_district ? `${item.sub_district}, ` : ''}{item.district}
+                  </ThemedText>
+                </View>
+                
+                <View style={styles.contactRow}>
+                  <IconButton 
+                    icon="phone" 
+                    size={14} 
+                    iconColor={colors.textSecondary}
+                    style={styles.contactIcon}
+                  />
+                  <ThemedText style={styles.contact}>{item.primary_contact}</ThemedText>
+                </View>
               </View>
               
               {/* Rating Section */}
               <View style={styles.ratingSection}>
                 {rating.total_ratings > 0 ? (
                   <>
-                    <StarRating 
-                      rating={rating.average_rating} 
-                      readonly={true} 
-                      size={16}
-                    />
-                    <ThemedText style={styles.ratingText}>
-                      {rating.average_rating.toFixed(1)}
-                    </ThemedText>
+                    <View style={styles.ratingRow}>
+                      <StarRating 
+                        rating={rating.average_rating} 
+                        readonly={true} 
+                        size={14}
+                      />
+                      <ThemedText style={styles.ratingText}>
+                        {rating.average_rating.toFixed(1)}
+                      </ThemedText>
+                    </View>
                     <ThemedText style={styles.reviewCount}>
-                      ({rating.total_ratings})
+                      {rating.total_ratings} review{rating.total_ratings !== 1 ? 's' : ''}
                     </ThemedText>
                   </>
                 ) : (
@@ -333,58 +506,70 @@ export default function VetSearchScreen() {
                     <StarRating 
                       rating={0} 
                       readonly={true} 
-                      size={16}
+                      size={14}
                     />
-                    <ThemedText style={styles.noRatingText}>
-                      No reviews
-                    </ThemedText>
+                    <ThemedText style={styles.noRatingText}>No reviews</ThemedText>
                   </View>
                 )}
               </View>
             </View>
             
-            {/* Contact */}
-            <ThemedText style={styles.contact}>
-              📞 {item.primary_contact}
-            </ThemedText>
+            {/* Compact Info Row */}
+            <View style={styles.infoRow}>
+              <View style={styles.hoursContainer}>
+                <IconButton 
+                  icon="clock-outline" 
+                  size={12} 
+                  iconColor={colors.textSecondary}
+                  style={styles.infoIcon}
+                />
+                <ThemedText style={styles.hoursText}>
+                  {item.sat_to_thu_from} - {item.sat_to_thu_to}
+                </ThemedText>
+              </View>
+            </View>
             
-            {/* Visiting Hours */}
-            <ThemedText style={styles.hours}>
-              🕒 Sat-Thu: {item.sat_to_thu_from} - {item.sat_to_thu_to}
-            </ThemedText>
-            
-            {/* Services */}
+            {/* Services - Compact */}
             {displayServices.length > 0 && (
               <View style={styles.servicesContainer}>
-                <ThemedText style={styles.servicesLabel}>Services:</ThemedText>
-                <View style={styles.servicesChips}>
+                <View style={styles.servicesRow}>
                   {displayServices.map((service, index) => (
                     <Chip 
                       key={index} 
-                      style={styles.serviceChip}
-                      textStyle={styles.serviceChipText}
+                      style={[styles.serviceChip, { backgroundColor: chipColors.background }]}
+                      textStyle={[styles.serviceChipText, { color: chipColors.text }]}
+                      compact
                     >
                       {service.serviceName}
-                      {service.fee && ` (৳${service.fee})`}
+                      {service.fee && ` ৳${service.fee}`}
                     </Chip>
                   ))}
                   {hasMoreServices && (
-                    <Chip style={styles.moreChip}>
-                      +{item.services.length - 3} more
+                    <Chip 
+                      style={[styles.moreChip, { backgroundColor: chipColors.selected }]}
+                      textStyle={{ color: chipColors.selectedText }}
+                      compact
+                    >
+                      +{item.services.length - 2}
                     </Chip>
                   )}
                 </View>
               </View>
             )}
-          </Card.Content>
-        </Card>
-      </TouchableOpacity>
+          </View>
+        </ThemedCard>
+      </Pressable>
     );
   };
   
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Avatar.Icon size={80} icon="hospital-building" backgroundColor="#e0e0e0" />
+      <Avatar.Icon 
+        size={64} 
+        icon="hospital-building" 
+        backgroundColor={chipColors.background}
+        color={colors.textSecondary}
+      />
       <ThemedText type="title" style={styles.emptyTitle}>
         No Veterinary Clinics Found
       </ThemedText>
@@ -394,14 +579,13 @@ export default function VetSearchScreen() {
           : "No approved veterinary clinics available at the moment"}
       </ThemedText>
       {(searchQuery || selectedDistrict) && (
-        <Button mode="outlined" onPress={clearFilters} style={styles.clearButton}>
+        <ThemedButton variant="outlined" onPress={clearFilters} style={styles.clearButton}>
           Clear Filters
-        </Button>
+        </ThemedButton>
       )}
     </View>
   );
   
-  // Sort Modal Component
   const renderSortModal = () => (
     <Portal>
       <Modal
@@ -409,7 +593,7 @@ export default function VetSearchScreen() {
         onDismiss={() => setShowSortModal(false)}
         contentContainerStyle={[
           styles.sortModal, 
-          isDark && styles.sortModalDark
+          { backgroundColor: cardColors.background }
         ]}
       >
         <View style={styles.sortModalContent}>
@@ -420,7 +604,7 @@ export default function VetSearchScreen() {
             value={sortBy}
           >
             {sortOptions.map((option) => (
-              <TouchableOpacity
+              <Pressable
                 key={option.value}
                 style={styles.sortOption}
                 onPress={() => handleSortSelection(option.value)}
@@ -429,27 +613,28 @@ export default function VetSearchScreen() {
                   <IconButton
                     icon={option.icon}
                     size={20}
-                    iconColor={sortBy === option.value ? '#E91E63' : '#666'}
+                    iconColor={sortBy === option.value ? colors.primary : colors.textSecondary}
+                    style={styles.sortIcon}
                   />
                   <ThemedText style={[
                     styles.sortOptionText,
-                    sortBy === option.value && styles.sortOptionTextSelected
+                    sortBy === option.value && { color: colors.primary, fontWeight: '600' }
                   ]}>
                     {option.label}
                   </ThemedText>
                 </View>
                 <RadioButton value={option.value} />
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </RadioButton.Group>
           
-          <Button
-            mode="outlined"
+          <ThemedButton
+            variant="outlined"
             onPress={() => setShowSortModal(false)}
             style={styles.sortModalCloseButton}
           >
             Close
-          </Button>
+          </ThemedButton>
         </View>
       </Modal>
     </Portal>
@@ -457,8 +642,8 @@ export default function VetSearchScreen() {
   
   return (
     <ThemedView style={styles.container}>
-      {/* Fixed Search Header */}
-      <View style={styles.searchContainer}>
+      {/* Animated Search Header */}
+      <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
         <Animated.View
           style={[
             styles.searchBarContainer,
@@ -474,10 +659,20 @@ export default function VetSearchScreen() {
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
             onClearIconPress={handleSearchClear}
-            style={styles.searchBar}
+            style={[
+              styles.searchBar, 
+              { 
+                backgroundColor: colors.backgroundSecondary,
+                elevation: 4,
+              }
+            ]}
+            inputStyle={{ color: colors.text }}
+            iconColor={colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
           />
         </Animated.View>
         
+        {/* Animated Button Container */}
         <Animated.View 
           style={[
             styles.buttonsContainer,
@@ -488,40 +683,73 @@ export default function VetSearchScreen() {
           ]}
           pointerEvents={isSearchFocused ? 'none' : 'auto'}
         >
+          {/* Cycling View Mode Button */}
+          <Animated.View style={{ transform: [{ scale: viewModeAnimation }] }}>
+            <IconButton
+              icon={getCurrentViewMode().icon}
+              size={20}
+              onPress={cycleViewMode}
+              style={styles.actionButton}
+              iconColor={brandColors.primary}
+            />
+          </Animated.View>
+          
           <IconButton
             icon="filter-variant"
             size={24}
             onPress={() => setShowFilters(!showFilters)}
+            iconColor={showFilters ? brandColors.primary : colors.textSecondary}
             style={styles.actionButton}
-            iconColor={showFilters ? '#E91E63' : undefined}
           />
           <IconButton
             icon="sort"
             size={24}
             onPress={() => setShowSortModal(true)}
+            iconColor={sortBy !== 'default' ? brandColors.primary : colors.textSecondary}
             style={styles.actionButton}
-            iconColor={sortBy !== 'default' ? '#E91E63' : undefined}
           />
         </Animated.View>
       </View>
       
-      {/* Active Sort Indicator */}
-      {sortBy !== 'default' && (
-        <View style={styles.activeSortContainer}>
-          <Chip
-            icon="sort"
-            style={styles.activeSortChip}
-            onClose={() => setSortBy('default')}
-          >
-            Sorted by: {getCurrentSortLabel()}
-          </Chip>
+      {/* View Mode Indicator */}
+      <View style={[styles.viewModeIndicator, { backgroundColor: colors.background }]}>
+        <Text variant="bodySmall" style={[styles.viewModeText, { color: colors.textSecondary }]}>
+          {getCurrentViewMode().label} ({filteredClinics.length} clinics)
+        </Text>
+      </View>
+      
+      {/* Active Sort/Filter Indicators */}
+      {(sortBy !== 'default' || selectedDistrict) && (
+        <View style={styles.activeFiltersContainer}>
+          {sortBy !== 'default' && (
+            <Chip
+              icon="sort"
+              style={[styles.activeFilterChip, { backgroundColor: chipColors.selected }]}
+              textStyle={{ color: chipColors.selectedText }}
+              onClose={() => setSortBy('default')}
+              compact
+            >
+              {getCurrentSortLabel()}
+            </Chip>
+          )}
+          {selectedDistrict && (
+            <Chip
+              icon="map-marker"
+              style={[styles.activeFilterChip, { backgroundColor: chipColors.selected }]}
+              textStyle={{ color: chipColors.selectedText }}
+              onClose={() => setSelectedDistrict('')}
+              compact
+            >
+              {selectedDistrict}
+            </Chip>
+          )}
         </View>
       )}
       
-      {/* Filters */}
+      {/* Filters Panel */}
       {showFilters && (
-        <View style={styles.filtersContainer}>
-          <ThemedText style={styles.filterLabel}>Filter by District:</ThemedText>
+        <Surface style={[styles.filtersPanel, { backgroundColor: colors.surface }]} elevation={1}>
+          <ThemedText style={styles.filterLabel}>Filter by District</ThemedText>
           <FlatList
             data={districts}
             horizontal
@@ -529,29 +757,38 @@ export default function VetSearchScreen() {
               <Chip
                 selected={selectedDistrict === item}
                 onPress={() => setSelectedDistrict(selectedDistrict === item ? '' : item)}
-                style={styles.districtChip}
+                style={[
+                  styles.districtChip,
+                  selectedDistrict === item && { backgroundColor: chipColors.selected }
+                ]}
+                textStyle={selectedDistrict === item ? { color: chipColors.selectedText } : undefined}
+                compact
               >
                 {item}
               </Chip>
             )}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.districtChipsContainer}
+            keyExtractor={(item) => item}
           />
           
           {(searchQuery || selectedDistrict) && (
-            <Button mode="text" onPress={clearFilters} style={styles.clearFiltersButton}>
+            <ThemedButton 
+              variant="outlined" 
+              onPress={clearFilters} 
+              style={styles.clearFiltersButton}
+              compact
+            >
               Clear All Filters
-            </Button>
+            </ThemedButton>
           )}
-        </View>
+        </Surface>
       )}
-      
-      <Divider />
       
       {/* Results */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0a7ea4" />
+          <ProgressBar indeterminate color={colors.primary} style={styles.progressBar} />
           <ThemedText style={styles.loadingText}>Loading veterinary clinics...</ThemedText>
         </View>
       ) : (
@@ -563,11 +800,23 @@ export default function VetSearchScreen() {
           ListEmptyComponent={renderEmptyState}
           refreshing={isRefreshing}
           onRefresh={() => fetchClinics(true)}
+          showsVerticalScrollIndicator={false}
+          numColumns={getNumColumns()}
+          key={viewMode} // Force re-render when view mode changes
         />
       )}
       
       {/* Sort Modal */}
       {renderSortModal()}
+      
+      {/* Refresh FAB */}
+      <FAB
+        icon="refresh"
+        style={[styles.refreshFab, { backgroundColor: colors.primary }]}
+        onPress={() => fetchClinics(true)}
+        size="small"
+        visible={!loading}
+      />
     </ThemedView>
   );
 }
@@ -576,18 +825,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  
+  // Animated Search Header
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     margin: 16,
-    marginBottom: 0,
-    height: 56, // Fixed height to prevent layout shift
+    marginBottom: 8,
+    height: 56,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    borderRadius: 8,
+    paddingHorizontal: 8,
   },
   searchBarContainer: {
-    // Width is controlled by animation
+    paddingBottom: 15,
+    paddingRight: 0,
+    paddingLeft: 0,
+    marginLeft: -5,
+    marginRight: 0,
   },
   searchBar: {
-    elevation: 4,
+    elevation: 0,
+    shadowOpacity: 0,
+    marginTop: 10,
+    marginLeft: -5,
+    marginRight: 0,
   },
   buttonsContainer: {
     flexDirection: 'row',
@@ -595,101 +861,298 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     height: 56,
+    paddingBottom: 10,
   },
   actionButton: {
     marginLeft: 4,
   },
-  // Sort-related styles
-  activeSortContainer: {
+  
+  // View Mode Indicator
+  viewModeIndicator: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+  },
+  viewModeText: {
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  
+  // Active Filters
+  activeFiltersContainer: {
+    flexDirection: 'row',
     paddingHorizontal: 16,
     paddingTop: 8,
+    gap: 8,
   },
-  activeSortChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#f8f9fa',
+  activeFilterChip: {
+    height: 28,
   },
-  sortModal: {
-    backgroundColor: 'white',
-    margin: 20,
-    borderRadius: 12,
-    elevation: 8,
-  },
-  sortModalDark: {
-    backgroundColor: '#333',
-  },
-  sortModalContent: {
-    padding: 20,
-  },
-  sortModalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  sortOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  sortOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  sortOptionText: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  sortOptionTextSelected: {
-    color: '#E91E63',
-    fontWeight: '600',
-  },
-  sortModalCloseButton: {
-    marginTop: 16,
-  },
-  // Existing styles...
-  filtersContainer: {
-    padding: 16,
-    paddingTop: 8,
+  
+  // Filters Panel
+  filtersPanel: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   filterLabel: {
     fontSize: 14,
-    marginBottom: 8,
     fontWeight: '500',
+    marginBottom: 8,
   },
   districtChipsContainer: {
     paddingVertical: 4,
+    gap: 8,
   },
   districtChip: {
-    marginRight: 8,
+    height: 32,
   },
   clearFiltersButton: {
     alignSelf: 'flex-start',
     marginTop: 8,
   },
+  
+  // List Content
   listContent: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 100,
   },
+  
+  // Full View (Default) - Same as before
+  clinicCard: {
+    marginBottom: 12,
+  },
+  cardContent: {
+    padding: 12,
+  },
+  headerSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  imageContainer: {
+    marginRight: 12,
+  },
+  clinicImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clinicInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  clinicName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  locationIcon: {
+    margin: 0,
+    marginRight: 4,
+  },
+  location: {
+    fontSize: 13,
+    opacity: 0.8,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  contactIcon: {
+    margin: 0,
+    marginRight: 4,
+  },
+  contact: {
+    fontSize: 13,
+    opacity: 0.8,
+  },
+  ratingSection: {
+    alignItems: 'flex-end',
+    minWidth: 80,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFD700',
+  },
+  reviewCount: {
+    fontSize: 11,
+    opacity: 0.7,
+    marginTop: 2,
+  },
+  noRatingContainer: {
+    alignItems: 'flex-end',
+  },
+  noRatingText: {
+    fontSize: 11,
+    opacity: 0.5,
+    marginTop: 2,
+  },
+  
+  // Info Row
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  hoursContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoIcon: {
+    margin: 0,
+    marginRight: 4,
+  },
+  hoursText: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  
+  // Services
+  servicesContainer: {
+    marginTop: 4,
+  },
+  servicesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  serviceChip: {
+    height: 24,
+  },
+  serviceChipText: {
+    fontSize: 10,
+  },
+  moreChip: {
+    height: 24,
+  },
+  
+  // Compact View
+  compactCard: {
+    marginBottom: 8,
+  },
+  compactContent: {
+    padding: 12,
+  },
+  compactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compactInfo: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 12,
+  },
+  compactName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  compactLocation: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  compactRating: {
+    alignItems: 'flex-end',
+    minWidth: 70,
+  },
+  compactRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  compactRatingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFD700',
+  },
+  compactReviews: {
+    fontSize: 10,
+    opacity: 0.6,
+    marginTop: 1,
+  },
+  compactNoRating: {
+    fontSize: 10,
+    opacity: 0.5,
+  },
+  
+  // Grid View
+  gridItemContainer: {
+    flex: 1,
+    margin: 6,
+  },
+  gridCard: {
+    elevation: 1,
+  },
+  gridCardContent: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+  },
+  gridName: {
+    textAlign: 'center',
+    fontWeight: '600',
+    marginTop: 8,
+    marginBottom: 4,
+    fontSize: 14,
+  },
+  gridLocation: {
+    textAlign: 'center',
+    opacity: 0.7,
+    marginBottom: 8,
+    fontSize: 12,
+  },
+  gridRating: {
+    alignItems: 'center',
+  },
+  gridRatingText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFD700',
+    marginTop: 2,
+  },
+  gridNoRating: {
+    fontSize: 10,
+    opacity: 0.5,
+  },
+  
+  // Loading State
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 16,
+  },
+  progressBar: {
+    width: '60%',
+    marginBottom: 16,
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 8,
   },
+  
+  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
   },
   emptyTitle: {
     marginTop: 16,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptyText: {
     textAlign: 'center',
@@ -699,101 +1162,51 @@ const styles = StyleSheet.create({
   clearButton: {
     marginTop: 8,
   },
-  clinicCard: {
-    marginBottom: 16,
-    elevation: 2,
+  
+  // Sort Modal
+  sortModal: {
+    margin: 20,
+    borderRadius: 12,
+    elevation: 8,
   },
-  clinicCardDark: {
-    backgroundColor: '#333',
+  sortModalContent: {
+    padding: 20,
   },
-  coverPhoto: {
-    height: 150,
-  },
-  placeholderCover: {
-    height: 150,
-    backgroundColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderCoverDark: {
-    backgroundColor: '#444',
-  },
-  cardContent: {
-    padding: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  clinicInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  clinicName: {
+  sortModalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  location: {
-    fontSize: 14,
-    opacity: 0.8,
-  },
-  ratingSection: {
-    alignItems: 'flex-end',
-    minWidth: 80,
-  },
-  ratingText: {
-    fontSize: 14,
     fontWeight: '600',
-    marginTop: 2,
-    color: '#FFD700',
+    marginBottom: 16,
+    textAlign: 'center',
   },
-  reviewCount: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginTop: 1,
-  },
-  noRatingContainer: {
-    alignItems: 'flex-end',
-  },
-  noRatingText: {
-    fontSize: 12,
-    opacity: 0.5,
-    marginTop: 2,
-  },
-  contact: {
-    fontSize: 14,
-    opacity: 0.8,
-    marginBottom: 2,
-  },
-  hours: {
-    fontSize: 14,
-    opacity: 0.8,
-    marginBottom: 12,
-  },
-  servicesContainer: {
-    marginTop: 8,
-  },
-  servicesLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 6,
-  },
-  servicesChips: {
+  sortOption: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    minHeight: 48,
   },
-  serviceChip: {
-    marginRight: 6,
-    marginBottom: 4,
+  sortOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  serviceChipText: {
-    fontSize: 12,
+  sortIcon: {
+    margin: 0,
+    marginRight: 8,
   },
-  moreChip: {
-    backgroundColor: '#f0f0f0',
+  sortOptionText: {
+    fontSize: 16,
+  },
+  sortModalCloseButton: {
+    marginTop: 16,
+  },
+  
+  // FAB
+  refreshFab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
   },
 });

@@ -2,8 +2,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { FlatList, StyleSheet, View, TouchableOpacity, RefreshControl, Image } from 'react-native';
 import { 
-  Card, 
-  Text, 
   Avatar, 
   ActivityIndicator, 
   FAB, 
@@ -11,39 +9,24 @@ import {
   IconButton, 
   Chip,
   SegmentedButtons,
-  Button,
-  Divider
+  Button
 } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useActivityIndicatorColors, useFabColors } from '@/hooks/useThemeColor';
+import { BrandColors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { usePosts } from '@/hooks/usePosts';
 import { getPostCommentCount, getBatchPostCommentCounts } from '@/services/supabase';
 
-const POST_TYPE_EMOJIS = {
-  text: '📝',
-  image: '📸',
-  video: '🎥',
-  article: '📰',
-  journal: '📔',
-  mixed: '🎭'
-};
-
-const POST_TYPE_COLORS = {
-  text: '#2196F3',
-  image: '#4CAF50',
-  video: '#FF5722',
-  article: '#9C27B0',
-  journal: '#FF9800',
-  mixed: '#607D8B'
-};
-
 export default function PostFeedScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const fabColors = useFabColors();
   const { user, userData } = useAuth();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +35,7 @@ export default function PostFeedScreen() {
   const [selectedVisibility, setSelectedVisibility] = useState('all');
   const [feedType, setFeedType] = useState('feed');
   const [commentCounts, setCommentCounts] = useState({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Use the posts hook with current filters
   const { 
@@ -105,16 +89,14 @@ export default function PostFeedScreen() {
     });
   };
 
-  const fetchCommentCount = async (postId) => {
-    if (commentCounts[postId] !== undefined) return commentCounts[postId];
-    
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
     try {
-      const count = await getPostCommentCount(postId);
-      setCommentCounts(prev => ({ ...prev, [postId]: count }));
-      return count;
+      await refresh();
     } catch (error) {
-      console.error('Error fetching comment count:', error);
-      return 0;
+      console.log('Refresh failed, showing cached data:', error.message);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -139,11 +121,11 @@ export default function PostFeedScreen() {
 
   const postTypeButtons = [
     { value: 'all', label: 'All' },
-    { value: 'text', label: '📝' },
-    { value: 'image', label: '📸' },
-    { value: 'video', label: '🎥' },
-    { value: 'article', label: '📰' },
-    { value: 'journal', label: '📔' }
+    { value: 'text', label: 'Text' },
+    { value: 'image', label: 'Photo' },
+    { value: 'video', label: 'Video' },
+    { value: 'article', label: 'Article' },
+    { value: 'journal', label: 'Journal' }
   ];
 
   const visibilityButtons = [
@@ -177,64 +159,76 @@ export default function PostFeedScreen() {
     const author = item.author || {};
 
     return (
-      <TouchableOpacity onPress={() => handlePostPress(item.id)}>
-        <Card style={[styles.postCard, isDark && styles.postCardDark]}>
-          <Card.Content style={styles.cardContent}>
-            {/* Header with author info and post metadata */}
+      <TouchableOpacity 
+        onPress={() => handlePostPress(item.id)}
+        activeOpacity={0.7}
+        style={styles.cardTouchable}
+      >
+        <ThemedCard variant="elevated" style={styles.postCard}>
+          <View style={styles.cardContent}>
+            {/* Header */}
             <View style={styles.postHeader}>
               <TouchableOpacity 
                 style={styles.authorInfo}
                 onPress={() => !isOwnPost && handleUserPress(author.id)}
+                activeOpacity={0.7}
               >
                 {author.picture ? (
-                  <Avatar.Image size={45} source={{ uri: author.picture }} />
+                  <Avatar.Image size={40} source={{ uri: author.picture }} />
                 ) : (
                   <Avatar.Text 
-                    size={45} 
+                    size={40} 
                     label={(author.name?.charAt(0) || author.email?.charAt(0) || 'U').toUpperCase()}
-                    backgroundColor={isDark ? '#444' : '#e0e0e0'}
-                    color={isDark ? '#fff' : '#666'}
+                    style={{ backgroundColor: colors.surface }}
+                    color={colors.textSecondary}
                   />
                 )}
                 <View style={styles.authorDetails}>
-                  <Text style={styles.authorName}>
+                  <ThemedText style={styles.authorName}>
                     {author.name || 'Anonymous User'}
                     {isOwnPost && ' (You)'}
-                  </Text>
-                  <View style={styles.postMeta}>
-                    <Text style={styles.postDate}>{postDate}</Text>
-                    {item.is_edited && (
-                      <Text style={styles.editedIndicator}> • Edited</Text>
-                    )}
-                  </View>
+                  </ThemedText>
+                  <ThemedText style={[styles.postDate, { color: colors.textSecondary }]}>
+                    {postDate}
+                    {item.is_edited && ' • Edited'}
+                  </ThemedText>
                 </View>
               </TouchableOpacity>
 
-              <View style={styles.postTypeContainer}>
+              <View style={styles.postMeta}>
                 <Chip 
-                  icon={() => <Text>{POST_TYPE_EMOJIS[item.post_type] || '📝'}</Text>}
-                  style={[
-                    styles.postTypeChip, 
-                    { backgroundColor: (POST_TYPE_COLORS[item.post_type] || '#2196F3') + '20' }
-                  ]}
-                  textStyle={styles.postTypeText}
+                  compact
+                  style={[styles.postTypeChip, { backgroundColor: BrandColors.primary + '15' }]}
+                  textStyle={[styles.chipText, { color: BrandColors.primary }]}
                 >
                   {item.post_type}
+                </Chip>
+                
+                <Chip 
+                  compact
+                  icon={
+                    item.visibility === 'public' ? 'earth' :
+                    item.visibility === 'connections' ? 'account-group' : 'lock'
+                  }
+                  style={[styles.visibilityChip, { backgroundColor: colors.surface }]}
+                  textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                >
+                  {item.visibility}
                 </Chip>
               </View>
             </View>
 
-            {/* Post content */}
+            {/* Content */}
             <View style={styles.postContent}>
-              <Text style={styles.postTitle}>{item.title}</Text>
+              <ThemedText style={styles.postTitle}>{item.title}</ThemedText>
               
               {item.content && (
-                <Text 
-                  style={styles.postText} 
-                  numberOfLines={4}
+                <ThemedText 
+                  style={[styles.postText, { color: colors.textSecondary }]} 
+                  numberOfLines={3}
                 >
                   {item.content}
-                </Text>
+                </ThemedText>
               )}
 
               {/* Media preview */}
@@ -250,10 +244,11 @@ export default function PostFeedScreen() {
                     <View style={styles.videoPlaceholder}>
                       <IconButton 
                         icon="play-circle" 
-                        size={50} 
+                        size={40} 
                         iconColor="#fff"
+                        style={styles.playIcon}
                       />
-                      <Text style={styles.videoLabel}>Tap to play video</Text>
+                      <ThemedText style={styles.videoLabel}>Video</ThemedText>
                     </View>
                   ) : null}
                 </View>
@@ -262,66 +257,93 @@ export default function PostFeedScreen() {
               {/* Pet information */}
               {item.pet && (
                 <TouchableOpacity 
-                  style={styles.petContainer}
+                  style={[styles.petContainer, { backgroundColor: colors.surface }]}
                   onPress={() => handlePetPress(item.pet.id)}
+                  activeOpacity={0.7}
                 >
                   {item.pet.image_url ? (
-                    <Avatar.Image size={30} source={{ uri: item.pet.image_url }} />
+                    <Avatar.Image size={24} source={{ uri: item.pet.image_url }} />
                   ) : (
-                    <Avatar.Icon size={30} icon="paw" backgroundColor="#e0e0e0" />
+                    <Avatar.Icon 
+                      size={24} 
+                      icon="account-circle" 
+                      style={{ backgroundColor: colors.surface }}
+                      color={colors.textSecondary}
+                    />
                   )}
                   <View style={styles.petInfo}>
-                    <Text style={styles.petLabel}>About</Text>
-                    <Text style={styles.petName}>{item.pet.name}</Text>
+                    <ThemedText style={[styles.petName, { color: colors.textSecondary }]}>
+                      About {item.pet.name}
+                    </ThemedText>
                   </View>
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* Post footer with visibility and interactions */}
+            {/* Footer */}
             <View style={styles.postFooter}>
-              <View style={styles.visibilityContainer}>
-                <Chip 
-                  icon={
-                    item.visibility === 'public' ? 'earth' :
-                    item.visibility === 'connections' ? 'account-group' : 'lock'
-                  }
-                  style={styles.visibilityChip}
-                  textStyle={styles.visibilityText}
-                >
-                  {item.visibility}
-                </Chip>
-              </View>
-
-              <View style={styles.interactionContainer}>
-                <Button 
-                  mode="text" 
-                  compact
-                  onPress={() => handlePostPress(item.id)}
-                  style={styles.interactionButton}
-                >
-                  💬 {commentCounts[item.id] ?? item._count?.count ?? 0} comments
-                </Button>
-              </View>
+              <Button 
+                mode="text" 
+                compact
+                onPress={() => handlePostPress(item.id)}
+                style={styles.commentsButton}
+                labelStyle={[styles.commentsLabel, { color: colors.textSecondary }]}
+                icon="comment-outline"
+              >
+                {commentCounts[item.id] ?? item._count?.count ?? 0}
+              </Button>
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
       </TouchableOpacity>
     );
   };
 
+  const renderSearchHeader = () => (
+    <View style={styles.searchContainer}>
+      <Searchbar
+        placeholder="Search posts"
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={[styles.searchBar, { backgroundColor: colors.surface }]}
+        inputStyle={{ 
+          color: colors.text,
+          textAlignVertical: 'center',
+          includeFontPadding: false,
+          paddingBottom: 10,
+        }}
+        iconColor={colors.textSecondary}
+        placeholderTextColor={colors.textSecondary}
+        elevation={0}
+      />
+      
+      <IconButton
+        icon="tune"
+        size={22}
+        onPress={() => setShowFilters(!showFilters)}
+        style={[
+          styles.filterButton, 
+          { backgroundColor: showFilters ? BrandColors.primary + '15' : colors.surface }
+        ]}
+        iconColor={showFilters ? BrandColors.primary : colors.text}
+      />
+    </View>
+  );
+
   const renderEmptyState = () => {
     if (searchQuery) {
       return (
-        <View style={styles.emptyContainer}>
-          <Avatar.Icon size={80} icon="magnify" backgroundColor="#e0e0e0" />
-          <ThemedText type="title" style={styles.emptyTitle}>
-            No Posts Found
-          </ThemedText>
-          <ThemedText style={styles.emptyText}>
+        <View style={styles.centerState}>
+          <IconButton
+            icon="magnify"
+            size={48}
+            iconColor={colors.textSecondary}
+          />
+          <ThemedText style={styles.stateTitle}>No posts found</ThemedText>
+          <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
             No posts match your search "{searchQuery}"
           </ThemedText>
-          <Button mode="outlined" onPress={clearFilters} style={styles.clearButton}>
+          <Button mode="outlined" onPress={clearFilters} style={styles.stateAction}>
             Clear Search
           </Button>
         </View>
@@ -329,21 +351,23 @@ export default function PostFeedScreen() {
     }
 
     return (
-      <View style={styles.emptyContainer}>
-        <Avatar.Icon size={80} icon="post" backgroundColor="#e0e0e0" />
-        <ThemedText type="title" style={styles.emptyTitle}>
-          No Posts Yet
-        </ThemedText>
-        <ThemedText style={styles.emptyText}>
+      <View style={styles.centerState}>
+        <IconButton
+          icon="post-outline"
+          size={48}
+          iconColor={colors.textSecondary}
+        />
+        <ThemedText style={styles.stateTitle}>No posts yet</ThemedText>
+        <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
           {feedType === 'user' 
-            ? "You haven't shared any stories yet. Create your first post!" 
-            : "No posts to show. Follow some users or create your first post!"
+            ? "You haven't shared any stories yet" 
+            : "No posts to show in your feed"
           }
         </ThemedText>
         <Button 
           mode="contained" 
           onPress={handleCreatePost}
-          style={styles.createFirstPostButton}
+          style={styles.stateAction}
           icon="plus"
         >
           Share Your Story
@@ -352,119 +376,122 @@ export default function PostFeedScreen() {
     );
   };
 
-  const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      {/* Feed Type Selector */}
-      <SegmentedButtons
-        value={feedType}
-        onValueChange={setFeedType}
-        buttons={feedTypeButtons}
-        style={styles.feedTypeButtons}
-      />
-
-      {/* Stats */}
-      {posts.length > 0 && (
-        <View style={styles.statsContainer}>
-          <Text style={styles.statsText}>
-            {posts.length} post{posts.length !== 1 ? 's' : ''} loaded
-            {hasMore && ' • Pull up for more'}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-
   if (loading && posts.length === 0) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
-        <ThemedText style={styles.loadingText}>Loading posts...</ThemedText>
+      <ThemedView style={styles.container}>
+        {renderSearchHeader()}
+        <View style={styles.centerState}>
+          <ActivityIndicator 
+            size="large" 
+            color={activityIndicatorColors.primary}
+          />
+          <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
+            Loading posts...
+          </ThemedText>
+        </View>
       </ThemedView>
     );
   }
 
   if (error && posts.length === 0) {
     return (
-      <ThemedView style={styles.errorContainer}>
-        <Avatar.Icon size={80} icon="alert-circle" backgroundColor="#e0e0e0" />
-        <ThemedText type="title" style={styles.errorTitle}>
-          Error Loading Posts
-        </ThemedText>
-        <ThemedText style={styles.errorText}>{error}</ThemedText>
-        <Button 
-          mode="contained" 
-          onPress={refetch}
-          style={styles.retryButton}
-          icon="refresh"
-        >
-          Try Again
-        </Button>
+      <ThemedView style={styles.container}>
+        {renderSearchHeader()}
+        <View style={styles.centerState}>
+          <IconButton
+            icon="alert-circle"
+            size={48}
+            iconColor={colors.error}
+          />
+          <ThemedText style={styles.stateTitle}>Error loading posts</ThemedText>
+          <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
+            {error}
+          </ThemedText>
+          <Button 
+            mode="contained" 
+            onPress={refetch}
+            style={styles.stateAction}
+            icon="refresh"
+          >
+            Try Again
+          </Button>
+        </View>
       </ThemedView>
     );
   }
 
   return (
     <ThemedView style={styles.container}>
-      {/* Search and Filter Header */}
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Search posts..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchBar}
-        />
-        <IconButton
-          icon="tune"
-          size={24}
-          onPress={() => setShowFilters(!showFilters)}
-          style={styles.filterButton}
-          iconColor={showFilters ? '#0a7ea4' : undefined}
-        />
-      </View>
-
-      {/* Filters */}
-      {showFilters && (
-        <View style={styles.filtersContainer}>
-          <Text style={styles.filterLabel}>Post Type:</Text>
-          <SegmentedButtons
-            value={selectedPostType}
-            onValueChange={setSelectedPostType}
-            buttons={postTypeButtons}
-            style={styles.filterButtons}
-          />
-          
-          <Text style={styles.filterLabel}>Visibility:</Text>
-          <SegmentedButtons
-            value={selectedVisibility}
-            onValueChange={setSelectedVisibility}
-            buttons={visibilityButtons}
-            style={styles.filterButtons}
-          />
-
-          {(searchQuery || selectedPostType !== 'all' || selectedVisibility !== 'all') && (
-            <Button mode="text" onPress={clearFilters} style={styles.clearFiltersButton}>
-              Clear All Filters
-            </Button>
-          )}
-        </View>
-      )}
-
-      <Divider />
-
-      {/* Posts List */}
       <FlatList
         data={posts}
         renderItem={renderPostCard}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={() => (
+          <View>
+            {renderSearchHeader()}
+            
+            {/* Filters */}
+            {showFilters && (
+              <View style={styles.filtersContainer}>
+                <View style={styles.filterSection}>
+                  <ThemedText style={styles.filterLabel}>Post Type</ThemedText>
+                  <SegmentedButtons
+                    value={selectedPostType}
+                    onValueChange={setSelectedPostType}
+                    buttons={postTypeButtons.slice(0, 3)}
+                    style={styles.filterButtons}
+                  />
+                  <SegmentedButtons
+                    value={selectedPostType}
+                    onValueChange={setSelectedPostType}
+                    buttons={postTypeButtons.slice(3)}
+                    style={styles.filterButtons}
+                  />
+                </View>
+                
+                <View style={styles.filterSection}>
+                  <ThemedText style={styles.filterLabel}>Visibility</ThemedText>
+                  <SegmentedButtons
+                    value={selectedVisibility}
+                    onValueChange={setSelectedVisibility}
+                    buttons={visibilityButtons}
+                    style={styles.filterButtons}
+                  />
+                </View>
+
+                {(searchQuery || selectedPostType !== 'all' || selectedVisibility !== 'all') && (
+                  <Button 
+                    mode="text" 
+                    onPress={clearFilters} 
+                    style={styles.clearFiltersButton}
+                    labelStyle={{ color: colors.textSecondary }}
+                  >
+                    Clear All Filters
+                  </Button>
+                )}
+              </View>
+            )}
+
+            {/* Feed Type Selector */}
+            <View style={styles.feedTypeContainer}>
+              <SegmentedButtons
+                value={feedType}
+                onValueChange={setFeedType}
+                buttons={feedTypeButtons}
+                style={styles.feedTypeButtons}
+              />
+            </View>
+          </View>
+        )}
         ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={refresh}
-            colors={['#0a7ea4']}
-            tintColor="#0a7ea4"
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[BrandColors.primary]}
+            tintColor={BrandColors.primary}
+            progressBackgroundColor={colors.surface}
           />
         }
         onEndReached={loadMore}
@@ -472,8 +499,13 @@ export default function PostFeedScreen() {
         ListFooterComponent={() => 
           hasMore && posts.length > 0 ? (
             <View style={styles.loadMoreContainer}>
-              <ActivityIndicator size="small" color="#0a7ea4" />
-              <Text style={styles.loadMoreText}>Loading more posts...</Text>
+              <ActivityIndicator 
+                size="small" 
+                color={activityIndicatorColors.primary}
+              />
+              <ThemedText style={[styles.loadMoreText, { color: colors.textSecondary }]}>
+                Loading more...
+              </ThemedText>
             </View>
           ) : null
         }
@@ -483,7 +515,8 @@ export default function PostFeedScreen() {
       {/* Create Post FAB */}
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: fabColors.background }]}
+        color={fabColors.text}
         onPress={handleCreatePost}
         label="Share"
       />
@@ -495,145 +528,137 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorTitle: {
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  errorText: {
-    textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 16,
-  },
-  retryButton: {
-    marginTop: 8,
-  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 16,
-    marginBottom: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 12,
+    gap: 8,
   },
   searchBar: {
     flex: 1,
-    elevation: 4,
+    borderRadius: 8,
+    height: 44,
   },
   filterButton: {
-    marginLeft: 8,
+    borderRadius: 8,
+    width: 44,
+    height: 44,
+    margin: 0,
   },
   filtersContainer: {
-    padding: 16,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  filterSection: {
+    marginBottom: 12,
   },
   filterLabel: {
     fontSize: 14,
-    marginBottom: 8,
-    marginTop: 8,
     fontWeight: '500',
+    marginBottom: 8,
   },
   filterButtons: {
     marginBottom: 8,
   },
   clearFiltersButton: {
     alignSelf: 'flex-start',
-    marginTop: 8,
   },
-  headerContainer: {
-    padding: 16,
+  feedTypeContainer: {
+    paddingHorizontal: 16,
     paddingBottom: 8,
   },
   feedTypeButtons: {
-    marginBottom: 12,
-  },
-  statsContainer: {
-    alignItems: 'center',
-  },
-  statsText: {
-    fontSize: 12,
-    opacity: 0.6,
+    marginBottom: 8,
   },
   listContent: {
-    padding: 16,
-    paddingTop: 0,
+    paddingHorizontal: 16,
     paddingBottom: 100,
   },
-  postCard: {
-    marginBottom: 16,
-    elevation: 2,
+  centerState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 40,
   },
-  postCardDark: {
-    backgroundColor: '#333',
+  stateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 12,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  stateMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  stateAction: {
+    paddingHorizontal: 24,
+  },
+  cardTouchable: {
+    marginBottom: 16,
+  },
+  postCard: {
+    elevation: 1,
   },
   cardContent: {
     padding: 16,
   },
   postHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   authorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 12,
   },
   authorDetails: {
     marginLeft: 12,
     flex: 1,
   },
   authorName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-  },
-  postMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 2,
   },
   postDate: {
     fontSize: 12,
-    opacity: 0.6,
   },
-  editedIndicator: {
-    fontSize: 12,
-    opacity: 0.6,
-    fontStyle: 'italic',
-  },
-  postTypeContainer: {
-    marginLeft: 8,
+  postMeta: {
+    alignItems: 'flex-end',
+    gap: 4,
   },
   postTypeChip: {
-    height: 30,
+    minHeight: 24,
+    paddingVertical: 1,
   },
-  postTypeText: {
-    fontSize: 11,
+  visibilityChip: {
+    minHeight: 24,
+    paddingVertical: 1,
+  },
+  chipText: {
+    fontSize: 10,
+    fontWeight: '500',
     textTransform: 'capitalize',
   },
   postContent: {
     marginBottom: 12,
   },
   postTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   postText: {
     fontSize: 14,
     lineHeight: 20,
-    opacity: 0.8,
     marginBottom: 8,
   },
   mediaContainer: {
@@ -643,23 +668,26 @@ const styles = StyleSheet.create({
   },
   mediaImage: {
     width: '100%',
-    height: 200,
+    height: 180,
   },
   videoPlaceholder: {
     width: '100%',
-    height: 200,
+    height: 180,
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  playIcon: {
+    margin: 0,
+  },
   videoLabel: {
     color: '#fff',
-    marginTop: 8,
+    fontSize: 12,
+    marginTop: 4,
   },
   petContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
     padding: 8,
     borderRadius: 8,
     marginTop: 8,
@@ -667,60 +695,20 @@ const styles = StyleSheet.create({
   petInfo: {
     marginLeft: 8,
   },
-  petLabel: {
-    fontSize: 10,
-    opacity: 0.6,
-    textTransform: 'uppercase',
-  },
   petName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
   postFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
+    alignItems: 'flex-start',
   },
-  visibilityContainer: {
-    flex: 1,
-  },
-  visibilityChip: {
-    height: 28,
-    alignSelf: 'flex-start',
-  },
-  visibilityText: {
-    fontSize: 10,
-    textTransform: 'capitalize',
-  },
-  interactionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  interactionButton: {
+  commentsButton: {
     minWidth: 0,
+    marginLeft: -8,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyTitle: {
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 16,
-  },
-  clearButton: {
-    marginTop: 8,
-  },
-  createFirstPostButton: {
-    marginTop: 8,
-    backgroundColor: '#0a7ea4',
+  commentsLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   loadMoreContainer: {
     flexDirection: 'row',
@@ -730,13 +718,12 @@ const styles = StyleSheet.create({
   },
   loadMoreText: {
     marginLeft: 8,
-    opacity: 0.6,
+    fontSize: 12,
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#0a7ea4',
   },
 });

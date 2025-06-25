@@ -2,25 +2,35 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { 
-  Card, 
   Text, 
   Avatar, 
-  Button, 
   Chip,
   Divider,
   List,
   Badge
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { 
+  useActivityIndicatorColors, 
+  useChipColors, 
+  useBadgeColors,
+  useCardColors 
+} from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { getPractitionerProfileByUserId } from '@/services/supabase';
 
 export default function PractitionerProfileScreen() {
-  const colorScheme = useColorScheme();
+  const { colors, brandColors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const chipColors = useChipColors();
+  const badgeColors = useBadgeColors();
+  const cardColors = useCardColors();
   const { user, userRoles } = useAuth();
-  const isDark = colorScheme === 'dark';
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,13 +67,13 @@ export default function PractitionerProfileScreen() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'verified':
-        return '#27AE60';
+        return brandColors.success;
       case 'pending':
-        return '#F39C12';
+        return brandColors.warning;
       case 'rejected':
-        return '#E74C3C';
+        return brandColors.error;
       default:
-        return '#95A5A6';
+        return colors.textSecondary;
     }
   };
 
@@ -84,8 +94,10 @@ export default function PractitionerProfileScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#27AE60" />
-          <Text style={styles.loadingText}>Loading your profile...</Text>
+          <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading your profile...
+          </ThemedText>
         </View>
       </ThemedView>
     );
@@ -95,14 +107,16 @@ export default function PractitionerProfileScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error || 'Profile not found'}</Text>
-          <Button 
-            mode="contained" 
+          <ThemedText style={[styles.errorText, { color: brandColors.error }]}>
+            {error || 'Profile not found'}
+          </ThemedText>
+          <ThemedButton 
+            variant="primary"
             onPress={() => router.push('/becomePractitioner')}
             style={styles.createButton}
           >
             Create Profile
-          </Button>
+          </ThemedButton>
         </View>
       </ThemedView>
     );
@@ -113,8 +127,8 @@ export default function PractitionerProfileScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         
         {/* Header Card with Profile Photo and Status */}
-        <Card style={styles.headerCard}>
-          <Card.Content style={styles.headerContent}>
+        <ThemedCard variant="elevated" elevation={3} style={styles.headerCard}>
+          <View style={styles.headerContent}>
             <View style={styles.profilePhotoContainer}>
               {profile.profile_photo_url ? (
                 <Avatar.Image 
@@ -125,190 +139,236 @@ export default function PractitionerProfileScreen() {
                 <Avatar.Text 
                   size={120} 
                   label={profile.full_name?.charAt(0)?.toUpperCase() || 'P'} 
-                  backgroundColor="#27AE60"
+                  backgroundColor={brandColors.primary}
                 />
               )}
               
               {/* Verification Badge */}
               <Badge 
-                style={[styles.verificationBadge, { backgroundColor: getStatusColor(userRoles.practitioner_status) }]}
+                style={[
+                  styles.verificationBadge, 
+                  { backgroundColor: getStatusColor(userRoles.practitioner_status) }
+                ]}
               >
                 {getStatusText(userRoles.practitioner_status)}
               </Badge>
             </View>
             
-            <Text variant="headlineSmall" style={styles.practitionerName}>
+            <Text variant="headlineSmall" style={[styles.practitionerName, { color: colors.text }]}>
               {profile.full_name}
             </Text>
-            <Text variant="titleMedium" style={styles.designation}>
+            <Text variant="titleMedium" style={[styles.designation, { color: brandColors.primary }]}>
               {profile.designation}
             </Text>
-            <Text variant="bodyMedium" style={styles.degrees}>
+            <Text variant="bodyMedium" style={[styles.degrees, { color: colors.textSecondary }]}>
               {profile.degrees_certificates}
             </Text>
             
             {/* Quick Actions */}
             <View style={styles.quickActions}>
-              <Button
-                mode="contained"
+              <ThemedButton
+                variant="primary"
                 onPress={() => router.push('/editPractitionerProfile')}
                 style={styles.editButton}
                 icon="pencil"
               >
                 Edit Profile
-              </Button>
+              </ThemedButton>
               
               {userRoles.practitioner_status === 'verified' && (
-                <Button
-                  mode="outlined"
+                <ThemedButton
+                  variant="outlined"
                   onPress={() => router.push(`/viewPractitionerProfile?profileId=${profile.id}`)}
                   style={styles.viewPublicButton}
                   icon="eye"
                 >
                   View Public
-                </Button>
+                </ThemedButton>
               )}
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
         {/* Professional Information */}
-        <Card style={styles.infoCard}>
-          <Card.Title title="Professional Information" />
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={1} style={styles.infoCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Professional Information
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <List.Item
               title="BVC Registration"
               description={profile.bvc_registration_number}
-              left={(props) => <List.Icon {...props} icon="certificate" />}
+              left={(props) => <List.Icon {...props} icon="certificate" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
-            <Divider />
+            <Divider style={{ backgroundColor: colors.border }} />
             <List.Item
               title="Areas of Expertise"
               description={profile.areas_of_expertise}
-              left={(props) => <List.Icon {...props} icon="medical-bag" />}
+              left={(props) => <List.Icon {...props} icon="medical-bag" color={colors.textSecondary} />}
               style={styles.expertiseItem}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
         {/* Location & Contact */}
-        <Card style={styles.infoCard}>
-          <Card.Title title="Location & Contact" />
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={1} style={styles.infoCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Location & Contact
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <List.Item
               title="Chamber Address"
               description={profile.chamber_address}
-              left={(props) => <List.Icon {...props} icon="map-marker" />}
+              left={(props) => <List.Icon {...props} icon="map-marker" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
-            <Divider />
+            <Divider style={{ backgroundColor: colors.border }} />
             <List.Item
               title="Location"
               description={`${profile.sub_district}, ${profile.district}`}
-              left={(props) => <List.Icon {...props} icon="map" />}
+              left={(props) => <List.Icon {...props} icon="map" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
-            <Divider />
+            <Divider style={{ backgroundColor: colors.border }} />
             <List.Item
               title="Contact"
               description={profile.contact_info}
-              left={(props) => <List.Icon {...props} icon="phone" />}
+              left={(props) => <List.Icon {...props} icon="phone" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
             {profile.whatsapp_number && (
               <>
-                <Divider />
+                <Divider style={{ backgroundColor: colors.border }} />
                 <List.Item
                   title="WhatsApp"
                   description={profile.whatsapp_number}
-                  left={(props) => <List.Icon {...props} icon="whatsapp" />}
+                  left={(props) => <List.Icon {...props} icon="whatsapp" color={colors.textSecondary} />}
+                  titleStyle={{ color: colors.text }}
+                  descriptionStyle={{ color: colors.textSecondary }}
                 />
               </>
             )}
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
         {/* Profile Status Information */}
-        <Card style={styles.statusCard}>
-          <Card.Title title="Profile Status" />
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={1} style={styles.statusCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Profile Status
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <View style={styles.statusContainer}>
               <Chip
                 mode="elevated"
-                style={[styles.statusChip, { backgroundColor: `${getStatusColor(userRoles.practitioner_status)}20` }]}
+                style={[
+                  styles.statusChip, 
+                  { 
+                    backgroundColor: `${getStatusColor(userRoles.practitioner_status)}20`,
+                  }
+                ]}
                 textStyle={{ color: getStatusColor(userRoles.practitioner_status) }}
               >
                 {getStatusText(userRoles.practitioner_status)}
               </Chip>
               
               {userRoles.practitioner_status === 'pending' && (
-                <Text style={styles.statusNote}>
+                <ThemedText style={[styles.statusNote, { color: colors.textSecondary }]}>
                   Your application is under review. You will be notified once it's approved.
-                </Text>
+                </ThemedText>
               )}
               
               {userRoles.practitioner_status === 'verified' && (
-                <Text style={styles.statusNote}>
+                <ThemedText style={[styles.statusNote, { color: colors.textSecondary }]}>
                   Your profile is verified and visible to pet owners.
-                </Text>
+                </ThemedText>
               )}
               
               {userRoles.practitioner_status === 'rejected' && (
-                <Text style={styles.statusNote}>
+                <ThemedText style={[styles.statusNote, { color: colors.textSecondary }]}>
                   Your application was rejected. Please contact support for more information.
-                </Text>
+                </ThemedText>
               )}
             </View>
             
-            <Divider style={styles.statusDivider} />
+            <Divider style={[styles.statusDivider, { backgroundColor: colors.border }]} />
             
             <List.Item
               title="Profile Created"
               description={new Date(profile.created_at).toLocaleDateString()}
-              left={(props) => <List.Icon {...props} icon="calendar-plus" />}
+              left={(props) => <List.Icon {...props} icon="calendar-plus" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
             
             {profile.verified_at && (
               <List.Item
                 title="Verified On"
                 description={new Date(profile.verified_at).toLocaleDateString()}
-                left={(props) => <List.Icon {...props} icon="check-circle" />}
+                left={(props) => <List.Icon {...props} icon="check-circle" color={brandColors.success} />}
+                titleStyle={{ color: colors.text }}
+                descriptionStyle={{ color: colors.textSecondary }}
               />
             )}
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
         {/* Additional Actions */}
-        <Card style={styles.actionsCard}>
-          <Card.Title title="Additional Actions" />
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={1} style={styles.actionsCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Additional Actions
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
             <List.Item
               title="Application Status"
               description="View detailed application status"
-              left={(props) => <List.Icon {...props} icon="clipboard-list" />}
-              right={(props) => <List.Icon {...props} icon="chevron-right" />}
+              left={(props) => <List.Icon {...props} icon="clipboard-list" color={colors.textSecondary} />}
+              right={(props) => <List.Icon {...props} icon="chevron-right" color={colors.textSecondary} />}
               onPress={() => router.push('/applicationStatus')}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             />
             
             {userRoles.practitioner_status === 'verified' && (
               <>
-                <Divider />
+                <Divider style={{ backgroundColor: colors.border }} />
                 <List.Item
                   title="Practice Settings"
                   description="Configure your practice preferences"
-                  left={(props) => <List.Icon {...props} icon="cog" />}
-                  right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                  left={(props) => <List.Icon {...props} icon="cog" color={colors.textSecondary} />}
+                  right={(props) => <List.Icon {...props} icon="chevron-right" color={colors.textSecondary} />}
                   onPress={() => router.push('/practiceSettings')}
+                  titleStyle={{ color: colors.text }}
+                  descriptionStyle={{ color: colors.textSecondary }}
                 />
-                <Divider />
+                <Divider style={{ backgroundColor: colors.border }} />
                 <List.Item
                   title="Privacy Settings"
                   description="Manage profile visibility"
-                  left={(props) => <List.Icon {...props} icon="shield-account" />}
-                  right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                  left={(props) => <List.Icon {...props} icon="shield-account" color={colors.textSecondary} />}
+                  right={(props) => <List.Icon {...props} icon="chevron-right" color={colors.textSecondary} />}
                   onPress={() => router.push('/profileVisibilitySettings')}
+                  titleStyle={{ color: colors.text }}
+                  descriptionStyle={{ color: colors.textSecondary }}
                 />
               </>
             )}
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
       </ScrollView>
     </ThemedView>
@@ -342,18 +402,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 24,
-    color: '#E74C3C',
   },
   createButton: {
     marginTop: 16,
   },
   headerCard: {
     marginBottom: 16,
-    elevation: 3,
   },
   headerContent: {
     alignItems: 'center',
     paddingVertical: 24,
+    paddingHorizontal: 16,
   },
   profilePhotoContainer: {
     position: 'relative',
@@ -377,7 +436,6 @@ const styles = StyleSheet.create({
   designation: {
     textAlign: 'center',
     marginBottom: 4,
-    color: '#27AE60',
     fontWeight: '500',
   },
   degrees: {
@@ -389,6 +447,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 8,
+    width: '100%',
   },
   editButton: {
     flex: 1,
@@ -398,18 +457,29 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     marginBottom: 16,
-    elevation: 1,
+  },
+  cardTitleContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  cardContent: {
+    paddingBottom: 8,
   },
   expertiseItem: {
     minHeight: 60,
   },
   statusCard: {
     marginBottom: 16,
-    elevation: 1,
   },
   statusContainer: {
     alignItems: 'center',
     marginBottom: 16,
+    paddingHorizontal: 16,
   },
   statusChip: {
     marginBottom: 12,
@@ -425,6 +495,5 @@ const styles = StyleSheet.create({
   },
   actionsCard: {
     marginBottom: 32,
-    elevation: 1,
   },
 });

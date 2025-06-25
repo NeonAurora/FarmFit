@@ -1,22 +1,24 @@
 // app/(main)/(screens)/petListScreen.jsx
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, View, TouchableOpacity, RefreshControl } from 'react-native';
-import { Card, Text, Avatar, ActivityIndicator, FAB, Searchbar, IconButton } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { Avatar, ActivityIndicator, FAB, Searchbar, IconButton, Chip } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useActivityIndicatorColors, useFabColors } from '@/hooks/useThemeColor';
+import { BrandColors } from '@/constants/Colors';
 import { router } from 'expo-router';
 import { usePets } from '@/hooks/usePetsData';
 
 export default function PetListScreen() {
-  const navigation = useNavigation();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const fabColors = useFabColors();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Use the hook instead of managing state and fetching manually
   const { pets, loading, error, refetch } = usePets();
   
   const handleAddPet = () => {
@@ -43,7 +45,6 @@ export default function PetListScreen() {
   
   const getFilteredPets = () => {
     if (!searchQuery) return pets;
-    
     return pets.filter(pet => 
       pet.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       pet.species.toLowerCase().includes(searchQuery.toLowerCase())
@@ -52,113 +53,202 @@ export default function PetListScreen() {
   
   const renderPetCard = ({ item }) => {
     return (
-      <TouchableOpacity onPress={() => handlePetPress(item.id)}>
-        <Card style={[styles.petCard, isDark && styles.petCardDark]}>
-          <Card.Content style={styles.cardContent}>
-            {/* Left side - Image/Avatar */}
-            <View style={styles.cardImageContainer}>
+      <TouchableOpacity 
+        onPress={() => handlePetPress(item.id)}
+        activeOpacity={0.7}
+        style={styles.cardTouchable}
+      >
+        <ThemedCard variant="elevated" style={styles.petCard}>
+          <View style={styles.cardContent}>
+            {/* Avatar */}
+            <View style={styles.avatarContainer}>
               {item.image_url ? (
-                <Avatar.Image size={60} source={{ uri: item.image_url }} />
+                <Avatar.Image 
+                  size={56} 
+                  source={{ uri: item.image_url }}
+                />
               ) : (
                 <Avatar.Icon 
-                  size={60} 
-                  icon="paw"
-                  backgroundColor={isDark ? '#444' : '#e0e0e0'}
-                  color={isDark ? '#fff' : '#666'}
+                  size={56} 
+                  icon="account-circle"
+                  style={{ backgroundColor: colors.surface }}
+                  color={colors.textSecondary}
                 />
               )}
             </View>
             
-            {/* Right side - Info */}
-            <View style={styles.cardInfoContainer}>
+            {/* Pet Info */}
+            <View style={styles.petInfo}>
               <ThemedText style={styles.petName}>{item.name}</ThemedText>
-              <ThemedText style={styles.petSpecies}>{item.species}</ThemedText>
+              <ThemedText style={[styles.petSpecies, { color: colors.textSecondary }]}>
+                {item.species}
+              </ThemedText>
               
-              {/* Show pet type if available */}
-              {item.pet_type && (
-                <View style={styles.petTypeBadge}>
-                  <Text style={styles.petTypeText}>
+              {/* Compact details row */}
+              <View style={styles.detailsRow}>
+                {item.age && (
+                  <Chip 
+                    compact
+                    style={[styles.detailChip, { backgroundColor: colors.surface }]}
+                    textStyle={[styles.chipText, { color: colors.textSecondary }]}
+                  >
+                    {item.age}
+                  </Chip>
+                )}
+                
+                {item.pet_type && (
+                  <Chip 
+                    compact
+                    style={[
+                      styles.typeChip, 
+                      { backgroundColor: BrandColors.primary + '10' }
+                    ]}
+                    textStyle={[styles.chipText, { color: BrandColors.primary }]}
+                  >
                     {item.pet_type}
-                  </Text>
-                </View>
-              )}
+                  </Chip>
+                )}
+              </View>
             </View>
-          </Card.Content>
-        </Card>
+            
+            {/* Navigation indicator */}
+            <IconButton
+              icon="chevron-right"
+              size={20}
+              iconColor={colors.textSecondary}
+              style={styles.navIcon}
+            />
+          </View>
+        </ThemedCard>
       </TouchableOpacity>
     );
   };
   
-  return (
-    <ThemedView style={styles.container}>
-      {/* Search bar with refresh button */}
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Search pets..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchBar}
-        />
-        <IconButton
-          icon="refresh"
-          size={24}
-          onPress={handleRefresh}
-          disabled={isRefreshing || loading}
-          style={styles.refreshButton}
-        />
-      </View>
+  const renderSearchHeader = () => (
+    <View style={styles.searchContainer}>
+      <Searchbar
+        placeholder="Search pets"
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={[styles.searchBar, { backgroundColor: colors.surface }]}
+        inputStyle={{ 
+          color: colors.text,
+          textAlignVertical: 'center',
+          includeFontPadding: false, // Remove Android font padding
+          paddingTop: 0, // Remove any top padding
+          paddingBottom: 12, // Slight bottom padding to push text up
+          marginTop: 0, // Move text up slightly
+        }}
+        iconColor={colors.textSecondary}
+        placeholderTextColor={colors.textSecondary}
+        elevation={0}
+      />
       
-      {error ? (
-        <View style={styles.errorContainer}>
-          <ThemedText type="title">Error</ThemedText>
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
+      <IconButton
+        icon="refresh"
+        size={22}
+        onPress={handleRefresh}
+        disabled={isRefreshing || loading}
+        style={[styles.refreshButton, { backgroundColor: colors.surface }]}
+        iconColor={colors.text}
+      />
+    </View>
+  );
+  
+  if (error) {
+    return (
+      <ThemedView style={styles.container}>
+        {renderSearchHeader()}
+        <View style={styles.centerState}>
           <IconButton
-            icon="refresh"
-            size={32}
-            onPress={handleRefresh}
-            disabled={isRefreshing}
-            style={styles.errorRefreshButton}
+            icon="alert-circle"
+            size={40}
+            iconColor={colors.error}
           />
-        </View>
-      ) : loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0a7ea4" />
-          <ThemedText style={styles.loadingText}>Loading your pets...</ThemedText>
-        </View>
-      ) : pets.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <ThemedText type="title">No Pets Yet</ThemedText>
-          <ThemedText style={styles.emptyText}>
-            Tap the + button to add your first pet
+          <ThemedText style={styles.stateTitle}>Connection Error</ThemedText>
+          <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
+            {error}
           </ThemedText>
           <IconButton
             icon="refresh"
-            size={32}
+            size={28}
             onPress={handleRefresh}
             disabled={isRefreshing}
-            style={styles.emptyRefreshButton}
+            style={[styles.stateAction, { backgroundColor: colors.surface }]}
+            iconColor={colors.text}
           />
         </View>
-      ) : (
-        <FlatList
-          data={getFilteredPets()}
-          renderItem={renderPetCard}
-          keyExtractor={item => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              colors={['#0a7ea4']}
-              tintColor="#0a7ea4"
-            />
-          }
+      </ThemedView>
+    );
+  }
+  
+  if (loading) {
+    return (
+      <ThemedView style={styles.container}>
+        {renderSearchHeader()}
+        <View style={styles.centerState}>
+          <ActivityIndicator 
+            size="large" 
+            color={activityIndicatorColors.primary}
+          />
+          <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
+            Loading pets...
+          </ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
+  
+  if (pets.length === 0) {
+    return (
+      <ThemedView style={styles.container}>
+        {renderSearchHeader()}
+        <View style={styles.centerState}>
+          <IconButton
+            icon="plus-circle-outline"
+            size={48}
+            iconColor={colors.textSecondary}
+          />
+          <ThemedText style={styles.stateTitle}>No pets yet</ThemedText>
+          <ThemedText style={[styles.stateMessage, { color: colors.textSecondary }]}>
+            Add your first pet to get started
+          </ThemedText>
+        </View>
+        
+        <FAB
+          icon="plus"
+          style={[styles.fab, { backgroundColor: fabColors.background }]}
+          color={fabColors.text}
+          onPress={handleAddPet}
         />
-      )}
+      </ThemedView>
+    );
+  }
+  
+  return (
+    <ThemedView style={styles.container}>
+      <FlatList
+        data={getFilteredPets()}
+        renderItem={renderPetCard}
+        keyExtractor={item => item.id.toString()}
+        ListHeaderComponent={renderSearchHeader}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[BrandColors.primary]}
+            tintColor={BrandColors.primary}
+            progressBackgroundColor={colors.surface}
+          />
+        }
+      />
       
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: fabColors.background }]}
+        color={fabColors.text}
         onPress={handleAddPet}
       />
     </ThemedView>
@@ -172,100 +262,108 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 16,
-    marginBottom: 0,
+    paddingHorizontal: 1, // Match card padding exactly
+    paddingTop: 20,
+    paddingBottom: 40, // Reduced to tighten spacing
+    gap: 8,
   },
   searchBar: {
     flex: 1,
-    elevation: 4,
+    borderRadius: 8,
+    height: 44,
+    justifyContent: 'center',
+    padding: 0,
   },
   refreshButton: {
-    marginLeft: 8,
+    borderRadius: 8,
+    width: 44,
+    height: 44,
+    margin: 0,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 80,
+    paddingHorizontal: 16,
+    paddingBottom: 88,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  emptyRefreshButton: {
-    marginTop: 16,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    marginTop: 10,
-    textAlign: 'center',
-    color: '#E74C3C',
-  },
-  errorRefreshButton: {
-    marginTop: 16,
+  cardTouchable: {
+    marginBottom: 12,
   },
   petCard: {
-    marginBottom: 12,
-    elevation: 2,
-  },
-  petCardDark: {
-    backgroundColor: '#333',
+    elevation: 1,
   },
   cardContent: {
     flexDirection: 'row',
-    padding: 8,
+    alignItems: 'center',
+    paddingHorizontal: 16, // This should now align with search
+    paddingVertical: 14,
   },
-  cardImageContainer: {
-    marginRight: 16,
-    justifyContent: 'center',
+  avatarContainer: {
+    marginRight: 12,
   },
-  cardInfoContainer: {
+  petInfo: {
     flex: 1,
-    justifyContent: 'center',
   },
   petName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
+    marginBottom: 2,
   },
   petSpecies: {
     fontSize: 14,
-    opacity: 0.7,
     marginBottom: 6,
   },
-  petTypeBadge: {
-    backgroundColor: '#0a7ea4',
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+  detailsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    marginLeft: -10, // Ensure chips align properly
   },
-  petTypeText: {
-    color: 'white',
-    fontSize: 12,
+  detailChip: {
+    height: 24,
+    justifyContent: 'center', // Center chip content
+  },
+  typeChip: {
+    height: 24,
+    justifyContent: 'center', // Center chip content
+  },
+  chipText: {
+    fontSize: 11,
     fontWeight: '500',
+    lineHeight: 14, // Explicit line height for better centering
+    textAlignVertical: 'center', // Android-specific vertical centering
+  },
+  navIcon: {
+    margin: 0,
+    width: 32,
+    height: 32,
+  },
+  centerState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  stateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 12,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  stateMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  stateAction: {
+    borderRadius: 8,
+    width: 44,
+    height: 44,
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#0a7ea4',
   },
 });

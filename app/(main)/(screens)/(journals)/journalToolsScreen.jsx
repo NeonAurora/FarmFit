@@ -1,227 +1,302 @@
 // app/(main)/(screens)/(journals)/journalToolsScreen.jsx
-import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, View, TouchableOpacity, Alert } from 'react-native';
 import { 
-  Card, 
-  Text, 
   List, 
-  Divider,
   IconButton,
-  useTheme
+  Chip
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
+import { BrandColors } from '@/constants/Colors';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function JournalToolsScreen() {
-  const colorScheme = useColorScheme();
-  const theme = useTheme();
+  const { colors, isDark } = useTheme();
   const { user } = useAuth();
-  const isDark = colorScheme === 'dark';
+
+  // Expandable sections state
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
+  const [tipsExpanded, setTipsExpanded] = useState(false);
 
   const navigateTo = (route) => {
     router.push(route);
   };
 
+  const showHint = (title, description) => {
+    Alert.alert(title, description, [{ text: "Got it", style: "default" }]);
+  };
+
+  const quickActions = [
+    {
+      title: "New Entry",
+      description: "Create a new journal entry to document your day",
+      icon: "plus",
+      route: "/addJournalScreen",
+      color: BrandColors.primary
+    },
+    {
+      title: "All Entries",
+      description: "View and manage all your journal entries",
+      icon: "format-list-bulleted",
+      route: "/journalListScreen",
+      color: BrandColors.primary
+    },
+    {
+      title: "Calendar",
+      description: "View your entries in a calendar format",
+      icon: "calendar",
+      route: "/journalCalendarScreen",
+      color: BrandColors.primary
+    }
+  ];
+
   const toolCategories = [
     {
-      title: "📊 Analytics & Insights",
-      description: "Track your journaling patterns and pet health trends",
+      title: "Analytics & Insights",
+      expanded: analyticsExpanded,
+      setExpanded: setAnalyticsExpanded,
       items: [
         {
           title: "Journal Statistics",
-          description: "View your journaling habits and streaks",
+          description: "View your journaling habits, streaks, and writing patterns over time",
           icon: "chart-bar",
-          route: "/journalStatsScreen",
-          color: "#3498DB"
+          route: "/journalStatsScreen"
         },
         {
-          title: "Mood Analytics",
-          description: "Track your pet's mood patterns over time",
-          icon: "emoticon-happy",
-          route: "/moodAnalyticsScreen",
-          color: "#9B59B6"
+          title: "Mood Analytics", 
+          description: "Track mood patterns and emotional trends for you and your pets",
+          icon: "chart-line",
+          route: "/moodAnalyticsScreen"
         },
         {
-          title: "Health Trends", 
-          description: "Visualize health patterns and improvements",
+          title: "Health Trends",
+          description: "Visualize health patterns and improvements based on your entries",
           icon: "trending-up",
-          route: "/healthTrendsScreen",
-          color: "#27AE60"
+          route: "/healthTrendsScreen"
         }
       ]
     },
     {
-      title: "🔍 Search & Discovery",
-      description: "Find and explore your journal entries",
+      title: "Search & Discovery",
+      expanded: searchExpanded,
+      setExpanded: setSearchExpanded,
       items: [
         {
           title: "Advanced Search",
-          description: "Search entries by date, mood, tags, or content",
+          description: "Search entries by date, mood, tags, content, or specific keywords",
           icon: "magnify",
-          route: "/journalSearchScreen",
-          color: "#E67E22"
+          route: "/journalSearchScreen"
         },
         {
           title: "Memory Lane",
-          description: "Rediscover entries from this day in previous years",
+          description: "Rediscover entries from this day in previous years and relive memories",
           icon: "history",
-          route: "/memoryLaneScreen", 
-          color: "#E91E63"
+          route: "/memoryLaneScreen"
         },
         {
           title: "Tag Explorer",
-          description: "Browse entries by tags and categories",
+          description: "Browse and explore your entries organized by tags and categories",
           icon: "tag-multiple",
-          route: "/tagExplorerScreen",
-          color: "#FF5722"
+          route: "/tagExplorerScreen"
         }
       ]
     },
     {
-      title: "⚙️ Settings & Customization",
-      description: "Personalize your journaling experience",
+      title: "Settings & Export",
+      expanded: settingsExpanded,
+      setExpanded: setSettingsExpanded,
       items: [
         {
           title: "Journal Settings",
-          description: "Configure privacy, reminders, and preferences",
+          description: "Configure privacy settings, reminders, and personal preferences",
           icon: "cog",
-          route: "/journalSettingsScreen",
-          color: "#607D8B"
+          route: "/journalSettingsScreen"
         },
         {
           title: "Export & Backup",
-          description: "Download or backup your journal data",
+          description: "Download, backup, or share your journal data securely",
           icon: "download",
-          route: "/journalExportScreen",
-          color: "#795548"
+          route: "/journalExportScreen"
         },
         {
           title: "Templates & Prompts",
-          description: "Manage custom templates and writing prompts",
+          description: "Create and manage custom templates and writing prompts",
           icon: "file-document-edit",
-          route: "/journalTemplatesScreen",
-          color: "#009688"
+          route: "/journalTemplatesScreen"
         }
       ]
     }
   ];
 
+  const proTips = [
+    {
+      title: "Use Tags Consistently",
+      description: "Consistent tagging makes searching and organizing entries much easier",
+      icon: "tag"
+    },
+    {
+      title: "Check Stats Weekly",
+      description: "Regular review of your statistics helps maintain journaling habits",
+      icon: "chart-line"
+    },
+    {
+      title: "Set Up Reminders",
+      description: "Daily reminders help you build and maintain consistent journaling habits",
+      icon: "bell"
+    },
+    {
+      title: "Export Data Regularly",
+      description: "Regular backups protect your valuable journal entries from loss",
+      icon: "download"
+    }
+  ];
+
+  const renderQuickAction = (action, index) => (
+    <TouchableOpacity
+      key={index}
+      style={styles.quickAction}
+      onPress={() => navigateTo(action.route)}
+      onLongPress={() => showHint(action.title, action.description)}
+      activeOpacity={0.7}
+    >
+      <View style={[
+        styles.quickActionButton, 
+        { backgroundColor: colors.surface }
+      ]}>
+        <IconButton
+          icon={action.icon}
+          size={24}
+          iconColor={action.color}
+          style={styles.quickActionIcon}
+        />
+      </View>
+      <ThemedText style={styles.quickActionText}>{action.title}</ThemedText>
+    </TouchableOpacity>
+  );
+
+  const renderToolItem = (item, index) => (
+    <TouchableOpacity
+      key={index}
+      style={[styles.toolItem, { borderBottomColor: colors.border }]}
+      onPress={() => navigateTo(item.route)}
+      onLongPress={() => showHint(item.title, item.description)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.toolItemContent}>
+        <View style={[styles.toolIconContainer, { backgroundColor: colors.surface }]}>
+          <IconButton
+            icon={item.icon}
+            size={20}
+            iconColor={colors.text}
+            style={styles.toolIcon}
+          />
+        </View>
+        
+        <View style={styles.toolTextContainer}>
+          <ThemedText style={styles.toolTitle}>{item.title}</ThemedText>
+        </View>
+        
+        <IconButton
+          icon="chevron-right"
+          size={18}
+          iconColor={colors.textSecondary}
+          style={styles.chevronIcon}
+        />
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderProTip = (tip, index) => (
+    <TouchableOpacity
+      key={index}
+      onLongPress={() => showHint(tip.title, tip.description)}
+      activeOpacity={0.7}
+    >
+      <Chip
+        icon={tip.icon}
+        style={[styles.tipChip, { backgroundColor: colors.surface }]}
+        textStyle={[styles.tipText, { color: colors.textSecondary }]}
+      >
+        {tip.title}
+      </Chip>
+    </TouchableOpacity>
+  );
+
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        
-        {/* Header Card */}
-        <Card style={[styles.headerCard, { backgroundColor: theme.colors.primaryContainer }]}>
-          <Card.Content style={styles.headerContent}>
-            <Text variant="headlineSmall" style={styles.headerTitle}>
-              Journal Tools
-            </Text>
-            <Text variant="bodyMedium" style={styles.headerSubtitle}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Introduction Card */}
+        <ThemedCard variant="elevated" style={styles.introCard}>
+          <View style={styles.cardContent}>
+            <ThemedText style={styles.introText}>
               Enhance your journaling experience with powerful tools and insights
-            </Text>
-          </Card.Content>
-        </Card>
+            </ThemedText>
+          </View>
+        </ThemedCard>
 
-        {/* Quick Actions Row */}
-        <Card style={styles.quickActionsCard}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Quick Actions</Text>
+        {/* Quick Actions */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <View style={styles.cardContent}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Quick Actions
+            </ThemedText>
             <View style={styles.quickActionsRow}>
-              <View style={styles.quickAction}>
-                <IconButton
-                  icon="plus-circle"
-                  size={40}
-                  iconColor="#27AE60"
-                  style={[styles.quickActionButton, { backgroundColor: '#27AE6020' }]}
-                  onPress={() => navigateTo('/addJournalScreen')}
-                />
-                <Text variant="bodySmall" style={styles.quickActionText}>New Entry</Text>
-              </View>
-              <View style={styles.quickAction}>
-                <IconButton
-                  icon="view-list"
-                  size={40}
-                  iconColor="#3498DB"
-                  style={[styles.quickActionButton, { backgroundColor: '#3498DB20' }]}
-                  onPress={() => navigateTo('/journalListScreen')}
-                />
-                <Text variant="bodySmall" style={styles.quickActionText}>All Entries</Text>
-              </View>
-              <View style={styles.quickAction}>
-                <IconButton
-                  icon="calendar-today"
-                  size={40}
-                  iconColor="#E67E22"
-                  style={[styles.quickActionButton, { backgroundColor: '#E67E2220' }]}
-                  onPress={() => navigateTo('/journalCalendarScreen')}
-                />
-                <Text variant="bodySmall" style={styles.quickActionText}>Calendar</Text>
-              </View>
+              {quickActions.map(renderQuickAction)}
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
-        {/* Tool Categories */}
+        {/* Tool Categories - Expandable Sections */}
         {toolCategories.map((category, categoryIndex) => (
-          <Card key={categoryIndex} style={styles.categoryCard}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.categoryTitle}>
-                {category.title}
-              </Text>
-              <Text variant="bodyMedium" style={styles.categoryDescription}>
-                {category.description}
-              </Text>
-              
-              <Divider style={styles.categoryDivider} />
-              
-              {category.items.map((item, itemIndex) => (
-                <List.Item
-                  key={itemIndex}
-                  title={item.title}
-                  description={item.description}
-                  left={(props) => (
-                    <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
-                      <List.Icon 
-                        {...props} 
-                        icon={item.icon} 
-                        color={item.color}
-                      />
-                    </View>
-                  )}
-                  right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                  onPress={() => navigateTo(item.route)}
-                  style={styles.toolItem}
-                />
-              ))}
-            </Card.Content>
-          </Card>
+          <ThemedCard key={categoryIndex} variant="elevated" style={styles.card}>
+            <List.Accordion
+              title={category.title}
+              expanded={category.expanded}
+              onPress={() => category.setExpanded(!category.expanded)}
+              style={styles.accordion}
+              titleStyle={[styles.accordionTitle, { color: colors.text }]}
+              left={props => <List.Icon {...props} icon="chevron-down" />}
+            >
+              <View style={styles.accordionContent}>
+                <View style={styles.toolsList}>
+                  {category.items.map(renderToolItem)}
+                </View>
+              </View>
+            </List.Accordion>
+          </ThemedCard>
         ))}
 
-        {/* Usage Tips Card */}
-        <Card style={styles.tipsCard}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.tipsTitle}>
-              💡 Pro Tips
-            </Text>
-            <View style={styles.tipsList}>
-              <Text variant="bodyMedium" style={styles.tipItem}>
-                • Use tags consistently to make searching easier
-              </Text>
-              <Text variant="bodyMedium" style={styles.tipItem}>
-                • Check your stats weekly to maintain journaling habits
-              </Text>
-              <Text variant="bodyMedium" style={styles.tipItem}>
-                • Set up reminders in Settings for consistent entries
-              </Text>
-              <Text variant="bodyMedium" style={styles.tipItem}>
-                • Export your data regularly as a backup
-              </Text>
+        {/* Pro Tips - Expandable Section */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <List.Accordion
+            title="Pro Tips"
+            expanded={tipsExpanded}
+            onPress={() => setTipsExpanded(!tipsExpanded)}
+            style={styles.accordion}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+            left={props => <List.Icon {...props} icon="chevron-down" />}
+          >
+            <View style={styles.accordionContent}>
+              <ThemedText style={[styles.hintText, { color: colors.textSecondary }]}>
+                Long press any button to see its functionality
+              </ThemedText>
+              
+              <View style={styles.tipsContainer}>
+                {proTips.map(renderProTip)}
+              </View>
             </View>
-          </Card.Content>
-        </Card>
-
+          </List.Accordion>
+        </ThemedCard>
       </ScrollView>
     </ThemedView>
   );
@@ -233,85 +308,120 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    padding: 16,
   },
-  headerCard: {
-    marginBottom: 16,
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  introCard: {
+    marginBottom: 20,
     elevation: 2,
   },
-  headerContent: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    textAlign: 'center',
-    opacity: 0.8,
-  },
-  quickActionsCard: {
-    marginBottom: 16,
+  card: {
+    marginBottom: 20,
     elevation: 1,
+  },
+  cardContent: {
+    padding: 20,
+  },
+  introText: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
   },
   sectionTitle: {
     marginBottom: 16,
-    fontWeight: '600',
+    color: '#666',
   },
   quickActionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 8,
   },
   quickAction: {
     alignItems: 'center',
     flex: 1,
   },
   quickActionButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
+    elevation: 1,
+  },
+  quickActionIcon: {
+    margin: 0,
   },
   quickActionText: {
-    textAlign: 'center',
+    fontSize: 12,
     fontWeight: '500',
+    textAlign: 'center',
   },
-  categoryCard: {
-    marginBottom: 16,
-    elevation: 1,
+  accordion: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
   },
-  categoryTitle: {
-    fontWeight: 'bold',
-    marginBottom: 8,
+  accordionTitle: {
+    fontWeight: '500',
+    fontSize: 18,
   },
-  categoryDescription: {
-    opacity: 0.7,
-    marginBottom: 16,
+  accordionContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  categoryDivider: {
-    marginBottom: 8,
-  },
-  iconContainer: {
-    borderRadius: 8,
-    padding: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
+  toolsList: {
+    gap: 2,
   },
   toolItem: {
-    paddingVertical: 4,
+    borderBottomWidth: 1,
+    paddingVertical: 12,
   },
-  tipsCard: {
-    marginBottom: 32,
-    elevation: 1,
+  toolItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  tipsTitle: {
-    fontWeight: 'bold',
-    marginBottom: 12,
+  toolIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  tipsList: {
-    paddingLeft: 8,
+  toolIcon: {
+    margin: 0,
   },
-  tipItem: {
-    marginBottom: 6,
-    lineHeight: 20,
+  toolTextContainer: {
+    flex: 1,
+  },
+  toolTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  chevronIcon: {
+    margin: 0,
+    width: 32,
+    height: 32,
+  },
+  hintText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  tipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tipChip: {
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  tipText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
 });

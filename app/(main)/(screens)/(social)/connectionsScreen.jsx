@@ -2,26 +2,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FlatList, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { 
-  Card, 
   Text, 
   Avatar, 
   ActivityIndicator, 
   Searchbar,
-  Button,
   Divider,
   IconButton
 } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedView } from '@/components/themes/ThemedView';
 import { ThemedText } from '@/components/themes/ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { 
+  useActivityIndicatorColors, 
+  useInputColors,
+  useAvatarColors
+} from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserConnections } from '@/services/supabase/connectionService';
 import { router } from 'expo-router';
 
 export default function ConnectionsScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, brandColors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const inputColors = useInputColors();
+  const avatarColors = useAvatarColors();
   const { user } = useAuth();
   
   const [connections, setConnections] = useState([]);
@@ -110,28 +117,28 @@ export default function ConnectionsScreen() {
 
     return (
       <TouchableOpacity onPress={() => handleUserPress(item)}>
-        <Card style={[styles.connectionCard, isDark && styles.connectionCardDark]}>
-          <Card.Content style={styles.cardContent}>
+        <ThemedCard variant="elevated" elevation={1} style={styles.connectionCard}>
+          <View style={styles.cardContent}>
             <View style={styles.userInfo}>
               {item.user?.picture ? (
-                <Avatar.Image size={60} source={{ uri: item.user.picture }} />
+                <Avatar.Image size={56} source={{ uri: item.user.picture }} />
               ) : (
                 <Avatar.Text 
-                  size={60} 
+                  size={56} 
                   label={(item.user?.name?.charAt(0) || item.user?.email?.charAt(0) || 'U').toUpperCase()}
-                  backgroundColor={isDark ? '#444' : '#e0e0e0'}
-                  color={isDark ? '#fff' : '#666'}
+                  backgroundColor={avatarColors.background}
+                  color={avatarColors.text}
                 />
               )}
               
               <View style={styles.userDetails}>
-                <ThemedText style={styles.userName}>
+                <ThemedText type="defaultSemiBold" style={[styles.userName, { color: colors.text }]}>
                   {item.user?.name || 'Anonymous User'}
                 </ThemedText>
-                <ThemedText style={styles.userEmail}>
+                <ThemedText style={[styles.userEmail, { color: colors.textSecondary }]}>
                   {item.user?.email}
                 </ThemedText>
-                <ThemedText style={styles.connectionDate}>
+                <ThemedText variant="bodySmall" style={[styles.connectionDate, { color: colors.textMuted }]}>
                   Connected on {connectionDate}
                 </ThemedText>
               </View>
@@ -140,21 +147,21 @@ export default function ConnectionsScreen() {
             <View style={styles.actionButtons}>
               <IconButton
                 icon="message"
-                size={24}
+                size={20}
                 onPress={() => handleSendMessage(item)}
                 style={styles.messageButton}
-                iconColor="#0a7ea4"
+                iconColor={brandColors.primary}
               />
               <IconButton
                 icon="account"
-                size={24}
+                size={20}
                 onPress={() => handleUserPress(item)}
                 style={styles.profileButton}
-                iconColor="#0a7ea4"
+                iconColor={brandColors.primary}
               />
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
       </TouchableOpacity>
     );
   };
@@ -163,46 +170,62 @@ export default function ConnectionsScreen() {
     if (searchQuery && filteredConnections.length === 0 && connections.length > 0) {
       return (
         <View style={styles.emptyContainer}>
-          <Avatar.Icon size={80} icon="account-search" backgroundColor="#e0e0e0" />
-          <ThemedText type="title" style={styles.emptyTitle}>
+          <Avatar.Icon 
+            size={80} 
+            icon="account-search" 
+            backgroundColor={colors.backgroundSecondary}
+            color={colors.textSecondary}
+          />
+          <ThemedText type="subtitle" style={styles.emptyTitle}>
             No Connections Found
           </ThemedText>
-          <ThemedText style={styles.emptyText}>
+          <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
             No connections match "{searchQuery}"
           </ThemedText>
-          <Button mode="outlined" onPress={clearSearch} style={styles.clearButton}>
+          <ThemedButton 
+            variant="outlined" 
+            onPress={clearSearch} 
+            style={styles.clearButton}
+          >
             Clear Search
-          </Button>
+          </ThemedButton>
         </View>
       );
     }
 
     return (
       <View style={styles.emptyContainer}>
-        <Avatar.Icon size={80} icon="account-group" backgroundColor="#e0e0e0" />
-        <ThemedText type="title" style={styles.emptyTitle}>
+        <Avatar.Icon 
+          size={80} 
+          icon="account-group" 
+          backgroundColor={colors.backgroundSecondary}
+          color={colors.textSecondary}
+        />
+        <ThemedText type="subtitle" style={styles.emptyTitle}>
           No Connections Yet
         </ThemedText>
-        <ThemedText style={styles.emptyText}>
+        <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
           Start connecting with other pet lovers to build your network!
         </ThemedText>
-        <Button 
-          mode="contained" 
+        <ThemedButton 
+          variant="primary"
           onPress={() => router.push('/userSearchScreen')}
           style={styles.findUsersButton}
           icon="account-search"
         >
           Find Users
-        </Button>
+        </ThemedButton>
       </View>
     );
   };
 
   const renderHeader = () => (
-    <View style={styles.headerContainer}>
+    <View style={[styles.headerContainer, { backgroundColor: colors.backgroundSecondary }]}>
       <View style={styles.statsContainer}>
-        <ThemedText style={styles.statsNumber}>{connections.length}</ThemedText>
-        <ThemedText style={styles.statsLabel}>
+        <ThemedText style={[styles.statsNumber, { color: brandColors.primary }]}>
+          {connections.length}
+        </ThemedText>
+        <ThemedText style={[styles.statsLabel, { color: colors.textSecondary }]}>
           Connection{connections.length !== 1 ? 's' : ''}
         </ThemedText>
       </View>
@@ -212,8 +235,10 @@ export default function ConnectionsScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
-        <ThemedText style={styles.loadingText}>Loading your connections...</ThemedText>
+        <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
+        <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Loading your connections...
+        </ThemedText>
       </ThemedView>
     );
   }
@@ -221,19 +246,26 @@ export default function ConnectionsScreen() {
   if (error) {
     return (
       <ThemedView style={styles.errorContainer}>
-        <Avatar.Icon size={80} icon="alert-circle" backgroundColor="#e0e0e0" />
-        <ThemedText type="title" style={styles.errorTitle}>
+        <Avatar.Icon 
+          size={80} 
+          icon="alert-circle" 
+          backgroundColor={colors.backgroundSecondary}
+          color={brandColors.error}
+        />
+        <ThemedText type="subtitle" style={[styles.errorTitle, { color: brandColors.error }]}>
           Error Loading Connections
         </ThemedText>
-        <ThemedText style={styles.errorText}>{error}</ThemedText>
-        <Button 
-          mode="contained" 
+        <ThemedText style={[styles.errorText, { color: colors.textSecondary }]}>
+          {error}
+        </ThemedText>
+        <ThemedButton 
+          variant="primary"
           onPress={() => fetchConnections()}
           style={styles.retryButton}
           icon="refresh"
         >
           Try Again
-        </Button>
+        </ThemedButton>
       </ThemedView>
     );
   }
@@ -241,23 +273,33 @@ export default function ConnectionsScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Search Header */}
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
         <Searchbar
           placeholder="Search connections..."
           onChangeText={setSearchQuery}
           value={searchQuery}
-          style={styles.searchBar}
+          style={[
+            styles.searchBar,
+            { 
+              backgroundColor: colors.background,
+              elevation: 2,
+            }
+          ]}
+          inputStyle={{ color: colors.text }}
+          iconColor={colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
         />
         <IconButton
           icon="refresh"
-          size={24}
+          size={20}
           onPress={handleRefresh}
           disabled={isRefreshing}
           style={styles.refreshButton}
+          iconColor={isRefreshing ? colors.textMuted : brandColors.primary}
         />
       </View>
 
-      <Divider />
+      <Divider style={{ backgroundColor: colors.border }} />
 
       {/* Connections List */}
       <FlatList
@@ -283,37 +325,47 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 32,
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 16,
+    fontSize: 16,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
   },
   errorTitle: {
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 8,
+    textAlign: 'center',
   },
   errorText: {
     textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 16,
+    opacity: 0.8,
+    marginBottom: 20,
+    lineHeight: 22,
   },
   retryButton: {
     marginTop: 8,
+    minWidth: 120,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 16,
-    marginBottom: 0,
+    padding: 16,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   searchBar: {
     flex: 1,
-    elevation: 4,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   refreshButton: {
     marginLeft: 8,
@@ -321,30 +373,29 @@ const styles = StyleSheet.create({
   headerContainer: {
     padding: 16,
     alignItems: 'center',
+    marginBottom: 8,
+    borderRadius: 8,
+    marginHorizontal: 16,
   },
   statsContainer: {
     alignItems: 'center',
   },
   statsNumber: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#0a7ea4',
   },
   statsLabel: {
     fontSize: 16,
-    opacity: 0.7,
     marginTop: 4,
+    fontWeight: '500',
+    opacity: 0.8,
   },
   listContent: {
     padding: 16,
     flexGrow: 1,
   },
   connectionCard: {
-    marginBottom: 12,
-    elevation: 2,
-  },
-  connectionCardDark: {
-    backgroundColor: '#333',
+    marginBottom: 8,
   },
   cardContent: {
     flexDirection: 'row',
@@ -362,17 +413,16 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontWeight: '600',
     marginBottom: 2,
   },
   userEmail: {
     fontSize: 14,
-    opacity: 0.7,
     marginBottom: 2,
+    opacity: 0.8,
   },
   connectionDate: {
     fontSize: 12,
-    opacity: 0.5,
+    opacity: 0.6,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -388,22 +438,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
+    minHeight: 300,
   },
   emptyTitle: {
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptyText: {
     textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 16,
+    opacity: 0.8,
+    marginBottom: 20,
+    lineHeight: 22,
   },
   clearButton: {
     marginTop: 8,
+    minWidth: 120,
   },
   findUsersButton: {
     marginTop: 8,
-    backgroundColor: '#0a7ea4',
+    minWidth: 140,
   },
 });

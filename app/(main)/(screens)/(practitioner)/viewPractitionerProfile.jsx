@@ -2,10 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Alert, Linking, Modal } from 'react-native';
 import { 
-  Card, 
   Text, 
   Avatar, 
-  Button, 
   Chip,
   Divider,
   List,
@@ -13,7 +11,15 @@ import {
   IconButton
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { ThemedButton } from '@/components/themes/ThemedButton';
+import { useTheme } from '@/contexts/ThemeContext';
+import { 
+  useActivityIndicatorColors, 
+  useBadgeColors,
+  useCardColors 
+} from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, router } from 'expo-router';
 import { getPractitionerProfileById } from '@/services/supabase';
@@ -38,10 +44,12 @@ import {
 } from '@/services/supabase';
 
 export default function ViewPractitionerProfileScreen() {
-  const colorScheme = useColorScheme();
+  const { colors, brandColors, isDark } = useTheme();
+  const activityIndicatorColors = useActivityIndicatorColors();
+  const badgeColors = useBadgeColors();
+  const cardColors = useCardColors();
   const { user, currentRole } = useAuth();
   const { profileId } = useLocalSearchParams();
-  const isDark = colorScheme === 'dark';
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -244,8 +252,10 @@ export default function ViewPractitionerProfileScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+          <ActivityIndicator size="large" color={activityIndicatorColors.primary} />
+          <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading profile...
+          </ThemedText>
         </View>
       </ThemedView>
     );
@@ -255,14 +265,16 @@ export default function ViewPractitionerProfileScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error || 'Profile not found'}</Text>
-          <Button 
-            mode="contained" 
+          <ThemedText style={[styles.errorText, { color: brandColors.error }]}>
+            {error || 'Profile not found'}
+          </ThemedText>
+          <ThemedButton 
+            variant="primary"
             onPress={() => router.back()}
             style={styles.backButton}
           >
             Go Back
-          </Button>
+          </ThemedButton>
         </View>
       </ThemedView>
     );
@@ -272,33 +284,29 @@ export default function ViewPractitionerProfileScreen() {
     <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
-        <Card style={styles.headerCard}>
-          <Card.Content>
-            <View style={styles.headerContent}>
-              <Avatar.Image 
-                size={80} 
-                source={{ uri: profile.profile_photo_url || 'https://via.placeholder.com/80' }}
-                style={styles.avatar}
-              />
-              <View style={styles.headerInfo}>
-                <Text style={styles.practitionerName}>{profile.full_name}</Text>
-                <Text style={styles.designation}>{profile.designation}</Text>
-                <Text style={styles.location}>
-                  {profile.sub_district}, {profile.district}
-                </Text>
-                <Badge style={styles.verifiedBadge}>
-                  ✅ Verified Practitioner
-                </Badge>
-              </View>
+        <ThemedCard variant="elevated" elevation={2} style={styles.headerCard}>
+          <View style={styles.headerContent}>
+            <Avatar.Image 
+              size={80} 
+              source={{ uri: profile.profile_photo_url || 'https://via.placeholder.com/80' }}
+              style={styles.avatar}
+            />
+            <View style={styles.headerInfo}>
+              <Text style={[styles.practitionerName, { color: colors.text }]}>
+                {profile.full_name}
+              </Text>
+              <Text style={[styles.designation, { color: brandColors.primary }]}>
+                {profile.designation}
+              </Text>
+              <Text style={[styles.location, { color: colors.textSecondary }]}>
+                {profile.sub_district}, {profile.district}
+              </Text>
+              <Badge style={[styles.verifiedBadge, { backgroundColor: brandColors.success }]}>
+                ✅ Verified Practitioner
+              </Badge>
             </View>
-          </Card.Content>
-        </Card>
-
-        {/* Rating Display */}
-        <PractitionerRatingDisplay 
-          ratingSummary={ratingSummary} 
-          showDetails={true}
-        />
+          </View>
+        </ThemedCard>
 
         {/* User's Own Rating */}
         {user && userOwnRating && (
@@ -314,135 +322,176 @@ export default function ViewPractitionerProfileScreen() {
 
         {/* Rating Action Buttons */}
         {user && !hasRated && (
-          <Card style={styles.actionCard}>
-            <Card.Content>
-              <Button
-                mode="contained"
+          <ThemedCard variant="elevated" elevation={1} style={styles.actionCard}>
+            <View style={styles.cardContent}>
+              <ThemedButton
+                variant="primary"
                 onPress={() => setShowRatingForm(true)}
                 style={styles.rateButton}
+                icon="star"
               >
                 Rate This Practitioner
-              </Button>
-            </Card.Content>
-          </Card>
+              </ThemedButton>
+            </View>
+          </ThemedCard>
         )}
 
         {/* Professional Details */}
-        <Card style={styles.detailsCard}>
-          <Card.Content>
-            <List.Section>
-              <List.Subheader>Professional Information</List.Subheader>
-              
-              <List.Item
-                title="Degrees & Certificates"
-                description={profile.degrees_certificates}
-                left={props => <List.Icon {...props} icon="school" />}
-              />
-              
-              <List.Item
-                title="BVC Registration"
-                description={profile.bvc_registration_number}
-                left={props => <List.Icon {...props} icon="card-account-details" />}
-              />
-              
-              <List.Item
-                title="Areas of Expertise"
-                description={profile.areas_of_expertise}
-                left={props => <List.Icon {...props} icon="star" />}
-              />
-            </List.Section>
-          </Card.Content>
-        </Card>
+        <ThemedCard variant="elevated" elevation={1} style={styles.detailsCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Professional Information
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
+            <List.Item
+              title="Degrees & Certificates"
+              description={profile.degrees_certificates}
+              left={props => <List.Icon {...props} icon="school" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
+            />
+            
+            <Divider style={{ backgroundColor: colors.border }} />
+            
+            <List.Item
+              title="BVC Registration"
+              description={profile.bvc_registration_number}
+              left={props => <List.Icon {...props} icon="card-account-details" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
+            />
+            
+            <Divider style={{ backgroundColor: colors.border }} />
+            
+            <List.Item
+              title="Areas of Expertise"
+              description={profile.areas_of_expertise}
+              left={props => <List.Icon {...props} icon="star" color={colors.textSecondary} />}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
+            />
+          </View>
+        </ThemedCard>
 
         {/* Contact & Location */}
-        <Card style={styles.contactCard}>
-          <Card.Content>
-            <List.Section>
-              <List.Subheader>Contact & Location</List.Subheader>
-              
-              <List.Item
-                title="Chamber Address"
-                description={`${profile.chamber_address}, ${profile.sub_district}, ${profile.district}`}
-                left={props => <List.Icon {...props} icon="map-marker" />}
-                right={props => (
-                  <IconButton
-                    {...props}
-                    icon="directions"
-                    onPress={handleDirectionsPress}
-                  />
-                )}
-              />
-              
-              <List.Item
-                title="Contact Number"
-                description={profile.contact_info}
-                left={props => <List.Icon {...props} icon="phone" />}
-                right={props => (
-                  <IconButton
-                    {...props}
-                    icon="phone"
-                    onPress={() => handleContactPress(profile.contact_info)}
-                  />
-                )}
-              />
-              
-              {profile.whatsapp_number && (
+        <ThemedCard variant="elevated" elevation={1} style={styles.contactCard}>
+          <View style={styles.cardTitleContainer}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Contact & Location
+            </ThemedText>
+          </View>
+          <View style={styles.cardContent}>
+            <List.Item
+              title="Chamber Address"
+              description={`${profile.chamber_address}, ${profile.sub_district}, ${profile.district}`}
+              left={props => <List.Icon {...props} icon="map-marker" color={colors.textSecondary} />}
+              right={props => (
+                <IconButton
+                  {...props}
+                  icon="directions"
+                  iconColor={brandColors.primary}
+                  onPress={handleDirectionsPress}
+                />
+              )}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
+            />
+            
+            <Divider style={{ backgroundColor: colors.border }} />
+            
+            <List.Item
+              title="Contact Number"
+              description={profile.contact_info}
+              left={props => <List.Icon {...props} icon="phone" color={colors.textSecondary} />}
+              right={props => (
+                <IconButton
+                  {...props}
+                  icon="phone"
+                  iconColor={brandColors.primary}
+                  onPress={() => handleContactPress(profile.contact_info)}
+                />
+              )}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
+            />
+            
+            {profile.whatsapp_number && (
+              <>
+                <Divider style={{ backgroundColor: colors.border }} />
                 <List.Item
                   title="WhatsApp"
                   description={profile.whatsapp_number}
-                  left={props => <List.Icon {...props} icon="whatsapp" />}
+                  left={props => <List.Icon {...props} icon="whatsapp" color={colors.textSecondary} />}
                   right={props => (
                     <IconButton
                       {...props}
                       icon="whatsapp"
+                      iconColor="#25D366"
                       onPress={() => handleWhatsAppPress(profile.whatsapp_number)}
                     />
                   )}
+                  titleStyle={{ color: colors.text }}
+                  descriptionStyle={{ color: colors.textSecondary }}
                 />
-              )}
-            </List.Section>
-          </Card.Content>
-        </Card>
+              </>
+            )}
+          </View>
+        </ThemedCard>
 
-        {/* Action Buttons */}
-        <Card style={styles.actionCard}>
-          <Card.Content>
-            <View style={styles.actionButtons}>
-              <Button
-                mode="contained"
-                style={[styles.actionButton, { backgroundColor: '#25D366' }]}
+        {/* Action Buttons - New Layout */}
+        <ThemedCard variant="elevated" elevation={1} style={styles.actionCard}>
+          <View style={styles.cardContent}>
+            {/* First Row: WhatsApp + Request Service */}
+            <View style={styles.actionRow}>
+              <ThemedButton
                 onPress={() => handleWhatsAppPress(profile.whatsapp_number || profile.contact_info)}
+                style={[styles.actionButtonHalf, { backgroundColor: '#25D366' }]}
+                labelStyle={{ color: colors.textInverse }}
                 icon="whatsapp"
               >
                 WhatsApp
-              </Button>
-              <Button
-                mode="outlined"
-                style={styles.actionButton}
+              </ThemedButton>
+              
+              <ThemedButton
+                variant="outlined"
+                style={styles.actionButtonHalf}
                 onPress={handleRequestService}
                 icon="medical-bag"
               >
                 Request Service
-              </Button>
-              <Button
-                mode="outlined"
-                style={styles.actionButton}
+              </ThemedButton>
+            </View>
+            
+            {/* Second Row: Book Appointment */}
+            <View style={styles.actionRow}>
+              <ThemedButton
+                variant="outlined"
+                style={styles.actionButtonFull}
                 onPress={handleBookAppointment}
                 icon="calendar-clock"
               >
                 Book Appointment
-              </Button>
+              </ThemedButton>
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
+
+        {/* Rating Display - Moved Here */}
+        <PractitionerRatingDisplay 
+          ratingSummary={ratingSummary} 
+          showDetails={true}
+        />
 
         {/* Ratings & Reviews */}
-        <Card style={styles.ratingsCard}>
-          <Card.Content>
+        <ThemedCard variant="elevated" elevation={1} style={styles.ratingsCard}>
+          <View style={styles.cardContent}>
             <List.Accordion
               title={`Reviews & Ratings (${ratingSummary.total_ratings})`}
               expanded={ratingsExpanded}
               onPress={() => setRatingsExpanded(!ratingsExpanded)}
+              titleStyle={{ color: colors.text }}
+              descriptionStyle={{ color: colors.textSecondary }}
             >
               <PractitionerRatingsList
                 ratings={ratings}
@@ -451,8 +500,8 @@ export default function ViewPractitionerProfileScreen() {
                 currentSort={currentSort}
               />
             </List.Accordion>
-          </Card.Content>
-        </Card>
+          </View>
+        </ThemedCard>
 
         {/* Spacing at bottom */}
         <View style={styles.bottomSpacing} />
@@ -461,7 +510,7 @@ export default function ViewPractitionerProfileScreen() {
         <Modal
           visible={showRatingForm}
           onDismiss={() => setShowRatingForm(false)}
-          contentContainerStyle={styles.modalContainer}
+          contentContainerStyle={[styles.modalContainer, { backgroundColor: cardColors.background }]}
         >
           <PractitionerRatingForm
             practitionerId={profile.id}
@@ -475,7 +524,7 @@ export default function ViewPractitionerProfileScreen() {
         <Modal
           visible={showEditForm}
           onDismiss={() => setShowEditForm(false)}
-          contentContainerStyle={styles.modalContainer}
+          contentContainerStyle={[styles.modalContainer, { backgroundColor: cardColors.background }]}
         >
           {editingRating && (
             <PractitionerRatingEditForm
@@ -506,6 +555,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 32,
   },
   loadingText: {
     marginTop: 16,
@@ -521,7 +571,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 24,
-    color: '#666',
   },
   backButton: {
     minWidth: 120,
@@ -533,6 +582,7 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 20,
   },
   avatar: {
     marginRight: 16,
@@ -547,17 +597,19 @@ const styles = StyleSheet.create({
   },
   designation: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 4,
+    fontWeight: '500',
   },
   location: {
     fontSize: 14,
-    color: '#888',
     marginBottom: 8,
+    opacity: 0.8,
   },
   verifiedBadge: {
-    backgroundColor: '#4CAF50',
     alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    minHeight: 28
   },
   detailsCard: {
     margin: 16,
@@ -571,18 +623,37 @@ const styles = StyleSheet.create({
     margin: 16,
     marginVertical: 8,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  cardTitleContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  actionButton: {
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  cardContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    marginTop: 16
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  actionButtonHalf: {
     flex: 1,
-    minWidth: 100,
+    paddingVertical: 8,
+  },
+  actionButtonFull: {
+    flex: 1,
+    paddingVertical: 8,
   },
   rateButton: {
     alignSelf: 'center',
     minWidth: 200,
+    paddingVertical: 8,
   },
   ratingsCard: {
     margin: 16,
@@ -593,8 +664,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     margin: 16,
-    backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 12,
     maxHeight: '90%',
   },
 });

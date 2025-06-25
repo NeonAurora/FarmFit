@@ -1,15 +1,15 @@
 // app/(main)/(screens)/(practitioner)/editPractitionerProfile.jsx
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, View, Alert, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, View, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { 
-  Card, 
   Text, 
   TextInput, 
   Button,
+  Surface,
   Divider
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import ImagePicker from '@/components/interfaces/ImagePicker';
@@ -20,10 +20,11 @@ import {
   checkBVCRegistrationExists
 } from '@/services/supabase';
 
+const { width: screenWidth } = Dimensions.get('window');
+
 export default function EditPractitionerProfileScreen() {
-  const colorScheme = useColorScheme();
+  const { colors, brandColors, isDark } = useTheme();
   const { user } = useAuth();
-  const isDark = colorScheme === 'dark';
 
   // Form state
   const [fullName, setFullName] = useState('');
@@ -96,14 +97,12 @@ export default function EditPractitionerProfileScreen() {
   const validateForm = async () => {
     const errors = {};
 
-    // Basic validation
     if (!fullName.trim()) errors.fullName = 'Full name is required';
     if (!designation.trim()) errors.designation = 'Designation is required';
     if (!degreesCertificates.trim()) errors.degreesCertificates = 'Degrees/certificates are required';
     if (!bvcRegistrationNumber.trim()) {
       errors.bvcRegistrationNumber = 'BVC registration number is required';
     } else if (bvcRegistrationNumber !== originalProfile.bvc_registration_number) {
-      // Only check uniqueness if BVC number changed
       const exists = await checkBVCRegistrationExists(bvcRegistrationNumber, user.sub);
       if (exists) {
         errors.bvcRegistrationNumber = 'This BVC registration number is already registered';
@@ -124,17 +123,13 @@ export default function EditPractitionerProfileScreen() {
     if (!isValid) return;
 
     setIsSaving(true);
-    let imageUrl = originalPhoto; // Default to original photo
+    let imageUrl = originalPhoto;
 
     try {
-      // Handle image upload if changed
       if (profilePhoto && profilePhoto !== originalPhoto) {
         setIsUploading(true);
-        
-        // Upload new image
         imageUrl = await uploadImage(profilePhoto);
         
-        // Delete old image if it exists and upload was successful
         if (originalPhoto && imageUrl) {
           await deleteImage(originalPhoto);
         }
@@ -142,7 +137,6 @@ export default function EditPractitionerProfileScreen() {
         setIsUploading(false);
       }
 
-      // Prepare update data
       const updateData = {
         full_name: fullName.trim(),
         designation: designation.trim(),
@@ -158,7 +152,6 @@ export default function EditPractitionerProfileScreen() {
         updated_at: new Date().toISOString(),
       };
 
-      // Update in database
       const result = await updatePractitionerProfileData(user.sub, updateData);
 
       if (result.success && result.data) {
@@ -189,8 +182,10 @@ export default function EditPractitionerProfileScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#27AE60" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+          <ActivityIndicator size="large" color={colors.activityIndicator.primary} />
+          <Text variant="bodyMedium" style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading profile...
+          </Text>
         </View>
       </ThemedView>
     );
@@ -200,183 +195,220 @@ export default function EditPractitionerProfileScreen() {
     <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         
-        {/* Header */}
-        <Card style={styles.headerCard}>
-          <Card.Content>
-            <Text variant="headlineSmall" style={styles.title}>
-              Edit Profile
-            </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              Update your professional information
-            </Text>
-          </Card.Content>
-        </Card>
+        {/* Compact Header */}
+        <Surface style={[styles.header, { backgroundColor: colors.surface }]} elevation={1}>
+        </Surface>
 
-        {/* Profile Photo */}
-        <Card style={styles.card}>
-          <Card.Title title="Profile Photo" />
-          <Card.Content>
+        {/* Profile Photo Section */}
+        <Surface style={[styles.surface, { backgroundColor: colors.surface }]}>
+          <Text variant="titleMedium" style={[styles.sectionTitle, { color: colors.text }]}>
+            Profile Photo
+          </Text>
+          <View style={styles.photoSection}>
             <ImagePicker
               mode="profile"
               images={profilePhoto}
               onImagesSelected={setProfilePhoto}
               isUploading={isUploading}
-              placeholder="Tap to change profile photo"
+              placeholder="Change photo"
             />
-          </Card.Content>
-        </Card>
+          </View>
+        </Surface>
 
         {/* Professional Information */}
-        <Card style={styles.card}>
-          <Card.Title title="Professional Information" />
-          <Card.Content>
-            <TextInput
-              label="Full Name *"
-              value={fullName}
-              onChangeText={setFullName}
-              style={styles.input}
-              mode="outlined"
-              error={!!validationErrors.fullName}
-            />
-            {validationErrors.fullName && (
-              <Text style={styles.errorText}>{validationErrors.fullName}</Text>
-            )}
+        <Surface style={[styles.surface, styles.surfaceMarginTop, { backgroundColor: colors.surface }]}>
+          <Text variant="titleMedium" style={[styles.sectionTitle, { color: colors.text }]}>
+            Professional Information
+          </Text>
+          
+          <TextInput
+            label="Full Name"
+            value={fullName}
+            onChangeText={setFullName}
+            style={styles.input}
+            mode="outlined"
+            error={!!validationErrors.fullName}
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
+          {validationErrors.fullName && (
+            <Text variant="bodySmall" style={[styles.errorText, { color: brandColors.error }]}>
+              {validationErrors.fullName}
+            </Text>
+          )}
 
-            <TextInput
-              label="Designation *"
-              value={designation}
-              onChangeText={setDesignation}
-              style={styles.input}
-              mode="outlined"
-              placeholder="e.g., Veterinary Doctor"
-              error={!!validationErrors.designation}
-            />
-            {validationErrors.designation && (
-              <Text style={styles.errorText}>{validationErrors.designation}</Text>
-            )}
+          <TextInput
+            label="Designation"
+            value={designation}
+            onChangeText={setDesignation}
+            style={styles.input}
+            mode="outlined"
+            placeholder="e.g., Veterinary Doctor"
+            error={!!validationErrors.designation}
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
+          {validationErrors.designation && (
+            <Text variant="bodySmall" style={[styles.errorText, { color: brandColors.error }]}>
+              {validationErrors.designation}
+            </Text>
+          )}
 
-            <TextInput
-              label="Degrees/Certificates *"
-              value={degreesCertificates}
-              onChangeText={setDegreesCertificates}
-              style={styles.input}
-              mode="outlined"
-              placeholder="e.g., DVM, MPH"
-              error={!!validationErrors.degreesCertificates}
-            />
-            {validationErrors.degreesCertificates && (
-              <Text style={styles.errorText}>{validationErrors.degreesCertificates}</Text>
-            )}
+          <TextInput
+            label="Degrees/Certificates"
+            value={degreesCertificates}
+            onChangeText={setDegreesCertificates}
+            style={styles.input}
+            mode="outlined"
+            placeholder="e.g., DVM, MPH"
+            error={!!validationErrors.degreesCertificates}
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
 
-            <TextInput
-              label="BVC Registration Number *"
-              value={bvcRegistrationNumber}
-              onChangeText={setBvcRegistrationNumber}
-              style={styles.input}
-              mode="outlined"
-              placeholder="e.g., 4807"
-              keyboardType="numeric"
-              error={!!validationErrors.bvcRegistrationNumber}
-            />
-            {validationErrors.bvcRegistrationNumber && (
-              <Text style={styles.errorText}>{validationErrors.bvcRegistrationNumber}</Text>
-            )}
+          <TextInput
+            label="BVC Registration Number"
+            value={bvcRegistrationNumber}
+            onChangeText={setBvcRegistrationNumber}
+            style={styles.input}
+            mode="outlined"
+            placeholder="e.g., 4807"
+            keyboardType="numeric"
+            error={!!validationErrors.bvcRegistrationNumber}
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
+          {validationErrors.bvcRegistrationNumber && (
+            <Text variant="bodySmall" style={[styles.errorText, { color: brandColors.error }]}>
+              {validationErrors.bvcRegistrationNumber}
+            </Text>
+          )}
 
-            <TextInput
-              label="Areas of Expertise *"
-              value={areasOfExpertise}
-              onChangeText={setAreasOfExpertise}
-              style={styles.input}
-              mode="outlined"
-              placeholder="e.g., Pet Animal Medicine"
-              multiline
-              numberOfLines={3}
-              error={!!validationErrors.areasOfExpertise}
-            />
-            {validationErrors.areasOfExpertise && (
-              <Text style={styles.errorText}>{validationErrors.areasOfExpertise}</Text>
-            )}
-          </Card.Content>
-        </Card>
+          <TextInput
+            label="Areas of Expertise"
+            value={areasOfExpertise}
+            onChangeText={setAreasOfExpertise}
+            style={styles.input}
+            mode="outlined"
+            placeholder="e.g., Pet Animal Medicine"
+            multiline
+            numberOfLines={2}
+            error={!!validationErrors.areasOfExpertise}
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
+        </Surface>
 
-        {/* Location & Contact */}
-        <Card style={styles.card}>
-          <Card.Title title="Location & Contact" />
-          <Card.Content>
-            <TextInput
-              label="Chamber Address *"
-              value={chamberAddress}
-              onChangeText={setChamberAddress}
-              style={styles.input}
-              mode="outlined"
-              placeholder="Full address of your chamber"
-              multiline
-              numberOfLines={3}
-              error={!!validationErrors.chamberAddress}
-            />
-            {validationErrors.chamberAddress && (
-              <Text style={styles.errorText}>{validationErrors.chamberAddress}</Text>
-            )}
+        {/* Location Information */}
+        <Surface style={[styles.surface, styles.surfaceMarginTop, { backgroundColor: colors.surface }]}>
+          <Text variant="titleMedium" style={[styles.sectionTitle, { color: colors.text }]}>
+            Practice Location
+          </Text>
+          
+          <TextInput
+            label="Chamber Address"
+            value={chamberAddress}
+            onChangeText={setChamberAddress}
+            style={styles.input}
+            mode="outlined"
+            multiline
+            numberOfLines={2}
+            error={!!validationErrors.chamberAddress}
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
 
-            <TextInput
-              label="Sub-district/Thana *"
-              value={subDistrict}
-              onChangeText={setSubDistrict}
-              style={styles.input}
-              mode="outlined"
-              placeholder="e.g., Khulshi"
-              error={!!validationErrors.subDistrict}
-            />
-            {validationErrors.subDistrict && (
-              <Text style={styles.errorText}>{validationErrors.subDistrict}</Text>
-            )}
+          <TextInput
+            label="Sub-district/Thana"
+            value={subDistrict}
+            onChangeText={setSubDistrict}
+            style={styles.input}
+            mode="outlined"
+            placeholder="e.g., Khulshi"
+            error={!!validationErrors.subDistrict}
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
 
-            <TextInput
-              label="District *"
-              value={district}
-              onChangeText={setDistrict}
-              style={styles.input}
-              mode="outlined"
-              placeholder="e.g., Chattogram"
-              error={!!validationErrors.district}
-            />
-            {validationErrors.district && (
-              <Text style={styles.errorText}>{validationErrors.district}</Text>
-            )}
+          <TextInput
+            label="District"
+            value={district}
+            onChangeText={setDistrict}
+            style={styles.input}
+            mode="outlined"
+            placeholder="e.g., Chattogram"
+            error={!!validationErrors.district}
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
+        </Surface>
 
-            <TextInput
-              label="Primary Contact Number *"
-              value={contactInfo}
-              onChangeText={setContactInfo}
-              style={styles.input}
-              mode="outlined"
-              placeholder="e.g., 01705727081"
-              keyboardType="phone-pad"
-              error={!!validationErrors.contactInfo}
-            />
-            {validationErrors.contactInfo && (
-              <Text style={styles.errorText}>{validationErrors.contactInfo}</Text>
-            )}
+        {/* Contact Information */}
+        <Surface style={[styles.surface, styles.surfaceMarginTop, { backgroundColor: colors.surface }]}>
+          <Text variant="titleMedium" style={[styles.sectionTitle, { color: colors.text }]}>
+            Contact Information
+          </Text>
+          
+          <TextInput
+            label="Primary Contact Number"
+            value={contactInfo}
+            onChangeText={setContactInfo}
+            style={styles.input}
+            mode="outlined"
+            placeholder="e.g., 01705727081"
+            keyboardType="phone-pad"
+            error={!!validationErrors.contactInfo}
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
+          {validationErrors.contactInfo && (
+            <Text variant="bodySmall" style={[styles.errorText, { color: brandColors.error }]}>
+              {validationErrors.contactInfo}
+            </Text>
+          )}
 
-            <TextInput
-              label="WhatsApp Number (Optional)"
-              value={whatsappNumber}
-              onChangeText={setWhatsappNumber}
-              style={styles.input}
-              mode="outlined"
-              placeholder="WhatsApp number if different"
-              keyboardType="phone-pad"
-            />
-          </Card.Content>
-        </Card>
+          <TextInput
+            label="WhatsApp Number (Optional)"
+            value={whatsappNumber}
+            onChangeText={setWhatsappNumber}
+            style={styles.input}
+            mode="outlined"
+            placeholder="WhatsApp number if different"
+            keyboardType="phone-pad"
+            outlineColor={colors.border}
+            activeOutlineColor={brandColors.primary}
+            textColor={colors.text}
+            theme={{ colors: { background: colors.input.background } }}
+          />
+        </Surface>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <Button
             mode="outlined"
             onPress={() => router.back()}
-            style={styles.cancelButton}
+            style={[styles.button, styles.cancelButton]}
             disabled={isSaving}
+            textColor={colors.textSecondary}
+            theme={{ colors: { outline: colors.border } }}
           >
             Cancel
           </Button>
@@ -384,11 +416,12 @@ export default function EditPractitionerProfileScreen() {
           <Button
             mode="contained"
             onPress={handleSave}
-            style={styles.saveButton}
+            style={[styles.button, styles.saveButton]}
             disabled={isSaving || isUploading}
             loading={isSaving}
+            buttonColor={brandColors.primary}
           >
-            Save Changes
+            Save
           </Button>
         </View>
 
@@ -403,7 +436,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    padding: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -411,40 +443,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+    marginTop: 12,
   },
-  headerCard: {
-    marginBottom: 16,
-    elevation: 2,
-  },
-  title: {
-    fontWeight: 'bold',
-    textAlign: 'center',
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     marginBottom: 8,
   },
-  subtitle: {
-    textAlign: 'center',
-    opacity: 0.7,
+  title: {
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  card: {
-    marginBottom: 16,
+  subtitle: {
+    opacity: 0.8,
+  },
+  surface: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    borderRadius: 12,
     elevation: 1,
   },
-  input: {
+  surfaceMarginTop: {
+    marginTop: 12,
+  },
+  sectionTitle: {
+    fontWeight: '600',
     marginBottom: 12,
   },
+  photoSection: {
+    marginBottom: 8,
+  },
+  input: {
+    marginBottom: 8,
+    backgroundColor: 'transparent',
+  },
   errorText: {
-    color: '#E74C3C',
     fontSize: 12,
-    marginBottom: 12,
-    marginLeft: 12,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     gap: 12,
+  },
+  button: {
+    minHeight: 48,
+    justifyContent: 'center',
   },
   cancelButton: {
     flex: 1,

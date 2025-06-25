@@ -4,28 +4,26 @@ import { ScrollView, StyleSheet, View, Alert } from 'react-native';
 import { 
   TextInput, 
   Button, 
-  Text, 
-  Divider, 
   List, 
-  Card,
   Chip,
   SegmentedButtons,
   IconButton
 } from 'react-native-paper';
 import { ThemedView } from '@/components/themes/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme.native';
+import { ThemedText } from '@/components/themes/ThemedText';
+import { ThemedCard } from '@/components/themes/ThemedCard';
+import { useTheme } from '@/contexts/ThemeContext';
 import ImagePicker from '@/components/interfaces/ImagePicker';
-import HorizontalMoodPicker from '@/components/interfaces/HorizontalMoodPicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { uploadImage } from '@/services/supabase';
 import { saveJournalData } from '@/services/supabase/journalService';
 import { getPetsByUserId } from '@/services/supabase/petService';
+import { BrandColors } from '@/constants/Colors';
 import ReanimatedMoodCarousel from '@/components/interfaces/ReanimatedMoodCarousel';
 
 export default function AddJournalScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors, isDark } = useTheme();
   const { user } = useAuth();
   
   // Form state
@@ -155,128 +153,160 @@ export default function AddJournalScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>New Journal Entry</Text>
-        
-        {/* Basic Information */}
-        <Card style={styles.card}>
-          <Card.Title title="📝 Basic Information" />
-          <Card.Content>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      > 
+        {/* Basic Information Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <View style={styles.cardContent}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Basic Information
+            </ThemedText>
+            
             <TextInput
-              label="Title *"
+              label="Title"
               value={title}
               onChangeText={setTitle}
               style={styles.input}
               mode="outlined"
+              outlineStyle={styles.inputOutline}
               placeholder="What's this entry about?"
             />
             
-            <TextInput
-              label="Journal Date"
-              value={journalDate}
-              onChangeText={setJournalDate}
-              style={styles.input}
-              mode="outlined"
-              placeholder="YYYY-MM-DD"
-            />
-            
-            <TextInput
-              label="Content *"
-              value={content}
-              onChangeText={setContent}
-              style={styles.input}
-              mode="outlined"
-              multiline
-              numberOfLines={6}
-              placeholder="Write about your day, your pet's progress, or anything on your mind..."
-            />
-          </Card.Content>
-        </Card>
-
-        {/* Mood Selection */}
-        <Card style={styles.card}>
-        <Card.Title title="😊 How are you feeling?" />
-        <Card.Content>
-            <ReanimatedMoodCarousel
-            value={mood}
-            onValueChange={setMood}
-            />
-        </Card.Content>
-        </Card>
-
-        {/* Pet Selection */}
-        {userPets.length > 0 && (
-          <Card style={styles.card}>
-            <Card.Title title="🐾 About which pet?" />
-            <Card.Content>
-              <View style={styles.petsContainer}>
-                <Chip
-                  selected={selectedPetId === ''}
-                  onPress={() => setSelectedPetId('')}
-                  style={styles.petChip}
-                >
-                  General
-                </Chip>
-                {userPets.map(pet => (
-                  <Chip
-                    key={pet.id}
-                    selected={selectedPetId === pet.id}
-                    onPress={() => setSelectedPetId(pet.id)}
-                    style={styles.petChip}
-                    avatar={pet.image_url ? undefined : 'paw'}
-                  >
-                    {pet.name}
-                  </Chip>
-                ))}
-              </View>
-            </Card.Content>
-          </Card>
-        )}
-
-        {/* Privacy Setting */}
-        <Card style={styles.card}>
-          <Card.Title title="🔒 Privacy" />
-          <Card.Content>
-            <SegmentedButtons
-              value={isPrivate}
-              onValueChange={setIsPrivate}
-              buttons={privacyButtons}
-              style={styles.privacyButtons}
-            />
-          </Card.Content>
-        </Card>
-
-        {/* Additional Details */}
-        <List.Accordion
-          title="📋 Additional Details"
-          expanded={detailsExpanded}
-          onPress={() => setDetailsExpanded(!detailsExpanded)}
-          style={styles.accordion}
-          titleStyle={styles.accordionTitle}
-        >
-          <Card style={styles.detailsCard}>
-            <Card.Content>
+            <View style={styles.rowInputs}>
+              <TextInput
+                label="Date"
+                value={journalDate}
+                onChangeText={setJournalDate}
+                style={[styles.input, styles.halfInput]}
+                mode="outlined"
+                outlineStyle={styles.inputOutline}
+                placeholder="YYYY-MM-DD"
+              />
+              
               <TextInput
                 label="Weather"
                 value={weather}
                 onChangeText={setWeather}
-                style={styles.input}
+                style={[styles.input, styles.halfInput]}
                 mode="outlined"
-                placeholder="Sunny, Rainy, Cloudy..."
+                outlineStyle={styles.inputOutline}
+                placeholder="Sunny, Rainy..."
               />
-              
+            </View>
+            
+            <TextInput
+              label="Content"
+              value={content}
+              onChangeText={setContent}
+              style={styles.input}
+              mode="outlined"
+              outlineStyle={styles.inputOutline}
+              multiline
+              numberOfLines={5}
+              placeholder="Write about your day, your pet's progress, or anything on your mind..."
+            />
+          </View>
+        </ThemedCard>
+
+        {/* Mood Selection Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <View style={styles.cardContent}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              How are you feeling?
+            </ThemedText>
+            <ReanimatedMoodCarousel
+              value={mood}
+              onValueChange={setMood}
+            />
+          </View>
+        </ThemedCard>
+
+        {/* Pet & Privacy Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <View style={styles.cardContent}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Settings
+            </ThemedText>
+            
+            {/* Pet Selection */}
+            {userPets.length > 0 && (
+              <View style={styles.settingSection}>
+                <ThemedText style={styles.settingLabel}>Related Pet</ThemedText>
+                <View style={styles.petsContainer}>
+                  <Chip
+                    selected={selectedPetId === ''}
+                    onPress={() => setSelectedPetId('')}
+                    style={[
+                      styles.petChip,
+                      selectedPetId === '' && { backgroundColor: BrandColors.primary + '15' }
+                    ]}
+                    textStyle={[
+                      styles.chipText,
+                      selectedPetId === '' && { color: BrandColors.primary }
+                    ]}
+                  >
+                    General
+                  </Chip>
+                  {userPets.map(pet => (
+                    <Chip
+                      key={pet.id}
+                      selected={selectedPetId === pet.id}
+                      onPress={() => setSelectedPetId(pet.id)}
+                      style={[
+                        styles.petChip,
+                        selectedPetId === pet.id && { backgroundColor: BrandColors.primary + '15' }
+                      ]}
+                      textStyle={[
+                        styles.chipText,
+                        selectedPetId === pet.id && { color: BrandColors.primary }
+                      ]}
+                    >
+                      {pet.name}
+                    </Chip>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Privacy Setting */}
+            <View style={styles.settingSection}>
+              <ThemedText style={styles.settingLabel}>Privacy</ThemedText>
+              <SegmentedButtons
+                value={isPrivate}
+                onValueChange={setIsPrivate}
+                buttons={privacyButtons}
+                style={styles.privacyButtons}
+              />
+            </View>
+          </View>
+        </ThemedCard>
+
+        {/* Additional Details Card */}
+        <ThemedCard variant="elevated" style={styles.card}>
+          <List.Accordion
+            title="Additional Details"
+            expanded={detailsExpanded}
+            onPress={() => setDetailsExpanded(!detailsExpanded)}
+            style={styles.accordion}
+            titleStyle={[styles.accordionTitle, { color: colors.text }]}
+            left={props => <List.Icon {...props} icon="chevron-down" />}
+          >
+            <View style={styles.accordionContent}>
               <TextInput
                 label="Location"
                 value={location}
                 onChangeText={setLocation}
                 style={styles.input}
                 mode="outlined"
+                outlineStyle={styles.inputOutline}
                 placeholder="Where did this happen?"
               />
 
-              {/* Tags */}
+              {/* Tags Section */}
               <View style={styles.tagsSection}>
-                <Text style={styles.sectionLabel}>Tags</Text>
+                <ThemedText style={styles.inputLabel}>Tags</ThemedText>
                 <View style={styles.tagInputContainer}>
                   <TextInput
                     label="Add tag"
@@ -284,6 +314,7 @@ export default function AddJournalScreen() {
                     onChangeText={setTagInput}
                     style={[styles.input, styles.tagInput]}
                     mode="outlined"
+                    outlineStyle={styles.inputOutline}
                     placeholder="health, training, fun..."
                     onSubmitEditing={addTag}
                   />
@@ -291,7 +322,8 @@ export default function AddJournalScreen() {
                     icon="plus"
                     size={20}
                     onPress={addTag}
-                    style={styles.addTagButton}
+                    style={[styles.addTagButton, { backgroundColor: colors.surface }]}
+                    iconColor={colors.text}
                   />
                 </View>
                 
@@ -300,7 +332,8 @@ export default function AddJournalScreen() {
                     <Chip
                       key={index}
                       onClose={() => removeTag(tag)}
-                      style={styles.tagChip}
+                      style={[styles.tagChip, { backgroundColor: colors.surface }]}
+                      textStyle={[styles.chipText, { color: colors.textSecondary }]}
                     >
                       #{tag}
                     </Chip>
@@ -308,21 +341,21 @@ export default function AddJournalScreen() {
                 </View>
               </View>
 
-              {/* Photos */}
+              {/* Photos Section */}
               <View style={styles.photosSection}>
-                <Text style={styles.sectionLabel}>Photos</Text>
+                <ThemedText style={styles.inputLabel}>Photos</ThemedText>
                 <ImagePicker
                   mode="journal"
                   images={photos}
                   onImagesSelected={setPhotos}
                   isUploading={isUploading}
                   maxImages={5}
-                  placeholder="Tap to add photos for your journal entry"
+                  placeholder="Add photos for your journal entry"
                 />
               </View>
-            </Card.Content>
-          </Card>
-        </List.Accordion>
+            </View>
+          </List.Accordion>
+        </ThemedCard>
         
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
@@ -330,7 +363,7 @@ export default function AddJournalScreen() {
             mode="outlined" 
             onPress={() => router.back()}
             style={styles.cancelButton}
-            labelStyle={styles.cancelButtonText}
+            labelStyle={[styles.buttonLabel, { color: colors.text }]}
           >
             Cancel
           </Button>
@@ -339,6 +372,7 @@ export default function AddJournalScreen() {
             mode="contained" 
             onPress={handleSaveJournal}
             style={styles.saveButton}
+            labelStyle={styles.buttonLabel}
             disabled={isSaving || isUploading}
             loading={isSaving}
           >
@@ -355,23 +389,49 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 20,
-    textAlign: 'center',
+    marginBottom: 24,
   },
   card: {
-    marginBottom: 16,
+    marginBottom: 20,
+    elevation: 1,
+  },
+  cardContent: {
+    padding: 20,
+  },
+  sectionTitle: {
+    marginBottom: 20,
+    color: '#666',
   },
   input: {
     marginBottom: 16,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
-  moodButtons: {
+  inputOutline: {
+    borderRadius: 12,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  halfInput: {
+    flex: 1,
+  },
+  settingSection: {
+    marginBottom: 20,
+  },
+  settingLabel: {
+    fontSize: 14,
+    fontWeight: '500',
     marginBottom: 8,
   },
   petsContainer: {
@@ -380,73 +440,73 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   petChip: {
-    marginRight: 8,
-    marginBottom: 8,
+    height: 32,
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   privacyButtons: {
-    marginBottom: 8,
+    height: 40,
   },
   accordion: {
-    marginBottom: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
   },
   accordionTitle: {
     fontWeight: '500',
-    fontSize: 16,
+    fontSize: 18,
   },
-  detailsCard: {
-    backgroundColor: '#f8f9fa',
-    marginBottom: 16,
+  accordionContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   tagsSection: {
-    marginBottom: 16,
-  },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 8,
+    marginBottom: 20,
   },
   tagInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   tagInput: {
     flex: 1,
   },
   addTagButton: {
-    marginLeft: 8,
+    borderRadius: 8,
+    width: 40,
+    height: 40,
+    margin: 0,
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    gap: 8,
+    marginTop: 12,
   },
   tagChip: {
-    marginRight: 8,
-    marginBottom: 8,
+    height: 28,
   },
   photosSection: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 16,
     marginTop: 24,
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 8,
-    marginLeft: 8,
-    backgroundColor: '#2E86DE',
+    paddingVertical: 4,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderColor: '#999',
+    paddingVertical: 4,
   },
-  cancelButtonText: {
-    color: '#999',
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
